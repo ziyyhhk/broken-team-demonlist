@@ -3,7 +3,7 @@
     --color-on-background: black;
     --color-background-hover: #eee;
     --color-on-background-hover: black;
-    --color-primary: #45b545;          /* ← your new green */
+    --color-primary: #45b545;
     --color-on-primary: white;
     --color-error: #de0000;
     --color-on-error: white;
@@ -16,7 +16,7 @@ header.dark {
     --color-on-background: white;
     --color-background-hover: #27262c;
     --color-on-background-hover: white;
-    --color-primary: #45b545;          /* ← same green in dark mode */
+    --color-primary: #45b545;
     --color-primary-disabled: #2e7a2e;
     --color-on-primary: white;
     --color-error: #de0000;
@@ -71,11 +71,6 @@ header .logo {
     display: flex;
     align-items: flex-end;
     gap: 1rem;
-    transition: transform 0.2s ease;
-}
-
-header .logo:hover {
-    transform: scale(1.02);
 }
 
 header .nav {
@@ -110,19 +105,10 @@ input[type="checkbox"] {
 }
 
 .editors img, 
-.page-leaderboard .editors img,
 img[alt="owner"], img[alt="admin"], img[alt="helper"], img[alt="trial"], img[alt="dev"] {
     width: 1.5rem;
     height: 1.5rem;
     object-fit: contain;
     vertical-align: middle;
     border-radius: 4px;
-}
-
-img:-moz-broken, img:-moz-user-select {
-    opacity: 0;
-}
-
-img:not([src]), img[src=""] {
-    visibility: hidden;
 }
