@@ -1,156 +1,253 @@
-.page-leaderboard-container {
+.page-list-container {
     display: block;
+    width: 100%;
 }
 
-.page-leaderboard {
+.page-list {
     height: 100%;
     display: grid;
-    grid-template-columns: minmax(24rem, 2fr) 3fr;
-    grid-template-rows: max-content 1fr;
-    column-gap: 2rem;
-    max-width: 80rem;
+    grid-template-columns: minmax(14rem, 1fr) minmax(22rem, 2fr) minmax(16rem, 1fr);
+    column-gap: 2.5rem;
+    max-width: 85rem;
     margin: 0 auto;
+    padding: 2rem 1rem;
 }
 
-.page-leaderboard > div {
+.page-list > div {
     overflow-y: auto;
 }
 
-.page-leaderboard .error-container {
-    grid-row: 1;
-    grid-column: 1 / span 2;
+/* ==========================================================================
+   LEFT COLUMN: LEVEL LIST (BOARD)
+   ========================================================================== */
+
+.page-list .board-container {
+    padding-right: 0.5rem;
 }
 
-.page-leaderboard .error-container .error {
-    padding: 1rem;
-    background-color: var(--color-error);
-    color: var(--color-on-error);
-    border-radius: 0.5rem;
-}
-
-.page-leaderboard .board-container,
-.page-leaderboard .player-container {
-    grid-row: 2;
-    padding-block: 2rem;
-}
-
-.page-leaderboard .board-container {
-    padding-inline: 1rem;
-}
-
-.page-leaderboard .board {
-    table-layout: auto;
-    display: block;
+.page-list .board {
     width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.4rem;
 }
 
-.page-leaderboard .board tr {
+.page-list .board tr {
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.page-leaderboard .board .rank {
-    padding-block: 0.75rem;
+.page-list .board .rank {
+    padding-right: 0.75rem;
     text-align: end;
-    font-weight: 700;
-    opacity: 0.85;
-    transition: color 0.2s ease, opacity 0.2s ease;
+    font-weight: 800;
+    opacity: 0.75;
+    white-space: nowrap;
+    transition: opacity 0.2s ease, color 0.2s ease;
 }
 
-.page-leaderboard .board .total {
-    padding: 1rem;
-    text-align: end;
-}
-
-.page-leaderboard .board .user {
+.page-list .board .user {
     width: 100%;
 }
 
-/* Animated Level Item Buttons */
-.page-leaderboard .board .user button {
-    background-color: var(--color-background);
-    color: var(--color-on-background);
+/* Reset default raw buttons to modern animated pills */
+.page-list .board .user button {
+    appearance: none;
+    -webkit-appearance: none;
     border: none;
-    border-radius: 0.75rem;
-    padding: 0.85rem 1.25rem;
+    outline: none;
+    background-color: var(--color-background-hover, #f0f0f0);
+    color: var(--color-on-background, #000);
+    border-radius: 0.6rem;
+    padding: 0.75rem 1rem;
     text-align: start;
+    font-size: 1rem;
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
     word-break: normal;
     overflow-wrap: anywhere;
-    width: 100%;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                background-color 0.2s ease, 
-                box-shadow 0.2s ease,
-                color 0.2s ease;
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                background-color 0.2s ease,
+                color 0.2s ease,
+                box-shadow 0.2s ease;
 }
 
-/* Hover Effect for Level Items */
-.page-leaderboard .board .user button:hover {
+/* Level Item Hover Effect */
+.page-list .board .user button:hover {
     background-color: var(--color-background-hover);
-    color: var(--color-on-background-hover);
-    cursor: pointer;
-    transform: translateX(6px) scale(1.01);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateX(5px) scale(1.01);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Active Selected Level Pill Styling (#1 SampleLevel1) */
-.page-leaderboard .board .user.active button {
-    background-color: var(--color-primary);
-    color: var(--color-on-primary);
+/* Active Selected Level Highlight */
+.page-list .board .user.active button,
+.page-list .board tr.active .user button {
+    background-color: var(--color-primary, #0066ff) !important;
+    color: var(--color-on-primary, #ffffff) !important;
     transform: translateX(8px) scale(1.02);
-    box-shadow: 0 6px 20px rgba(0, 102, 255, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.4);
 }
 
-.page-leaderboard .board tr:has(.user.active) .rank {
-    color: var(--color-primary);
+.page-list .board tr:has(.user.active) .rank,
+.page-list .board tr.active .rank {
+    color: var(--color-primary, #0066ff);
     opacity: 1;
 }
 
-.page-leaderboard .player {
+/* ==========================================================================
+   CENTER COLUMN: LEVEL DETAILS
+   ========================================================================== */
+
+.page-list .level-container,
+.page-list .level {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    padding-right: 2rem;
-    animation: fadeInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    gap: 1.25rem;
+    animation: levelPopIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes fadeInRight {
+/* Level details reveal animation */
+@keyframes levelPopIn {
     from {
         opacity: 0;
-        transform: translateX(15px);
+        transform: translateY(14px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0) scale(1);
     }
 }
 
-.page-leaderboard .player .table {
-    table-layout: fixed;
+.page-list .level h1 {
+    margin: 0;
+    font-size: 2.25rem;
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
 }
 
-.page-leaderboard .player .table tr td:not(:last-child) {
-    padding-right: 2rem;
+.page-list .level h2,
+.page-list .level h3 {
+    margin-top: 1rem;
+    margin-bottom: 0.25rem;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.85;
 }
 
-.page-leaderboard .player .table p,
-.page-leaderboard .player .table a {
-    padding-block: 1rem;
-    transition: color 0.15s ease, transform 0.15s ease;
+.page-list .level p {
+    margin: 0;
+    line-height: 1.5;
 }
 
-.page-leaderboard .player .table .rank p,
-.page-leaderboard .player .table .score p {
-    text-align: end;
-}
-
-.page-leaderboard .player .table .level {
+.page-list .level iframe,
+.page-list .level .video iframe {
     width: 100%;
+    aspect-ratio: 16 / 9;
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.page-leaderboard .player .table a:hover {
-    text-decoration: underline;
-    color: var(--color-primary);
-    display: inline-block;
-    transform: translateX(2px);
+.page-list .level iframe:hover,
+.page-list .level .video iframe:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+
+.page-list .level .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-block: 0.5rem;
+}
+
+.page-list .level .records {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.page-list .level .records tr td {
+    padding-block: 0.4rem;
+}
+
+/* ==========================================================================
+   RIGHT COLUMN: SIDEBAR (EDITORS & REQUIREMENTS)
+   ========================================================================== */
+
+.page-list .meta-container,
+.page-list .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.page-list .editors,
+.page-list .sidebar .editors {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.page-list .editors h2,
+.page-list .sidebar h2,
+.page-list .meta-container h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+/* Editor role row flex alignment & image sizing fix */
+.page-list .editors > div,
+.page-list .editors .editor,
+.page-list .editors p,
+.page-list .sidebar .editor {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+    font-weight: 700;
+    transition: transform 0.2s ease;
+}
+
+.page-list .editors > div:hover,
+.page-list .editors .editor:hover {
+    transform: translateX(4px);
+}
+
+.page-list .editors img,
+.page-list .sidebar img {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.05);
+    flex-shrink: 0;
+}
+
+.page-list .requirements,
+.page-list .sidebar .requirements {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.page-list .requirements p,
+.page-list .requirements ul,
+.page-list .requirements li {
+    margin: 0;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Mobile responsive fallback */
+@media screen and (max-width: 900px) {
+    .page-list {
+        grid-template-columns: 1fr;
+        row-gap: 2rem;
+    }
 }
