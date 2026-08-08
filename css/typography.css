@@ -160,16 +160,6 @@ input[type="number"],
     font-weight: 500;
     -webkit-font-smoothing: subpixel-antialiased;
 }
-.type-label-lg::before {
-    content: "";
-    margin-bottom: -0.2583333333em;
-    display: table;
-}
-.type-label-lg::after {
-    content: "";
-    margin-top: -0.2083333333em;
-    display: table;
-}
 
 .type-label-md {
     font-family: "Lexend Deca", sans-serif;
