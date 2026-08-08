@@ -1,34 +1,41 @@
 /* ==========================================================================
-   MAIN PAGE LAYOUT
+   MAIN PAGE LAYOUT (Targeting both classes just in case)
    ========================================================================== */
 .page-list-container,
-.page-list {
+.page-leaderboard-container {
+    display: block;
+    width: 100%;
+}
+
+.page-list,
+.page-leaderboard {
+    height: 100%;
     display: grid;
     /* Forces the 3 columns: Left Sidebar (List), Center (Video), Right (Editors) */
     grid-template-columns: minmax(14rem, 1fr) minmax(24rem, 2.5fr) minmax(14rem, 1fr);
     gap: 2.5rem;
-    height: 100%;
     max-width: 90rem;
     margin: 0 auto;
     padding: 2rem;
     box-sizing: border-box;
 }
 
-.page-list > div {
+.page-list > div,
+.page-leaderboard > div {
     overflow-y: auto;
-    padding-right: 1rem; /* Gives scrollbars room to breathe */
+    padding-right: 1rem;
 }
 
 /* ==========================================================================
    LEFT COLUMN: LEVEL LIST (.board)
    ========================================================================== */
-.page-list .board {
+.board {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 0.5rem; /* Adds spacing between list items */
+    border-spacing: 0 0.5rem;
 }
 
-.page-list .board .rank {
+.board .rank {
     text-align: right;
     padding-right: 0.75rem;
     font-weight: 800;
@@ -37,12 +44,11 @@
     transition: all 0.2s ease;
 }
 
-.page-list .board .user {
+.board .user {
     width: 100%;
 }
 
-/* FIX: Strip default browser button styling and make them modern pills */
-.page-list .board .user button {
+.board .user button {
     appearance: none;
     -webkit-appearance: none;
     border: none;
@@ -60,21 +66,20 @@
                 color 0.2s ease;
 }
 
-.page-list .board .user button:hover {
+.board .user button:hover {
     background-color: var(--color-background-hover, rgba(0,0,0,0.1));
     transform: translateX(4px);
 }
 
-/* Selected Level Highlight */
-.page-list .board tr.active .user button,
-.page-list .board .user.active button {
+.board tr.active .user button,
+.board .user.active button {
     background-color: var(--color-primary, #0066ff) !important;
     color: var(--color-on-primary, #ffffff) !important;
     transform: translateX(8px);
     box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
 }
 
-.page-list .board tr.active .rank {
+.board tr.active .rank {
     color: var(--color-primary, #0066ff);
     opacity: 1;
 }
@@ -82,48 +87,46 @@
 /* ==========================================================================
    CENTER COLUMN: LEVEL DETAILS
    ========================================================================== */
-.page-list .level-container,
-.page-list .level {
+.level-container,
+.level {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem; /* FIX: Prevents the entire center column from collapsing */
+    gap: 1.5rem;
     animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.page-list .level h1 {
+.level h1 {
     font-size: 2.75rem;
     margin: 0;
     font-weight: 900;
     line-height: 1.1;
 }
 
-/* FIX: Stops the Creators/Verifiers text from overlapping */
-.page-list .level .meta, 
-.page-list .level .records {
+.level .meta, 
+.level .records {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
-.page-list .level h2, 
-.page-list .level h3 {
-    margin: 1rem 0 0.25rem 0; /* Forces space above labels */
+.level h2, 
+.level h3 {
+    margin: 1rem 0 0.25rem 0;
     font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.7;
 }
 
-.page-list .level p {
-    margin: 0; /* Resets weird paragraph margins */
+.level p {
+    margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
     line-height: 1.4;
 }
 
-/* Video Embed Animation */
-.page-list .level iframe,
-.page-list .level .video iframe {
+.level iframe,
+.level .video iframe {
     width: 100%;
     aspect-ratio: 16 / 9;
     border: none;
@@ -132,22 +135,23 @@
     transition: transform 0.3s ease;
 }
 
-.page-list .level iframe:hover,
-.page-list .level .video iframe:hover {
+.level iframe:hover,
+.level .video iframe:hover {
     transform: translateY(-4px);
 }
 
 /* ==========================================================================
    RIGHT COLUMN: SIDEBAR (EDITORS & REQS)
    ========================================================================== */
-.page-list .meta-container,
-.page-list .sidebar {
+.meta-container,
+.sidebar {
     display: flex;
     flex-direction: column;
     gap: 2.5rem;
 }
 
-.page-list .meta-container h2 {
+.meta-container h2,
+.sidebar h2 {
     margin: 0 0 1rem 0;
     font-size: 1.5rem;
     font-weight: 800;
@@ -156,16 +160,15 @@
     display: inline-block;
 }
 
-.page-list .editors,
-.page-list .sidebar .editors {
+.editors {
     display: flex;
     flex-direction: column;
-    gap: 1rem; /* Spacing between editors */
+    gap: 1rem;
 }
 
-/* Editor Role Layout */
-.page-list .editors > div,
-.page-list .editors .editor {
+.editors > div,
+.editors .editor,
+.sidebar .editor {
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -173,9 +176,10 @@
     margin: 0;
 }
 
-/* FIX: Locks broken image dimensions so they don't break the flexbox layout */
-.page-list .editors img,
-.page-list .sidebar img {
+/* 404 SVG FAILSAFE: Forces broken SVGs into a neat box so they don't break the layout */
+.editors img,
+.sidebar img,
+.editor img {
     width: 24px;
     height: 24px;
     object-fit: contain;
@@ -183,10 +187,12 @@
     background-color: var(--color-background-hover, rgba(0,0,0,0.05));
     flex-shrink: 0;
     position: relative;
+    display: inline-block;
 }
 
-/* Hides the ugly "broken image" browser icon overflow */
-.page-list .editors img::after {
+/* Hides the broken image icon overflow */
+.editors img::after,
+.sidebar img::after {
     content: " ";
     position: absolute;
     top: 0;
@@ -196,16 +202,14 @@
     background-color: var(--color-background-hover, #e0e0e0);
 }
 
-/* Submission Requirements FIX */
-.page-list .requirements,
-.page-list .sidebar .requirements {
+.requirements {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.page-list .requirements p,
-.page-list .meta-container p {
+.requirements p,
+.meta-container p {
     margin: 0;
     line-height: 1.5;
     font-size: 0.95rem;
@@ -228,21 +232,22 @@
 }
 
 @media screen and (max-width: 1200px) {
-    .page-list, .page-list-container {
+    .page-list, .page-leaderboard {
         grid-template-columns: 1fr 2fr;
     }
-    .page-list .meta-container {
-        grid-column: 1 / span 2; /* Moves sidebar to bottom on smaller screens */
+    .meta-container {
+        grid-column: 1 / span 2;
     }
 }
 
 @media screen and (max-width: 768px) {
-    .page-list, .page-list-container {
+    .page-list, .page-leaderboard {
         grid-template-columns: 1fr;
         display: flex;
         flex-direction: column;
     }
-    .page-list > div {
+    .page-list > div,
+    .page-leaderboard > div {
         overflow-y: visible;
     }
 }
