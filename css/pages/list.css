@@ -1,32 +1,32 @@
 .page-list {
     height: 100%;
     display: grid;
-    grid-template-columns: minmax(14rem, 1fr) minmax(24rem, 2.5fr) minmax(14rem, 1fr);
-    gap: 2.5rem;
-    max-width: 90rem;
+    grid-template-columns: minmax(15rem, 1fr) minmax(26rem, 2.6fr) minmax(15rem, 1fr);
+    gap: 2rem;
+    max-width: 92rem;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 1.75rem;
     box-sizing: border-box;
 }
 
 .page-list > div {
     overflow-y: auto;
-    padding-right: 1rem;
+    padding-right: 0.75rem;
 }
 
-/* left list */
+/* LEFT LIST */
 .page-list .list {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 0.5rem;
+    border-spacing: 0 0.4rem;
 }
 
 .page-list .list .rank {
     text-align: right;
-    padding-right: 0.75rem;
+    padding-right: 0.7rem;
     font-weight: 800;
-    opacity: 0.7;
-    font-size: 1.1rem;
+    opacity: 0.65;
+    font-size: 1.05rem;
 }
 
 .page-list .list .level button {
@@ -34,25 +34,25 @@
     border: none;
     background: var(--color-background-hover);
     color: var(--color-on-background);
-    border-radius: 0.5rem;
-    padding: 0.85rem 1rem;
+    border-radius: 0.6rem;
+    padding: 0.8rem 1rem;
     text-align: left;
     font-size: 1rem;
     font-weight: 700;
     width: 100%;
     cursor: pointer;
-    transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .page-list .list .level button:hover {
-    transform: translateX(4px);
+    transform: translateX(5px);
 }
 
 .page-list .list .level.active button {
     background: var(--color-primary) !important;
     color: var(--color-on-primary) !important;
     transform: translateX(8px);
-    box-shadow: 0 4px 14px rgba(69, 181, 69, 0.35);
+    box-shadow: 0 4px 16px rgba(69, 181, 69, 0.4);
 }
 
 .page-list .list .level.error button {
@@ -61,31 +61,31 @@
     cursor: not-allowed;
 }
 
-/* center */
+/* CENTER */
 .page-list .level-container .level {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    max-width: 48rem;
-    animation: levelSwitch 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    gap: 1.4rem;
+    max-width: 50rem;
+    animation: levelSwitch 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes levelSwitch {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(18px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 .page-list .level-container .level h1 {
-    font-size: 2.75rem;
+    font-size: 2.6rem;
     margin: 0;
     font-weight: 900;
-    line-height: 1.1;
+    line-height: 1.15;
 }
 
 .page-list .level-container .level .level-authors {
     display: grid;
     grid-template-columns: max-content 1fr;
-    gap: 0.5rem 1.5rem;
+    gap: 0.45rem 1.4rem;
     align-items: center;
 }
 
@@ -94,28 +94,29 @@
     width: 100%;
     aspect-ratio: 16/9;
     border: none;
-    border-radius: 0.75rem;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    border-radius: 0.7rem;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.22);
 }
 
 .page-list .level-container .level .stats {
     display: flex;
     justify-content: space-evenly;
     text-align: center;
-    gap: 2rem;
+    gap: 1.5rem;
+    padding: 0.5rem 0;
 }
 
 .page-list .level-container .level .stats li {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.35rem;
 }
 
-/* records */
+/* RECORDS */
 .page-list .level-container .level .records {
-    table-layout: fixed;
     width: 100%;
+    table-layout: fixed;
 }
 
 .page-list .level-container .level .records tr td:not(:last-child) {
@@ -125,47 +126,34 @@
 .page-list .level-container .level .records .percent,
 .page-list .level-container .level .records .user,
 .page-list .level-container .level .records .hz {
-    padding-block: 0.75rem;
+    padding-block: 0.7rem;
 }
 
-.page-list .level-container .level .records .user { width: 100%; }
+.page-list .level-container .level .records .user {
+    width: 100%;
+}
+
 .page-list .level-container .level .records .percent,
-.page-list .level-container .level .records .hz { text-align: end; }
+.page-list .level-container .level .records .hz {
+    text-align: end;
+}
 
 .page-list .level-container .level .records a:hover {
     text-decoration: underline;
     color: var(--color-primary);
 }
 
-/* kill the overlapping text forever */
-.page-list .records a::before,
-.page-list .records a::after,
-.page-list .records .type-label-lg::before,
-.page-list .records .type-label-lg::after,
-.page-list .level-authors .type-title-sm::before,
-.page-list .level-authors .type-title-sm::after,
-.page-list .level-authors .type-body::before,
-.page-list .level-authors .type-body::after,
-.page-list .list .type-label-lg::before,
-.page-list .list .type-label-lg::after,
-.page-list .stats .type-title-sm::before,
-.page-list .stats .type-title-sm::after {
-    content: none !important;
-    display: none !important;
-    margin: 0 !important;
-}
-
-/* right side */
+/* RIGHT SIDE */
 .page-list .meta-container .meta {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.8rem;
 }
 
 .page-list .meta-container .meta .editors {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.65rem;
 }
 
 .page-list .meta-container .meta .editors li {
@@ -175,8 +163,8 @@
 }
 
 .page-list .meta-container .meta .editors li img {
-    height: 1.25rem;
-    width: 1.25rem;
+    height: 1.2rem;
+    width: 1.2rem;
     object-fit: contain;
 }
 
