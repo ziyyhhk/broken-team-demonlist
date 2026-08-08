@@ -1,8 +1,9 @@
 .tabs {
     display: flex;
+    gap: 0.25rem;
 }
 
-.tabs .tab{
+.tabs .tab {
     border: none;
     cursor: pointer;
     font: inherit;
@@ -11,6 +12,7 @@
     background-color: transparent;
     color: var(--color-on-background);
     border-bottom: 3px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .tabs .tab:first-child {
@@ -21,10 +23,11 @@
     border-top-right-radius: 0.5rem;
 }
 
-.tabs .tab.selected{
-    border-bottom: 3px solid var(--color-on-background);
+.tabs .tab.selected {
+    border-bottom: 3px solid var(--color-primary);
+    font-weight: 700;
 }
 
-.tabs .tab:hover{
+.tabs .tab:hover {
     background-color: var(--color-background-hover);
 }
