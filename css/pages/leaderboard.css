@@ -130,3 +130,57 @@
     text-decoration: underline;
     color: var(--color-primary);
 }
+
+/* Animation when switching player */
+.page-leaderboard .player {
+    animation: playerSwitch 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes playerSwitch {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Stats boxes */
+.player-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 2rem;
+    margin: 1.5rem 0 2rem 0;
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    opacity: 0.65;
+    font-weight: 700;
+}
+
+.stat-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+/* Kill overlapping text on leaderboard names too */
+.page-leaderboard .board .user button .type-label-lg::before,
+.page-leaderboard .board .user button .type-label-lg::after,
+.page-leaderboard .board .user button span::before,
+.page-leaderboard .board .user button span::after,
+.page-leaderboard .player .type-label-lg::before,
+.page-leaderboard .player .type-label-lg::after {
+    content: none !important;
+    display: none !important;
+}
