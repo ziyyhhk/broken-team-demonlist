@@ -3,7 +3,7 @@
     --color-on-background: black;
     --color-background-hover: #eee;
     --color-on-background-hover: black;
-    --color-primary: #0066ff;
+    --color-primary: #45b545;          /* ← your new green */
     --color-on-primary: white;
     --color-error: #de0000;
     --color-on-error: white;
@@ -16,8 +16,8 @@ header.dark {
     --color-on-background: white;
     --color-background-hover: #27262c;
     --color-on-background-hover: white;
-    --color-primary: #283593;
-    --color-primary-disabled: #1f213c;
+    --color-primary: #45b545;          /* ← same green in dark mode */
+    --color-primary-disabled: #2e7a2e;
     --color-on-primary: white;
     --color-error: #de0000;
     --color-on-error: white;
@@ -29,7 +29,6 @@ body {
     scroll-behavior: smooth;
 }
 
-/* Global transition for smooth theme switching */
 body, header, main {
     transition: background-color 0.25s ease, color 0.25s ease;
 }
@@ -91,21 +90,8 @@ main {
     column-gap: 2rem;
 }
 
-/* Smooth fade-in and slide-up for view changes */
 main > div {
     overflow-y: auto;
-    animation: fadeInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .spinner {
@@ -123,7 +109,6 @@ input[type="checkbox"] {
     accent-color: var(--color-primary);
 }
 
-/* Editor Role Icons Styling & Broken Image Fix */
 .editors img, 
 .page-leaderboard .editors img,
 img[alt="owner"], img[alt="admin"], img[alt="helper"], img[alt="trial"], img[alt="dev"] {
@@ -134,7 +119,6 @@ img[alt="owner"], img[alt="admin"], img[alt="helper"], img[alt="trial"], img[alt
     border-radius: 4px;
 }
 
-/* Hide broken image borders cleanly when images are missing */
 img:-moz-broken, img:-moz-user-select {
     opacity: 0;
 }
