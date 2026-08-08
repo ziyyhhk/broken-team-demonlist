@@ -13,7 +13,7 @@
     padding-right: 0.5rem;
 }
 
-/* left list */
+/* LEFT LIST */
 .page-list .list {
     width: 100%;
     border-collapse: separate;
@@ -54,7 +54,7 @@
     box-shadow: 0 4px 14px rgba(69, 181, 69, 0.35);
 }
 
-/* center content */
+/* CENTER */
 .page-list .level-container .level {
     display: flex;
     flex-direction: column;
@@ -102,20 +102,40 @@
     gap: 0.25rem;
 }
 
-/* records */
+/* ========== RECORDS TABLE FIX ========== */
 .page-list .level-container .level .records {
     width: 100%;
+    border-collapse: collapse;
 }
 
-.page-list .level-container .level .records .percent,
-.page-list .level-container .level .records .user,
-.page-list .level-container .level .records .hz {
-    padding-block: 0.65rem;
+.page-list .level-container .level .records tr {
+    border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
-.page-list .level-container .level .records .percent,
+.page-list .level-container .level .records td {
+    padding: 0.7rem 0.5rem;
+    vertical-align: middle;
+}
+
+.page-list .level-container .level .records .percent {
+    width: 4.5rem;
+    text-align: left;
+    font-weight: 700;
+    opacity: 0.8;
+}
+
+.page-list .level-container .level .records .user {
+    width: auto;
+}
+
+.page-list .level-container .level .records .user a {
+    font-weight: 600;
+}
+
 .page-list .level-container .level .records .hz {
-    text-align: end;
+    width: 5rem;
+    text-align: right;
+    opacity: 0.7;
 }
 
 .page-list .level-container .level .records a:hover {
@@ -123,7 +143,7 @@
     text-decoration: underline;
 }
 
-/* right side */
+/* RIGHT SIDE */
 .page-list .meta-container .meta {
     display: flex;
     flex-direction: column;
