@@ -269,3 +269,31 @@
         overflow-y: visible;
     }
 }
+
+/* ========== FINAL FIX FOR OVERLAPPING / $ TEXT ========== */
+.page-list .records a,
+.page-list .records .type-label-lg,
+.page-list .level-authors .type-title-sm,
+.page-list .level-authors .type-body,
+.page-list .list .type-label-lg,
+.page-list .stats .type-title-sm {
+    position: relative;
+}
+
+.page-list .records a::before,
+.page-list .records a::after,
+.page-list .records .type-label-lg::before,
+.page-list .records .type-label-lg::after,
+.page-list .level-authors .type-title-sm::before,
+.page-list .level-authors .type-title-sm::after,
+.page-list .level-authors .type-body::before,
+.page-list .level-authors .type-body::after,
+.page-list .list .type-label-lg::before,
+.page-list .list .type-label-lg::after,
+.page-list .stats .type-title-sm::before,
+.page-list .stats .type-title-sm::after {
+    content: none !important;
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
