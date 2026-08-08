@@ -1,6 +1,3 @@
-/* ==========================================================================
-   MAIN PAGE LAYOUT
-   ========================================================================== */
 .page-list {
     height: 100%;
     display: grid;
@@ -17,9 +14,7 @@
     padding-right: 1rem;
 }
 
-/* ==========================================================================
-   LEFT COLUMN – LEVEL LIST
-   ========================================================================== */
+/* left list */
 .page-list .list {
     width: 100%;
     border-collapse: separate;
@@ -34,15 +29,10 @@
     font-size: 1.1rem;
 }
 
-.page-list .list .level {
-    width: 100%;
-}
-
 .page-list .list .level button {
     appearance: none;
-    -webkit-appearance: none;
     border: none;
-    background-color: var(--color-background-hover);
+    background: var(--color-background-hover);
     color: var(--color-on-background);
     border-radius: 0.5rem;
     padding: 0.85rem 1rem;
@@ -51,10 +41,7 @@
     font-weight: 700;
     width: 100%;
     cursor: pointer;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                background-color 0.2s ease,
-                color 0.2s ease,
-                box-shadow 0.2s ease;
+    transition: 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .page-list .list .level button:hover {
@@ -62,7 +49,7 @@
 }
 
 .page-list .list .level.active button {
-    background-color: var(--color-primary) !important;
+    background: var(--color-primary) !important;
     color: var(--color-on-primary) !important;
     transform: translateX(8px);
     box-shadow: 0 4px 14px rgba(69, 181, 69, 0.35);
@@ -70,13 +57,11 @@
 
 .page-list .list .level.error button {
     color: var(--color-error);
-    cursor: not-allowed;
     text-decoration: line-through;
+    cursor: not-allowed;
 }
 
-/* ==========================================================================
-   CENTER COLUMN – LEVEL DETAILS + ANIMATION
-   ========================================================================== */
+/* center */
 .page-list .level-container .level {
     display: flex;
     flex-direction: column;
@@ -86,14 +71,8 @@
 }
 
 @keyframes levelSwitch {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 .page-list .level-container .level h1 {
@@ -103,7 +82,6 @@
     line-height: 1.1;
 }
 
-/* Authors */
 .page-list .level-container .level .level-authors {
     display: grid;
     grid-template-columns: max-content 1fr;
@@ -111,17 +89,15 @@
     align-items: center;
 }
 
-/* Video */
 .page-list .level-container .level .video,
 .page-list .level-container .level iframe {
     width: 100%;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 16/9;
     border: none;
     border-radius: 0.75rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
 
-/* Stats */
 .page-list .level-container .level .stats {
     display: flex;
     justify-content: space-evenly;
@@ -136,7 +112,7 @@
     gap: 0.5rem;
 }
 
-/* Records table */
+/* records */
 .page-list .level-container .level .records {
     table-layout: fixed;
     width: 100%;
@@ -152,21 +128,16 @@
     padding-block: 0.75rem;
 }
 
-.page-list .level-container .level .records .user {
-    width: 100%;
-}
-
+.page-list .level-container .level .records .user { width: 100%; }
 .page-list .level-container .level .records .percent,
-.page-list .level-container .level .records .hz {
-    text-align: end;
-}
+.page-list .level-container .level .records .hz { text-align: end; }
 
 .page-list .level-container .level .records a:hover {
     text-decoration: underline;
     color: var(--color-primary);
 }
 
-/* ========== KILL THE OVERLAPPING $ TEXT ========== */
+/* kill the overlapping text forever */
 .page-list .records a::before,
 .page-list .records a::after,
 .page-list .records .type-label-lg::before,
@@ -178,35 +149,17 @@
 .page-list .list .type-label-lg::before,
 .page-list .list .type-label-lg::after,
 .page-list .stats .type-title-sm::before,
-.page-list .stats .type-title-sm::after,
-.page-list .level-authors p::before,
-.page-list .level-authors p::after {
+.page-list .stats .type-title-sm::after {
     content: none !important;
     display: none !important;
     margin: 0 !important;
-    padding: 0 !important;
 }
 
-/* ==========================================================================
-   RIGHT COLUMN
-   ========================================================================== */
+/* right side */
 .page-list .meta-container .meta {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-}
-
-.page-list .meta-container .meta .errors {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.page-list .meta-container .meta .errors .error {
-    padding: 1rem;
-    background-color: var(--color-error);
-    color: var(--color-on-error);
-    border-radius: 0.5rem;
 }
 
 .page-list .meta-container .meta .editors {
@@ -232,43 +185,16 @@
     text-decoration: underline;
 }
 
-/* ==========================================================================
-   RESPONSIVE
-   ========================================================================== */
-@media screen and (max-width: 1200px) {
-    .page-list {
-        grid-template-columns: 1fr 2fr;
-    }
-    .page-list .meta-container {
-        grid-column: 1 / span 2;
-    }
+/* responsive */
+@media (max-width: 1200px) {
+    .page-list { grid-template-columns: 1fr 2fr; }
+    .page-list .meta-container { grid-column: 1 / span 2; }
 }
-
-@media screen and (max-width: 768px) {
+@media (max-width: 768px) {
     .page-list {
         grid-template-columns: 1fr;
         display: flex;
         flex-direction: column;
     }
-    .page-list > div {
-        overflow-y: visible;
-    }
-}
-
-/* Nuclear option for records text */
-.page-list .records a,
-.page-list .records .type-label-lg {
-    display: inline-block !important;
-}
-
-.page-list .records a::before,
-.page-list .records a::after,
-.page-list .records *::before,
-.page-list .records *::after {
-    content: none !important;
-    display: none !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
+    .page-list > div { overflow-y: visible; }
 }
