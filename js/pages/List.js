@@ -68,7 +68,7 @@ export default {
                                 <a :href="record.link" target="_blank" class="type-label-lg">{{ record.user }}</a>
                             </td>
                             <td class="mobile">
-                                <img v-if="record.mobile" :src="\`/assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
+                                <img v-if="record.mobile" :src="\`./assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
                             </td>
                             <td class="hz">
                                 <p>{{ record.hz }}Hz</p>
@@ -92,37 +92,21 @@ export default {
                         <h3>List Editors</h3>
                         <ol class="editors">
                             <li v-for="editor in editors">
-                                <img :src="\`/assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
+                                <img :src="\`./assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
                                 <a v-if="editor.link" class="type-label-lg link" target="_blank" :href="editor.link">{{ editor.name }}</a>
                                 <p v-else>{{ editor.name }}</p>
                             </li>
                         </ol>
                     </template>
                     <h3>Submission Requirements</h3>
-                    <p>
-                        Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)
-                    </p>
-                    <p>
-                        Achieved the record on the level that is listed on the site - please check the level ID before you submit a record
-                    </p>
-                    <p>
-                        Have either source audio or clicks/taps in the video. Edited audio only does not count
-                    </p>
-                    <p>
-                        The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this
-                    </p>
-                    <p>
-                        The recording must also show the player hit the endwall, or the completion will be invalidated.
-                    </p>
-                    <p>
-                        Do not use secret routes or bug routes
-                    </p>
-                    <p>
-                        Do not use easy modes, only a record of the unmodified level qualifies
-                    </p>
-                    <p>
-                        Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level
-                    </p>
+                    <p>Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)</p>
+                    <p>Achieved the record on the level that is listed on the site - please check the level ID before you submit a record</p>
+                    <p>Have either source audio or clicks/taps in the video. Edited audio only does not count</p>
+                    <p>The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this</p>
+                    <p>The recording must also show the player hit the endwall, or the completion will be invalidated.</p>
+                    <p>Do not use secret routes or bug routes</p>
+                    <p>Do not use easy modes, only a record of the unmodified level qualifies</p>
+                    <p>Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level</p>
                 </div>
             </div>
         </main>
@@ -144,7 +128,6 @@ export default {
             if (!this.level.showcase) {
                 return embed(this.level.verification);
             }
-
             return embed(
                 this.toggledShowcase
                     ? this.level.showcase
@@ -157,16 +140,12 @@ export default {
         this.editors = await fetchEditors();
 
         if (!this.list) {
-            this.errors = [
-                "Failed to load list. Retry in a few minutes or notify list staff.",
-            ];
+            this.errors = ["Failed to load list. Retry in a few minutes or notify list staff."];
         } else {
             this.errors.push(
                 ...this.list
                     .filter(([_, err]) => err)
-                    .map(([_, err]) => {
-                        return `Failed to load level. (${err}.json)`;
-                    })
+                    .map(([_, err]) => `Failed to load level. (${err}.json)`)
             );
             if (!this.editors) {
                 this.errors.push("Failed to load list editors.");
@@ -174,6 +153,9 @@ export default {
         }
 
         this.loading = false;
+
+        // tiny secret
+        console.log("%c broken team was here ", "background:#45b545;color:#fff;padding:4px 8px;border-radius:4px");
     },
     methods: {
         embed,
