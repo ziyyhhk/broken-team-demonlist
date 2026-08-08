@@ -58,7 +58,6 @@
 }
 
 .page-list .list .level button:hover {
-    background-color: var(--color-background-hover);
     transform: translateX(4px);
 }
 
@@ -104,35 +103,12 @@
     line-height: 1.1;
 }
 
-/* Authors (Creators / Verifier / Publisher) */
+/* Authors */
 .page-list .level-container .level .level-authors {
     display: grid;
     grid-template-columns: max-content 1fr;
     gap: 0.5rem 1.5rem;
     align-items: center;
-}
-
-.page-list .level-container .level .level-authors .type-title-sm::before,
-.page-list .level-container .level .level-authors .type-title-sm::after,
-.page-list .level-container .level .level-authors .type-body::before,
-.page-list .level-container .level .level-authors .type-body::after,
-.page-list .level-container .level .level-authors p::before,
-.page-list .level-container .level .level-authors p::after {
-    display: none !important;
-    content: none !important;
-}
-
-.page-list .level-container .level .level-authors .type-title-sm {
-    margin: 0;
-    opacity: 0.7;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    font-size: 0.85rem;
-}
-
-.page-list .level-container .level .level-authors .type-body {
-    margin: 0;
-    font-weight: 600;
 }
 
 /* Video */
@@ -160,7 +136,7 @@
     gap: 0.5rem;
 }
 
-/* ========== RECORDS – THIS FIXES THE $ OVERLAP ========== */
+/* Records table */
 .page-list .level-container .level .records {
     table-layout: fixed;
     width: 100%;
@@ -185,21 +161,30 @@
     text-align: end;
 }
 
-/* Kill the pseudo-elements that cause the broken text */
-.page-list .level-container .level .records a.type-label-lg::before,
-.page-list .level-container .level .records a.type-label-lg::after,
-.page-list .level-container .level .records .type-label-lg::before,
-.page-list .level-container .level .records .type-label-lg::after,
-.page-list .level-container .level .records a::before,
-.page-list .level-container .level .records a::after {
-    display: none !important;
-    content: none !important;
-    margin: 0 !important;
-}
-
 .page-list .level-container .level .records a:hover {
     text-decoration: underline;
     color: var(--color-primary);
+}
+
+/* ========== KILL THE OVERLAPPING $ TEXT ========== */
+.page-list .records a::before,
+.page-list .records a::after,
+.page-list .records .type-label-lg::before,
+.page-list .records .type-label-lg::after,
+.page-list .level-authors .type-title-sm::before,
+.page-list .level-authors .type-title-sm::after,
+.page-list .level-authors .type-body::before,
+.page-list .level-authors .type-body::after,
+.page-list .list .type-label-lg::before,
+.page-list .list .type-label-lg::after,
+.page-list .stats .type-title-sm::before,
+.page-list .stats .type-title-sm::after,
+.page-list .level-authors p::before,
+.page-list .level-authors p::after {
+    content: none !important;
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* ==========================================================================
@@ -268,32 +253,4 @@
     .page-list > div {
         overflow-y: visible;
     }
-}
-
-/* ========== FINAL FIX FOR OVERLAPPING / $ TEXT ========== */
-.page-list .records a,
-.page-list .records .type-label-lg,
-.page-list .level-authors .type-title-sm,
-.page-list .level-authors .type-body,
-.page-list .list .type-label-lg,
-.page-list .stats .type-title-sm {
-    position: relative;
-}
-
-.page-list .records a::before,
-.page-list .records a::after,
-.page-list .records .type-label-lg::before,
-.page-list .records .type-label-lg::after,
-.page-list .level-authors .type-title-sm::before,
-.page-list .level-authors .type-title-sm::after,
-.page-list .level-authors .type-body::before,
-.page-list .level-authors .type-body::after,
-.page-list .list .type-label-lg::before,
-.page-list .list .type-label-lg::after,
-.page-list .stats .type-title-sm::before,
-.page-list .stats .type-title-sm::after {
-    content: none !important;
-    display: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
 }
