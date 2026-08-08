@@ -1,7 +1,7 @@
 :root {
-    --color-background: #f0f2f5;
+    --color-background: #eef1f5;
     --color-on-background: #1c1c1e;
-    --color-background-hover: #e4e7ec;
+    --color-background-hover: #e0e4ea;
     --color-on-background-hover: #1c1c1e;
     --color-primary: #45b545;
     --color-on-primary: #ffffff;
@@ -10,10 +10,10 @@
 }
 
 main.dark, header.dark {
-    --color-background: #121214;
-    --color-on-background: #e8e8ea;
-    --color-background-hover: #1e1e22;
-    --color-on-background-hover: #e8e8ea;
+    --color-background: #111113;
+    --color-on-background: #e6e6e8;
+    --color-background-hover: #1c1c20;
+    --color-on-background-hover: #e6e6e8;
     --color-primary: #45b545;
     --color-on-primary: #ffffff;
     --color-error: #e03e3e;
@@ -28,21 +28,28 @@ html, body {
 body {
     display: flex;
     flex-direction: column;
-    background: var(--color-background);
+    background-color: var(--color-background);
     color: var(--color-on-background);
     font-family: "Lexend Deca", sans-serif;
+    position: relative;
 }
 
-/* cool subtle green glow background */
+/* cooler background */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background:
-        radial-gradient(circle at 15% 20%, rgba(69, 181, 69, 0.12) 0%, transparent 45%),
-        radial-gradient(circle at 85% 75%, rgba(69, 181, 69, 0.09) 0%, transparent 45%);
+    background: 
+        radial-gradient(ellipse 80% 50% at 10% -10%, rgba(69, 181, 69, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 90% 100%, rgba(69, 181, 69, 0.12), transparent),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(69, 181, 69, 0.05), transparent);
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
+}
+
+header, main {
+    position: relative;
+    z-index: 1;
 }
 
 header {
@@ -51,9 +58,9 @@ header {
     padding-inline: 1.5rem;
     background: var(--color-primary);
     color: var(--color-on-primary);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-    z-index: 20;
+    box-shadow: 0 2px 14px rgba(0,0,0,0.18);
     align-items: center;
+    z-index: 20;
 }
 
 header .logo {
@@ -85,10 +92,6 @@ main > div {
     align-items: center;
     justify-content: center;
     height: 100%;
-}
-
-input[type="checkbox"] {
-    accent-color: var(--color-primary);
 }
 
 .editors img {
