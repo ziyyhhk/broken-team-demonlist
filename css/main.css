@@ -122,3 +122,23 @@ input[type="checkbox"] {
     margin: 0;
     accent-color: var(--color-primary);
 }
+
+/* Editor Role Icons Styling & Broken Image Fix */
+.editors img, 
+.page-leaderboard .editors img,
+img[alt="owner"], img[alt="admin"], img[alt="helper"], img[alt="trial"], img[alt="dev"] {
+    width: 1.5rem;
+    height: 1.5rem;
+    object-fit: contain;
+    vertical-align: middle;
+    border-radius: 4px;
+}
+
+/* Hide broken image borders cleanly when images are missing */
+img:-moz-broken, img:-moz-user-select {
+    opacity: 0;
+}
+
+img:not([src]), img[src=""] {
+    visibility: hidden;
+}
