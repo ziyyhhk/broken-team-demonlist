@@ -42,9 +42,37 @@ export default {
                     </table>
                 </div>
                 <div class="player-container">
-                    <div class="player">
+                    <div class="player" :key="selected">
                         <h1>#{{ selected + 1 }} {{ entry.user }}</h1>
-                        <h3>{{ entry.total }}</h3>
+
+                        <!-- STATS SECTION -->
+                        <div class="player-stats">
+                            <div class="stat-box">
+                                <div class="stat-label">List rank</div>
+                                <div class="stat-value">{{ selected + 1 }}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">List score</div>
+                                <div class="stat-value">{{ localize(entry.total) }}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">List stats</div>
+                                <div class="stat-value">{{ entry.completed.length }} Completed, {{ entry.progressed.length }} Progressed, {{ entry.verified.length }} Verified</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Hardest list</div>
+                                <div class="stat-value">{{ hardestLevel }}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">List completed</div>
+                                <div class="stat-value">{{ entry.completed.length }}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">List verified</div>
+                                <div class="stat-value">{{ entry.verified.length }}</div>
+                            </div>
+                        </div>
+
                         <h2 v-if="entry.verified.length > 0">Verified ({{ entry.verified.length}})</h2>
                         <table class="table">
                             <tr v-for="score in entry.verified">
@@ -96,12 +124,18 @@ export default {
         entry() {
             return this.leaderboard[this.selected];
         },
+        hardestLevel() {
+            // Find the highest ranked (lowest number) level this player has completed or verified
+            const all = [...this.entry.verified, ...this.entry.completed];
+            if (all.length === 0) return 'None';
+            all.sort((a, b) => a.rank - b.rank);
+            return all[0].level;
+        }
     },
     async mounted() {
         const [leaderboard, err] = await fetchLeaderboard();
         this.leaderboard = leaderboard;
         this.err = err;
-        // Hide loading spinner
         this.loading = false;
     },
     methods: {
