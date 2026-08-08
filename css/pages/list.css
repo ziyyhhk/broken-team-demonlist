@@ -254,3 +254,21 @@
         overflow-y: visible;
     }
 }
+
+/* Nuclear option for records text */
+.page-list .records a,
+.page-list .records .type-label-lg {
+    display: inline-block !important;
+}
+
+.page-list .records a::before,
+.page-list .records a::after,
+.page-list .records *::before,
+.page-list .records *::after {
+    content: none !important;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
