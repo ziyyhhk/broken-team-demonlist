@@ -1,96 +1,110 @@
 :root {
-    --color-background: #f0f2f5;
-    --color-on-background: #1a1a1c;
-    --color-background-hover: #e4e7ec;
-    --color-on-background-hover: #1a1a1c;
+    --color-background: #0f1115;
+    --color-on-background: #e8eaed;
+    --color-background-hover: #1a1d24;
+    --color-on-background-hover: #ffffff;
     --color-primary: #45b545;
     --color-on-primary: #ffffff;
-    --color-error: #e03e3e;
+    --color-error: #ff4d4d;
     --color-on-error: #ffffff;
+    --glow: 0 0 20px rgba(69, 181, 69, 0.35);
 }
 
-/* Dark mode */
-main.dark,
-header.dark,
-.dark {
-    --color-background: #111113;
-    --color-on-background: #e6e6e8;
-    --color-background-hover: #1c1c20;
-    --color-on-background-hover: #e6e6e8;
+main.dark, header.dark, .dark {
+    --color-background: #0f1115;
+    --color-on-background: #e8eaed;
+    --color-background-hover: #1a1d24;
+    --color-on-background-hover: #ffffff;
     --color-primary: #45b545;
     --color-on-primary: #ffffff;
-    --color-error: #e03e3e;
-    --color-on-error: #ffffff;
 }
 
+/* Force dark-looking theme by default for cooler look */
 html, body {
     height: 100%;
     margin: 0;
+    background: #0f1115;
+    color: #e8eaed;
+    font-family: "Lexend Deca", sans-serif;
 }
 
 body {
     display: flex;
     flex-direction: column;
-    background-color: var(--color-background);
-    color: var(--color-on-background);
-    font-family: "Lexend Deca", sans-serif;
-    transition: background-color 0.25s ease, color 0.25s ease;
+    position: relative;
+    overflow-x: hidden;
 }
 
-/* Cool background glow */
+/* animated background */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
-    background:
-        radial-gradient(ellipse 90% 60% at 5% 0%, rgba(69, 181, 69, 0.15), transparent 50%),
-        radial-gradient(ellipse 70% 50% at 95% 100%, rgba(69, 181, 69, 0.1), transparent 50%);
-    pointer-events: none;
+    background: 
+        radial-gradient(circle at 20% 20%, rgba(69, 181, 69, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(69, 181, 69, 0.08) 0%, transparent 40%),
+        linear-gradient(180deg, #0f1115 0%, #0a0c10 100%);
     z-index: 0;
+    pointer-events: none;
 }
 
-/* Dark mode stronger glow */
-body:has(main.dark)::before,
-body:has(header.dark)::before {
-    background:
-        radial-gradient(ellipse 90% 60% at 5% 0%, rgba(69, 181, 69, 0.12), transparent 50%),
-        radial-gradient(ellipse 70% 50% at 95% 100%, rgba(69, 181, 69, 0.08), transparent 50%);
+/* floating particles effect */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: 
+        radial-gradient(1.5px 1.5px at 20px 30px, rgba(69, 181, 69, 0.4), transparent),
+        radial-gradient(1.5px 1.5px at 40px 70px, rgba(255, 255, 255, 0.15), transparent),
+        radial-gradient(1.5px 1.5px at 50px 160px, rgba(69, 181, 69, 0.3), transparent),
+        radial-gradient(1.5px 1.5px at 90px 40px, rgba(255, 255, 255, 0.1), transparent),
+        radial-gradient(1.5px 1.5px at 130px 80px, rgba(69, 181, 69, 0.25), transparent);
+    background-size: 200px 200px;
+    animation: particles 40s linear infinite;
+    opacity: 0.6;
+    z-index: 0;
+    pointer-events: none;
 }
 
-header, main, .page-list, .page-leaderboard {
+@keyframes particles {
+    from { background-position: 0 0; }
+    to { background-position: 200px 200px; }
+}
+
+header, main {
     position: relative;
     z-index: 1;
 }
 
 header {
     display: flex;
-    height: 3.8rem;
-    padding-inline: 1.5rem;
-    background: var(--color-primary);
-    color: var(--color-on-primary);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+    height: 4rem;
+    padding-inline: 1.75rem;
+    background: linear-gradient(90deg, #45b545, #3aa03a);
+    color: white;
     align-items: center;
-    z-index: 30;
-    transition: background-color 0.25s ease;
+    box-shadow: 0 4px 30px rgba(69, 181, 69, 0.3);
+    z-index: 50;
 }
 
 header .logo {
     display: flex;
     align-items: flex-end;
-    gap: 0.7rem;
-    margin-right: 2rem;
+    gap: 0.8rem;
+    margin-right: 2.5rem;
 }
 
 header .logo h2 {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
     font-weight: 800;
     margin: 0;
+    text-shadow: 0 0 12px rgba(0,0,0,0.3);
 }
 
 header .logo p {
-    font-size: 0.8rem;
-    opacity: 0.85;
-    margin: 0 0 2px 0;
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin: 0 0 3px 0;
 }
 
 header .nav {
@@ -103,9 +117,7 @@ main {
     flex: 1;
     height: 0;
     overflow: hidden;
-    background-color: var(--color-background);
-    color: var(--color-on-background);
-    transition: background-color 0.25s ease, color 0.25s ease;
+    background: transparent;
 }
 
 main > div {
@@ -121,7 +133,8 @@ main > div {
 }
 
 .editors img {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.2rem;
+    height: 1.2rem;
     object-fit: contain;
+    filter: drop-shadow(0 0 4px rgba(69, 181, 69, 0.5));
 }
