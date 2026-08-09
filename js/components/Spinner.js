@@ -1,3 +1,8 @@
 export default {
-    template: `<p class="spinner">Loading...</p>`,
+    template: `
+        <div class="spinner">
+            <div class="spinner__bar"></div>
+            <span>Loading</span>
+        </div>
+    `,
 };

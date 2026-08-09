@@ -11,6 +11,7 @@ export default {
         leaderboard: [],
         loading: true,
         selected: 0,
+        query: '',
         err: [],
     }),
     template: `
@@ -25,16 +26,25 @@ export default {
                     </p>
                 </div>
                 <div class="board-container">
+                    <div class="list-search">
+                        <input
+                            type="text"
+                            v-model="query"
+                            placeholder="Search player"
+                            aria-label="Search player"
+                        />
+                        <span class="count">{{ filtered.length }}</span>
+                    </div>
                     <table class="board">
-                        <tr v-for="(ientry, i) in leaderboard">
+                        <tr v-for="{ entry: ientry, index } in filtered" :key="ientry.user">
                             <td class="rank">
-                                <p class="type-label-lg">#{{ i + 1 }}</p>
+                                <p class="type-label-lg">#{{ index + 1 }}</p>
                             </td>
                             <td class="total">
                                 <p class="type-label-lg">{{ localize(ientry.total) }}</p>
                             </td>
-                            <td class="user" :class="{ 'active': selected == i }">
-                                <button @click="selected = i">
+                            <td class="user" :class="{ 'active': selected == index }">
+                                <button @click="selected = index">
                                     <span class="type-label-lg">{{ ientry.user }}</span>
                                 </button>
                             </td>
@@ -42,45 +52,45 @@ export default {
                     </table>
                 </div>
                 <div class="player-container">
-                    <div class="player" :key="selected">
+                    <div class="player" v-if="entry" :key="selected">
                         <h1>#{{ selected + 1 }} {{ entry.user }}</h1>
 
                         <!-- STATS SECTION -->
                         <div class="player-stats">
                             <div class="stat-box">
                                 <div class="stat-label">List rank</div>
-                                <div class="stat-value">{{ selected + 1 }}</div>
+                                <div class="stat-value">#{{ selected + 1 }}</div>
                             </div>
                             <div class="stat-box">
                                 <div class="stat-label">List score</div>
                                 <div class="stat-value">{{ localize(entry.total) }}</div>
                             </div>
                             <div class="stat-box">
-                                <div class="stat-label">List stats</div>
-                                <div class="stat-value">{{ entry.completed.length }} Completed, {{ entry.progressed.length }} Progressed, {{ entry.verified.length }} Verified</div>
-                            </div>
-                            <div class="stat-box">
-                                <div class="stat-label">Hardest list</div>
+                                <div class="stat-label">Hardest level</div>
                                 <div class="stat-value">{{ hardestLevel }}</div>
                             </div>
                             <div class="stat-box">
-                                <div class="stat-label">List completed</div>
+                                <div class="stat-label">Completed</div>
                                 <div class="stat-value">{{ entry.completed.length }}</div>
                             </div>
                             <div class="stat-box">
-                                <div class="stat-label">List verified</div>
+                                <div class="stat-label">Verified</div>
                                 <div class="stat-value">{{ entry.verified.length }}</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Progressed</div>
+                                <div class="stat-value">{{ entry.progressed.length }}</div>
                             </div>
                         </div>
 
-                        <h2 v-if="entry.verified.length > 0">Verified ({{ entry.verified.length}})</h2>
+                        <h2 v-if="entry.verified.length > 0">Verified ({{ entry.verified.length }})</h2>
                         <table class="table">
                             <tr v-for="score in entry.verified">
                                 <td class="rank">
                                     <p>#{{ score.rank }}</p>
                                 </td>
                                 <td class="level">
-                                    <a class="type-label-lg" target="_blank" :href="score.link">{{ score.level }}</a>
+                                    <a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.level }}</a>
                                 </td>
                                 <td class="score">
                                     <p>+{{ localize(score.score) }}</p>
@@ -94,21 +104,21 @@ export default {
                                     <p>#{{ score.rank }}</p>
                                 </td>
                                 <td class="level">
-                                    <a class="type-label-lg" target="_blank" :href="score.link">{{ score.level }}</a>
+                                    <a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.level }}</a>
                                 </td>
                                 <td class="score">
                                     <p>+{{ localize(score.score) }}</p>
                                 </td>
                             </tr>
                         </table>
-                        <h2 v-if="entry.progressed.length > 0">Progressed ({{entry.progressed.length}})</h2>
+                        <h2 v-if="entry.progressed.length > 0">Progressed ({{ entry.progressed.length }})</h2>
                         <table class="table">
                             <tr v-for="score in entry.progressed">
                                 <td class="rank">
                                     <p>#{{ score.rank }}</p>
                                 </td>
                                 <td class="level">
-                                    <a class="type-label-lg" target="_blank" :href="score.link">{{ score.percent }}% {{ score.level }}</a>
+                                    <a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.percent }}% {{ score.level }}</a>
                                 </td>
                                 <td class="score">
                                     <p>+{{ localize(score.score) }}</p>
@@ -116,26 +126,38 @@ export default {
                             </tr>
                         </table>
                     </div>
+                    <div class="player" v-else>
+                        <h1>No players yet</h1>
+                        <p class="empty">Once records are added to the list, players will show up here.</p>
+                    </div>
                 </div>
             </div>
         </main>
     `,
     computed: {
         entry() {
-            return this.leaderboard[this.selected];
+            return this.leaderboard[this.selected] ?? null;
+        },
+        filtered() {
+            const query = this.query.trim().toLowerCase();
+            return this.leaderboard
+                .map((entry, index) => ({ entry, index }))
+                .filter(({ entry }) =>
+                    query === '' ? true : entry.user.toLowerCase().includes(query),
+                );
         },
         hardestLevel() {
-            // Find the highest ranked (lowest number) level this player has completed or verified
+            if (!this.entry) return 'None';
+            // Highest ranked (lowest number) level this player beat or verified
             const all = [...this.entry.verified, ...this.entry.completed];
             if (all.length === 0) return 'None';
-            all.sort((a, b) => a.rank - b.rank);
-            return all[0].level;
-        }
+            return [...all].sort((a, b) => a.rank - b.rank)[0].level;
+        },
     },
     async mounted() {
         const [leaderboard, err] = await fetchLeaderboard();
-        this.leaderboard = leaderboard;
-        this.err = err;
+        this.leaderboard = leaderboard ?? [];
+        this.err = err ?? [];
         this.loading = false;
     },
     methods: {

@@ -5,43 +5,55 @@ import { round, score } from './score.js';
  */
 const dir = './data';
 
+async function fetchJson(path) {
+    const res = await fetch(path);
+    if (!res.ok) {
+        throw new Error(`${path} responded with ${res.status}`);
+    }
+    return res.json();
+}
+
 export async function fetchList() {
-    const listResult = await fetch(`${dir}/_list.json`);
+    let list;
     try {
-        const list = await listResult.json();
-        return await Promise.all(
-            list.map(async (path, rank) => {
-                const levelResult = await fetch(`${dir}/${path}.json`);
-                try {
-                    const level = await levelResult.json();
-                    return [
-                        {
-                            ...level,
-                            path,
-                            records: level.records.sort(
-                                (a, b) => b.percent - a.percent,
-                            ),
-                        },
-                        null,
-                    ];
-                } catch {
-                    console.error(`Failed to load level #${rank + 1} ${path}.`);
-                    return [null, path];
-                }
-            }),
-        );
-    } catch {
-        console.error(`Failed to load list.`);
+        list = await fetchJson(`${dir}/_list.json`);
+    } catch (e) {
+        console.error('Failed to load list.', e);
         return null;
     }
+
+    if (!Array.isArray(list)) {
+        console.error('_list.json must contain an array of level file names.');
+        return null;
+    }
+
+    return Promise.all(
+        list.map(async (path, rank) => {
+            try {
+                const level = await fetchJson(`${dir}/${path}.json`);
+                return [
+                    {
+                        ...level,
+                        path,
+                        records: [...(level.records ?? [])].sort(
+                            (a, b) => b.percent - a.percent,
+                        ),
+                    },
+                    null,
+                ];
+            } catch (e) {
+                console.error(`Failed to load level #${rank + 1} ${path}.`, e);
+                return [null, path];
+            }
+        }),
+    );
 }
 
 export async function fetchEditors() {
     try {
-        const editorsResults = await fetch(`${dir}/_editors.json`);
-        const editors = await editorsResults.json();
-        return editors;
-    } catch {
+        return await fetchJson(`${dir}/_editors.json`);
+    } catch (e) {
+        console.error('Failed to load editors.', e);
         return null;
     }
 }
@@ -49,18 +61,23 @@ export async function fetchEditors() {
 export async function fetchLeaderboard() {
     const list = await fetchList();
 
+    if (!list) {
+        return [[], ['_list']];
+    }
+
     const scoreMap = {};
     const errs = [];
     list.forEach(([level, err], rank) => {
-        if (err) {
-            errs.push(err);
+        if (err || !level) {
+            errs.push(err ?? `#${rank + 1}`);
             return;
         }
 
         // Verification
-        const verifier = Object.keys(scoreMap).find(
-            (u) => u.toLowerCase() === level.verifier.toLowerCase(),
-        ) || level.verifier;
+        const verifier =
+            Object.keys(scoreMap).find(
+                (u) => u.toLowerCase() === level.verifier.toLowerCase(),
+            ) || level.verifier;
         scoreMap[verifier] ??= {
             verified: [],
             completed: [],
@@ -75,10 +92,11 @@ export async function fetchLeaderboard() {
         });
 
         // Records
-        level.records.forEach((record) => {
-            const user = Object.keys(scoreMap).find(
-                (u) => u.toLowerCase() === record.user.toLowerCase(),
-            ) || record.user;
+        (level.records ?? []).forEach((record) => {
+            const user =
+                Object.keys(scoreMap).find(
+                    (u) => u.toLowerCase() === record.user.toLowerCase(),
+                ) || record.user;
             scoreMap[user] ??= {
                 verified: [],
                 completed: [],

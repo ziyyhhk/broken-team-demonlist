@@ -1,31 +1,48 @@
 .btn {
-    border: none;
+    border: 1px solid var(--color-primary);
     cursor: pointer;
-    font: inherit;
-    padding: 1rem;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.74rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.7rem 1rem;
     margin: 0;
     background-color: var(--color-primary);
     color: var(--color-on-primary);
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 14px rgba(69, 181, 69, 0.3), 0 0 1px rgba(69, 181, 69, 0.6);
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                background-color 0.2s ease;
+    border-radius: var(--radius);
+    transition: filter 0.15s ease, transform 0.12s ease, background-color 0.15s ease;
 }
 
 .btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
-    box-shadow: none;
     transform: none !important;
 }
 
 .btn:not(:disabled):hover {
-    transform: translateY(-2px) scale(1.01);
-    box-shadow: 0 8px 24px rgba(69, 181, 69, 0.45), 0 0 1px rgba(69, 181, 69, 0.8);
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
 .btn:not(:disabled):active {
-    transform: translateY(0) scale(0.98);
-    box-shadow: 0 2px 8px rgba(69, 181, 69, 0.25);
+    transform: translateY(1px);
+}
+
+.btn.btn-ghost {
+    background-color: transparent;
+    color: var(--color-on-background);
+    border-color: var(--color-border);
+}
+
+.btn.btn-ghost:not(:disabled):hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    filter: none;
+}
+
+.btn.btn-giveup {
+    background-color: transparent;
+    border-color: var(--color-error);
+    color: var(--color-error);
 }

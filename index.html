@@ -2,15 +2,27 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=1024" />
-        <title>The Broken List</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>The Broken List — Broken Team Demonlist</title>
+        <meta
+            name="description"
+            content="The Broken Team demon list: ranked extreme demons, player leaderboard, and a demon roulette. Submit your records and climb the board."
+        />
+        <meta name="theme-color" content="#0b0c0e" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="The Broken List — Broken Team Demonlist" />
+        <meta
+            property="og:description"
+            content="Ranked extreme demons, player leaderboard and a demon roulette, run by Broken Team."
+        />
+        <meta name="twitter:card" content="summary" />
 
         <!-- Replace your server icon by uploading an image file named "list_icon.png"-->
         <link rel="icon" href="./list_icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@500;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Chivo+Mono:wght@400;600;700&display=swap"
             rel="stylesheet"
         />
         <link rel="stylesheet" type="text/css" href="./css/reset.css" />
@@ -37,22 +49,29 @@
     <body id="app">
         <header>
             <div class="logo">
-                <h2>The Broken List</h2>
-                <p>v1.0.0</p>
+                <span class="logo__mark" aria-hidden="true">/</span>
+                <div class="logo__text">
+                    <h2>BROKEN LIST</h2>
+                    <p>unofficial demonlist &middot; v1.1</p>
+                </div>
             </div>
             <nav class="nav">
-                <router-link class="nav__tab" to="/">
-                    <span class="type-label-lg">List</span>
-                </router-link>
-                <router-link class="nav__tab" to="/leaderboard">
-                    <span class="type-label-lg">Leaderboard</span>
-                </router-link>
-                <router-link class="nav__tab" to="/roulette">
-                    <span class="type-label-lg">Roulette</span>
-                </router-link>
+                <div class="nav__tabs">
+                    <router-link class="nav__tab" to="/">
+                        <span class="type-label-lg">List</span>
+                    </router-link>
+                    <router-link class="nav__tab" to="/leaderboard">
+                        <span class="type-label-lg">Leaderboard</span>
+                    </router-link>
+                    <router-link class="nav__tab" to="/roulette">
+                        <span class="type-label-lg">Roulette</span>
+                    </router-link>
+                </div>
                 <div class="nav__actions">
                     <button
                         class="nav__icon"
+                        title="Toggle theme"
+                        aria-label="Toggle theme"
                         @click.prevent="store.toggleDark()"
                     >
                         <img
@@ -61,14 +80,21 @@
                         />
                     </button>
                     <!-- Replace the '#' with your discord server's invite-->
-                    <a class="nav__icon" href="https://discord.gg/swuWBj59yp">
-                        <img src="./assets/discord.svg" alt="Discord Logo" />
+                    <a
+                        class="nav__icon"
+                        title="Discord"
+                        href="https://discord.gg/swuWBj59yp"
+                        target="_blank"
+                        rel="noopener"
+                    >
+                        <img src="./assets/discord.svg" alt="Discord" />
                     </a>
-                    <!-- List record submission form, add a link to replace the '#' when putting a link to your list submission form-->
+                    <!-- List record submission form -->
                     <a
                         class="nav__cta type-label-lg"
                         href="https://forms.gle/2j7Xy5QLZqG3sijj9"
                         target="_blank"
+                        rel="noopener"
                         >Submit Record</a
                     >
                 </div>

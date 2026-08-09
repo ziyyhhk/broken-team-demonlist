@@ -1,196 +1,241 @@
 .page-leaderboard-container {
-    display: block;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 .page-leaderboard {
-    height: 100%;
     display: grid;
-    grid-template-columns: minmax(20rem, 2fr) 3fr;
-    grid-template-rows: max-content 1fr;
-    column-gap: 1.5rem;
-    max-width: 82rem;
-    margin: 0 auto;
-    padding: 1.5rem;
-}
-
-.page-leaderboard > div {
-    overflow-y: auto;
-    padding-right: 0.35rem;
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 2.4fr);
+    grid-template-rows: auto 1fr;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .page-leaderboard .error-container {
+    grid-column: 1 / -1;
     grid-row: 1;
-    grid-column: 1 / span 2;
 }
 
-.page-leaderboard .error-container .error {
-    padding: 0.75rem 1rem;
-    background: var(--color-error);
-    color: var(--color-on-error);
-    border-radius: 0.4rem;
-    font-size: 0.9rem;
-    font-weight: 600;
+.page-leaderboard .error-container:empty {
+    display: none;
 }
 
-.page-leaderboard .board-container,
-.page-leaderboard .player-container {
+.page-leaderboard .error {
+    margin: 0;
+    padding: 0.6rem 1rem;
+    font-size: 0.82rem;
+    color: var(--color-error);
+    background: color-mix(in srgb, var(--color-error) 10%, transparent);
+    border-bottom: 1px solid var(--color-error);
+}
+
+.board-container {
     grid-row: 2;
-    padding-block: 1.25rem;
+    height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-surface) 70%, transparent);
 }
 
-.page-leaderboard .board {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 0.3rem;
-}
-
-.page-leaderboard .board .rank {
-    padding: 0.7rem 0.5rem;
-    text-align: end;
-    opacity: 0.4;
-    font-weight: 700;
-    font-size: 0.9rem;
-}
-
-.page-leaderboard .board .total {
-    padding: 0.7rem;
-    text-align: end;
-    font-weight: 700;
-    color: var(--color-primary);
-}
-
-.page-leaderboard .board .user {
-    width: 100%;
-}
-
-.page-leaderboard .board .user button {
-    appearance: none;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    color: var(--color-on-background);
-    border-radius: 0.4rem;
-    padding: 0.7rem 0.9rem;
-    text-align: left;
-    width: 100%;
-    cursor: pointer;
-    font-weight: 700;
-    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
-}
-
-.page-leaderboard .board .user button:hover {
-    border-color: var(--color-primary);
-    background: var(--color-surface-hover);
-    transform: translateX(3px);
-}
-
-.page-leaderboard .board .user.active button {
-    background: var(--color-primary);
-    color: var(--color-on-primary);
-    border-color: var(--color-primary);
-    transform: translateX(4px);
-}
-
-/* player side */
-.page-leaderboard .player {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    animation: levelIn 0.3s ease;
-}
-
-@keyframes levelIn {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.page-leaderboard .player h1 {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--color-on-background);
-}
-
-.page-leaderboard .player .player-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-    gap: 0.6rem;
-}
-
-.page-leaderboard .player .stat-box {
-    padding: 0.8rem 0.9rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 0.4rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    transition: border-color 0.18s ease;
-}
-
-.page-leaderboard .player .stat-box:hover {
-    border-color: var(--color-primary);
-}
-
-.page-leaderboard .player .stat-box .stat-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.45;
-}
-
-.page-leaderboard .player .stat-box .stat-value {
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: var(--color-on-background);
-}
-
-.page-leaderboard .player h2 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--color-primary);
-}
-
-.page-leaderboard .player .table {
+.board {
     width: 100%;
     border-collapse: collapse;
 }
 
-.page-leaderboard .player .table tr {
-    transition: background 0.15s ease;
+.board tr {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
 }
 
-.page-leaderboard .player .table tr:hover {
-    background: var(--color-background-hover);
+.board .rank {
+    width: 3.6rem;
+    padding-left: 0.9rem;
 }
 
-.page-leaderboard .player .table tr:hover a {
+.board .rank p {
+    margin: 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-muted);
+}
+
+.board tr:nth-child(1) .rank p { color: var(--color-primary); }
+
+.board .total {
+    width: 5.2rem;
+    text-align: right;
+    padding-right: 0.8rem;
+}
+
+.board .total p {
+    margin: 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--color-on-background);
+    opacity: 0.75;
+}
+
+.board .user {
+    padding: 0;
+}
+
+.board .user button {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-left: 2px solid transparent;
+    color: inherit;
+    cursor: pointer;
+    padding: 0.6rem 0.9rem;
+    font: inherit;
+    transition: background-color 0.12s ease, padding-left 0.12s ease;
+}
+
+.board .user button:hover {
+    background: var(--color-surface-hover);
+    padding-left: 1.1rem;
+}
+
+.board .user.active button {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+    border-left-color: var(--color-primary);
     color: var(--color-primary);
+    font-weight: 700;
 }
 
-.page-leaderboard .player .table td {
-    padding: 0.6rem 0.4rem;
+.player-container {
+    grid-row: 2;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.player {
+    padding: 1.6rem 1.8rem 3rem;
+    animation: rise 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.player h1 {
+    margin: 0 0 1.2rem;
+    word-break: break-word;
+}
+
+.player h2 {
+    margin: 1.8rem 0 0.4rem;
+    padding-bottom: 0.35rem;
     border-bottom: 1px solid var(--color-border);
 }
 
-.page-leaderboard .player .table .rank {
-    width: 3rem;
-    opacity: 0.4;
-    font-weight: 700;
+.player-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
 }
 
-.page-leaderboard .player .table .score {
-    text-align: end;
-    width: 5.5rem;
+.stat-box {
+    background: var(--color-surface);
+    box-shadow: 0 0 0 1px var(--color-border);
+    padding: 0.75rem 0.9rem;
+}
+
+.stat-label {
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+}
+
+.stat-value {
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
     font-weight: 700;
+    color: var(--color-on-background);
+}
+
+.stat-box:nth-child(2) .stat-value {
     color: var(--color-primary);
 }
 
-.page-leaderboard .player .table a:hover {
-    text-decoration: underline;
+.player .table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-@media (max-width: 900px) {
+.player .table tr {
+    border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+.player .table tr:hover {
+    background: var(--color-surface-hover);
+}
+
+.player .table .rank {
+    width: 3.5rem;
+    padding: 0.5rem 0;
+}
+
+.player .table .rank p {
+    margin: 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+}
+
+.player .table .level a {
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+}
+
+.player .table .level a:hover {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.player .table .score {
+    width: 6rem;
+    text-align: right;
+}
+
+.player .table .score p {
+    margin: 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--color-primary);
+}
+
+.player .empty {
+    color: var(--color-muted);
+}
+
+@media (max-width: 760px) {
     .page-leaderboard {
-        grid-template-columns: 1fr;
+        display: block;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .board-container {
+        height: auto;
+        max-height: 40vh;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .player-container {
+        height: auto;
+        overflow: visible;
+    }
+
+    .player {
+        padding: 1.2rem 1rem 2rem;
     }
 }

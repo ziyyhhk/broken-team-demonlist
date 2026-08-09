@@ -24,14 +24,14 @@ export default {
                         <input type="checkbox" id="extended" value="Extended List" v-model="useExtendedList">
                         <label for="extended">Extended List</label>
                     </div>
-                    <Btn @click.native.prevent="onStart">{{ levels.length === 0 ? 'Start' : 'Restart'}}</Btn>
+                    <Btn @click.prevent="onStart">{{ levels.length === 0 ? 'Start' : 'Restart'}}</Btn>
                 </form>
                 <p class="type-label-md sidebar-credit">The roulette saves automatically.</p>
                 <form class="save">
                     <p>Manual Load/Save</p>
                     <div class="btns">
-                        <Btn @click.native.prevent="onImport">Import</Btn>
-                        <Btn :disabled="!isActive" @click.native.prevent="onExport">Export</Btn>
+                        <Btn @click.prevent="onImport">Import</Btn>
+                        <Btn :disabled="!isActive" @click.prevent="onExport">Export</Btn>
                     </div>
                 </form>
             </div>
@@ -58,16 +58,16 @@ export default {
                                 <p class="level-pct current-pct">{{ currentLevel.id }}</p>
                             </div>
                             <form class="actions" v-if="!givenUp">
-                                <input type="number" v-model="percentage" :placeholder="placeholder" :min="currentPercentage + 1" max=100>
-                                <Btn @click.native.prevent="onDone">Done</Btn>
-                                <Btn @click.native.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
+                                <input type="number" v-model.number="percentage" :placeholder="placeholder" :min="currentPercentage + 1" max=100>
+                                <Btn @click.prevent="onDone">Done</Btn>
+                                <Btn @click.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
                             </form>
                         </div>
                         <div v-if="givenUp || hasCompleted" class="results">
                             <h1>Results</h1>
                             <p>Number of levels: {{ progression.length }}</p>
                             <p>Highest percent: {{ currentPercentage }}%</p>
-                            <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.native.prevent="showRemaining = true">Show remaining levels</Btn>
+                            <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                         </div>
                         <template v-if="givenUp && showRemaining">
                             <div class="level" v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)">
@@ -217,19 +217,21 @@ export default {
             );
         },
         onDone() {
-            if (!this.percentage) {
+            const percentage = Number(this.percentage);
+
+            if (!percentage || Number.isNaN(percentage)) {
                 return;
             }
 
             if (
-                this.percentage <= this.currentPercentage ||
-                this.percentage > 100
+                percentage <= this.currentPercentage ||
+                percentage > 100
             ) {
                 this.showToast('Invalid percentage.');
                 return;
             }
 
-            this.progression.push(this.percentage);
+            this.progression.push(percentage);
             this.percentage = undefined;
 
             this.save();
@@ -248,14 +250,18 @@ export default {
                 return;
             }
 
-            this.fileInput.showPicker();
+            if (typeof this.fileInput.showPicker === 'function') {
+                this.fileInput.showPicker();
+            } else {
+                this.fileInput.click();
+            }
         },
         async onImportUpload() {
             if (this.fileInput.files.length === 0) return;
 
             const file = this.fileInput.files[0];
 
-            if (file.type !== 'application/json') {
+            if (file.type && file.type !== 'application/json') {
                 this.showToast('Invalid file.');
                 return;
             }

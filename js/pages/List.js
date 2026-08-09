@@ -14,6 +14,17 @@ const roleIconMap = {
     trial: "user-lock",
 };
 
+const rules = [
+    "Achieved the record without using hacks (FPS bypass is allowed, up to 360fps).",
+    "Achieved the record on the level listed on the site — check the level ID before submitting.",
+    "Have either source audio or clicks/taps in the video. Edited audio alone does not count.",
+    "The recording must show a previous attempt and the full death animation before the completion, unless it was a first attempt. Everyplay records are exempt.",
+    "The recording must show the player hitting the endwall, or the completion is invalidated.",
+    "Do not use secret routes or bug routes.",
+    "Do not use easy modes — only a record of the unmodified level qualifies.",
+    "Once a level falls onto the Legacy List we accept records for 24 hours after it falls off, and never after that.",
+];
+
 export default {
     components: { Spinner, LevelAuthors },
     template: `
@@ -22,25 +33,45 @@ export default {
         </main>
         <main v-else class="page-list">
             <div class="list-container">
-                <table class="list" v-if="list">
-                    <tr v-for="([level, err], i) in list">
+                <div class="list-search">
+                    <input
+                        type="text"
+                        v-model="query"
+                        placeholder="Search level"
+                        aria-label="Search level"
+                    />
+                    <span class="count">{{ filtered.length }}/{{ list.length }}</span>
+                </div>
+                <table class="list" v-if="filtered.length > 0">
+                    <tr v-for="{ level, err, index } in filtered" :key="index">
                         <td class="rank">
-                            <p v-if="i + 1 <= 150" class="type-label-lg">#{{ i + 1 }}</p>
+                            <p v-if="index + 1 <= 150" class="type-label-lg">#{{ index + 1 }}</p>
                             <p v-else class="type-label-lg">Legacy</p>
                         </td>
-                        <td class="level" :class="{ 'active': selected == i, 'error': !level }">
-                            <button @click="selected = i">
+                        <td class="level" :class="{ 'active': selected == index, 'error': !level }">
+                            <button @click="selected = index">
                                 <span class="type-label-lg">{{ level?.name || \`Error (\${err}.json)\` }}</span>
                             </button>
                         </td>
                     </tr>
                 </table>
+                <p v-else class="type-label-md" style="padding: 1rem; color: var(--color-muted);">
+                    No level matches "{{ query }}".
+                </p>
             </div>
             <div class="level-container">
                 <div class="level" v-if="level" :key="selected">
+                    <p class="level-tag">{{ selected + 1 <= 150 ? 'Rank #' + (selected + 1) : 'Legacy' }}</p>
                     <h1>{{ level.name }}</h1>
-                    <LevelAuthors :author="level.author" :creators="level.creators" :verifier="level.verifier"></LevelAuthors>
-                    <iframe class="video" id="videoframe" :src="video" frameborder="0"></iframe>
+                    <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
+                    <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
+                    <button
+                        v-if="level.showcase"
+                        class="btn btn-ghost showcase-toggle"
+                        @click.prevent="toggledShowcase = !toggledShowcase"
+                    >
+                        {{ toggledShowcase ? 'Show verification' : 'Show showcase' }}
+                    </button>
                     <ul class="stats">
                         <li>
                             <div class="type-title-sm">Points when completed</div>
@@ -55,17 +86,17 @@ export default {
                             <p>{{ level.password || 'Free to Copy' }}</p>
                         </li>
                     </ul>
-                    <h2>Records</h2>
+                    <h2>Records ({{ level.records.length }})</h2>
                     <p v-if="selected + 1 <= 75"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
-                    <p v-else-if="selected +1 <= 150"><strong>100%</strong> or better to qualify</p>
+                    <p v-else-if="selected + 1 <= 150"><strong>100%</strong> or better to qualify</p>
                     <p v-else>This level does not accept new records.</p>
-                    <table class="records">
+                    <table class="records" v-if="level.records.length > 0">
                         <tr v-for="record in level.records" class="record">
                             <td class="percent">
                                 <p>{{ record.percent }}%</p>
                             </td>
                             <td class="user">
-                                <a :href="record.link" target="_blank" class="type-label-lg">{{ record.user }}</a>
+                                <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>
                             </td>
                             <td class="mobile">
                                 <img v-if="record.mobile" :src="\`./assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
@@ -76,8 +107,9 @@ export default {
                         </tr>
                     </table>
                 </div>
-                <div v-else class="level" style="height: 100%; justify-content: center; align-items: center;">
-                    <p>(ノಠ益ಠ)ノ彡┻━┻</p>
+                <div v-else class="empty">
+                    <span>(ノಠ益ಠ)ノ彡┻━┻</span>
+                    <p>This level could not be loaded.</p>
                 </div>
             </div>
             <div class="meta-container">
@@ -85,28 +117,23 @@ export default {
                     <div class="errors" v-show="errors.length > 0">
                         <p class="error" v-for="error of errors">{{ error }}</p>
                     </div>
-                    <div class="og">
-                        <p class="type-label-md">Website layout made by <a href="https://tsl.pages.dev/" target="_blank">TheShittyList</a></p>
-                    </div>
-                    <template v-if="editors">
+                    <template v-if="editors && editors.length">
                         <h3>List Editors</h3>
                         <ol class="editors">
                             <li v-for="editor in editors">
                                 <img :src="\`./assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
-                                <a v-if="editor.link" class="type-label-lg link" target="_blank" :href="editor.link">{{ editor.name }}</a>
-                                <p v-else>{{ editor.name }}</p>
+                                <a v-if="editor.link" class="type-label-lg link" target="_blank" rel="noopener" :href="editor.link">{{ editor.name }}</a>
+                                <p v-else class="type-label-lg">{{ editor.name }}</p>
                             </li>
                         </ol>
                     </template>
                     <h3>Submission Requirements</h3>
-                    <p>Achieved the record without using hacks (however, FPS bypass is allowed, up to 360fps)</p>
-                    <p>Achieved the record on the level that is listed on the site - please check the level ID before you submit a record</p>
-                    <p>Have either source audio or clicks/taps in the video. Edited audio only does not count</p>
-                    <p>The recording must have a previous attempt and entire death animation shown before the completion, unless the completion is on the first attempt. Everyplay records are exempt from this</p>
-                    <p>The recording must also show the player hit the endwall, or the completion will be invalidated.</p>
-                    <p>Do not use secret routes or bug routes</p>
-                    <p>Do not use easy modes, only a record of the unmodified level qualifies</p>
-                    <p>Once a level falls onto the Legacy List, we accept records for it for 24 hours after it falls off, then afterwards we never accept records for said level</p>
+                    <ol class="rules">
+                        <li v-for="rule in rules">{{ rule }}</li>
+                    </ol>
+                    <div class="og">
+                        <p class="type-label-md">Website layout based on <a href="https://tsl.pages.dev/" target="_blank" rel="noopener">TheShittyList</a></p>
+                    </div>
                 </div>
             </div>
         </main>
@@ -116,15 +143,31 @@ export default {
         editors: [],
         loading: true,
         selected: 0,
+        query: "",
         errors: [],
+        toggledShowcase: false,
         roleIconMap,
-        store
+        rules,
+        store,
     }),
     computed: {
+        filtered() {
+            const query = this.query.trim().toLowerCase();
+            return this.list
+                .map(([level, err], index) => ({ level, err, index }))
+                .filter(({ level, err }) =>
+                    query === ""
+                        ? true
+                        : (level?.name ?? err ?? "").toLowerCase().includes(query)
+                );
+        },
         level() {
-            return this.list[this.selected][0];
+            return this.list[this.selected]?.[0] ?? null;
         },
         video() {
+            if (!this.level) {
+                return "";
+            }
             if (!this.level.showcase) {
                 return embed(this.level.verification);
             }
@@ -135,12 +178,19 @@ export default {
             );
         },
     },
+    watch: {
+        selected() {
+            this.toggledShowcase = false;
+        },
+    },
     async mounted() {
-        this.list = await fetchList();
+        this.list = (await fetchList()) ?? [];
         this.editors = await fetchEditors();
 
-        if (!this.list) {
-            this.errors = ["Failed to load list. Retry in a few minutes or notify list staff."];
+        if (this.list.length === 0) {
+            this.errors = [
+                "Failed to load list. Retry in a few minutes or notify list staff.",
+            ];
         } else {
             this.errors.push(
                 ...this.list
@@ -150,20 +200,30 @@ export default {
             if (!this.editors) {
                 this.errors.push("Failed to load list editors.");
             }
+
+            // Select the first level that actually loaded
+            const firstValid = this.list.findIndex(([level]) => level);
+            this.selected = firstValid === -1 ? 0 : firstValid;
         }
 
         this.loading = false;
 
         // Secrets
-        console.log("%c broken team was here ", "background:#45b545;color:#fff;padding:6px 12px;border-radius:6px;font-weight:bold");
-        console.log("%c type 'broken' in the console for a secret ", "color:#45b545");
+        console.log(
+            "%c broken team was here ",
+            "background:#7cff3f;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold"
+        );
+        console.log("%c type 'broken()' in the console for a secret ", "color:#7cff3f");
 
         window.broken = () => {
-            console.log("%c you found the secret ", "background:#111;color:#45b545;padding:8px 14px;border-radius:8px;font-size:14px");
+            console.log(
+                "%c you found the secret ",
+                "background:#111;color:#7cff3f;padding:8px 14px;border-radius:2px;font-size:14px"
+            );
             console.log("%c the list is broken... but so are the rules ", "color:#888");
-            document.body.style.setProperty("--color-primary", "#ff2d55");
+            document.body.classList.add("secret-mode");
             setTimeout(() => {
-                document.body.style.setProperty("--color-primary", "#45b545");
+                document.body.classList.remove("secret-mode");
             }, 3000);
         };
     },
