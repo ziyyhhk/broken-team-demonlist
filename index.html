@@ -35,7 +35,7 @@
         <script type="module" src="./js/main.js"></script>
     </head>
     <body id="app">
-        <header :class="{ dark: store.dark }">
+        <header>
             <div class="logo">
                 <h2>The Broken List</h2>
                 <p>v1.0.0</p>
@@ -74,6 +74,6 @@
                 </div>
             </nav>
         </header>
-        <router-view :class="{ dark: store.dark }"></router-view>
+        <router-view></router-view>
     </body>
 </html>

@@ -5,16 +5,17 @@
 .page-leaderboard {
     height: 100%;
     display: grid;
-    grid-template-columns: minmax(22rem, 2fr) 3fr;
+    grid-template-columns: minmax(20rem, 2fr) 3fr;
     grid-template-rows: max-content 1fr;
-    column-gap: 2rem;
-    max-width: 85rem;
+    column-gap: 1.5rem;
+    max-width: 82rem;
     margin: 0 auto;
     padding: 1.5rem;
 }
 
 .page-leaderboard > div {
     overflow-y: auto;
+    padding-right: 0.35rem;
 }
 
 .page-leaderboard .error-container {
@@ -23,38 +24,39 @@
 }
 
 .page-leaderboard .error-container .error {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: var(--color-error);
     color: var(--color-on-error);
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 18px rgba(224, 62, 62, 0.35);
+    border-radius: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .page-leaderboard .board-container,
 .page-leaderboard .player-container {
     grid-row: 2;
-    padding-block: 1.5rem;
+    padding-block: 1.25rem;
 }
 
 .page-leaderboard .board {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 0.4rem;
+    border-spacing: 0 0.3rem;
 }
 
 .page-leaderboard .board .rank {
-    padding: 0.8rem 0.6rem;
+    padding: 0.7rem 0.5rem;
     text-align: end;
-    opacity: 0.6;
+    opacity: 0.4;
     font-weight: 700;
+    font-size: 0.9rem;
 }
 
 .page-leaderboard .board .total {
-    padding: 0.8rem;
+    padding: 0.7rem;
     text-align: end;
     font-weight: 700;
     color: var(--color-primary);
-    text-shadow: 0 0 10px rgba(69, 181, 69, 0.3);
 }
 
 .page-leaderboard .board .user {
@@ -63,96 +65,89 @@
 
 .page-leaderboard .board .user button {
     appearance: none;
-    border: 1px solid transparent;
-    background: var(--color-background-hover);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
     color: var(--color-on-background);
-    border-radius: 0.6rem;
-    padding: 0.85rem 1rem;
+    border-radius: 0.4rem;
+    padding: 0.7rem 0.9rem;
     text-align: left;
     width: 100%;
     cursor: pointer;
     font-weight: 700;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
 }
 
 .page-leaderboard .board .user button:hover {
-    transform: translateX(5px);
-    border-color: rgba(69, 181, 69, 0.3);
-    background: rgba(69, 181, 69, 0.1);
+    border-color: var(--color-primary);
+    background: var(--color-surface-hover);
+    transform: translateX(3px);
 }
 
 .page-leaderboard .board .user.active button {
-    background: linear-gradient(135deg, #45b545, #3aa03a) !important;
-    color: white !important;
-    transform: translateX(7px);
-    box-shadow: 0 0 24px rgba(69, 181, 69, 0.45);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border-color: var(--color-primary);
+    transform: translateX(4px);
 }
 
 /* player side */
 .page-leaderboard .player {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    padding-right: 1rem;
-    animation: levelIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    gap: 1.25rem;
+    animation: levelIn 0.3s ease;
 }
 
 @keyframes levelIn {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
 }
 
 .page-leaderboard .player h1 {
-    font-size: 2rem;
-    font-weight: 900;
-    background: linear-gradient(90deg, var(--color-on-background), var(--color-primary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--color-on-background);
 }
 
-/* STATS GRID */
 .page-leaderboard .player .player-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: 0.6rem;
 }
 
 .page-leaderboard .player .stat-box {
-    padding: 0.9rem 1rem;
+    padding: 0.8rem 0.9rem;
     background: var(--color-surface);
-    border: 1px solid var(--color-surface-border);
-    border-radius: 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.4rem;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    gap: 0.3rem;
+    transition: border-color 0.18s ease;
 }
 
 .page-leaderboard .player .stat-box:hover {
-    transform: translateY(-3px);
-    border-color: rgba(69, 181, 69, 0.4);
-    box-shadow: 0 6px 20px rgba(69, 181, 69, 0.18);
+    border-color: var(--color-primary);
 }
 
 .page-leaderboard .player .stat-box .stat-label {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    opacity: 0.5;
+    letter-spacing: 0.04em;
+    opacity: 0.45;
 }
 
 .page-leaderboard .player .stat-box .stat-value {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 700;
     color: var(--color-on-background);
 }
 
 .page-leaderboard .player h2 {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
+    font-weight: 700;
     color: var(--color-primary);
-    text-shadow: 0 0 12px rgba(69, 181, 69, 0.3);
 }
 
 .page-leaderboard .player .table {
@@ -165,7 +160,7 @@
 }
 
 .page-leaderboard .player .table tr:hover {
-    background: rgba(69, 181, 69, 0.08);
+    background: var(--color-background-hover);
 }
 
 .page-leaderboard .player .table tr:hover a {
@@ -173,18 +168,19 @@
 }
 
 .page-leaderboard .player .table td {
-    padding: 0.75rem 0.5rem;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+    padding: 0.6rem 0.4rem;
+    border-bottom: 1px solid var(--color-border);
 }
 
 .page-leaderboard .player .table .rank {
-    width: 3.5rem;
-    opacity: 0.6;
+    width: 3rem;
+    opacity: 0.4;
+    font-weight: 700;
 }
 
 .page-leaderboard .player .table .score {
     text-align: end;
-    width: 6rem;
+    width: 5.5rem;
     font-weight: 700;
     color: var(--color-primary);
 }

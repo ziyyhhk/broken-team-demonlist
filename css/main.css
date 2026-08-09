@@ -1,48 +1,48 @@
 :root {
-    /* LIGHT MODE */
-    --color-background: #f0f2f5;
-    --color-on-background: #1a1a1c;
-    --color-background-hover: #e4e7ec;
-    --color-on-background-hover: #1a1a1c;
-    --color-primary: #45b545;
-    --color-primary-glow: rgba(69, 181, 69, 0.5);
+    --color-background: #f4f5f7;
+    --color-on-background: #1a1d23;
+    --color-background-hover: #ebedf0;
+    --color-surface: #ffffff;
+    --color-surface-hover: #f7f8fa;
+    --color-border: #d8dce2;
+    --color-primary: #3da544;
+    --color-primary-hover: #359539;
+    --color-primary-glow: rgba(61, 165, 68, 0.25);
     --color-on-primary: #ffffff;
-    --color-secondary: #00d9ff;
-    --color-accent: #ff2d55;
-    --color-success: #45b545;
-    --color-warning: #ffb700;
-    --color-error: #e03e3e;
+    --color-secondary: #0ea5e9;
+    --color-accent: #f43f5e;
+    --color-success: #3da544;
+    --color-warning: #f59e0b;
+    --color-error: #dc2626;
     --color-on-error: #ffffff;
-    --color-surface: rgba(26, 29, 36, 0.7);
-    --color-surface-border: rgba(69, 181, 69, 0.15);
-    --scrollbar-thumb: #c5c9d0;
-    --scrollbar-track: #e8eaed;
-    --grid-color: rgba(69, 181, 69, 0.04);
-    --grid-color-strong: rgba(69, 181, 69, 0.08);
+    --color-muted: #6b7280;
+    --scrollbar-thumb: #c2c6cc;
+    --scrollbar-track: transparent;
+    --header-bg: #1a1d23;
+    --header-fg: #ffffff;
 }
 
-/* DARK MODE */
-main.dark,
-header.dark,
-.dark {
-    --color-background: #0a0d12;
-    --color-on-background: #e8eaed;
-    --color-background-hover: #141821;
-    --color-on-background-hover: #ffffff;
-    --color-primary: #45b545;
-    --color-primary-glow: rgba(69, 181, 69, 0.45);
-    --color-secondary: #00d9ff;
-    --color-accent: #ff2d55;
-    --color-success: #45b545;
-    --color-warning: #ffb700;
-    --color-error: #ff4d4d;
-    --color-on-error: #ffffff;
-    --color-surface: rgba(20, 24, 33, 0.75);
-    --color-surface-border: rgba(69, 181, 69, 0.18);
-    --scrollbar-thumb: #2a2e36;
-    --scrollbar-track: #0f1218;
-    --grid-color: rgba(69, 181, 69, 0.05);
-    --grid-color-strong: rgba(69, 181, 69, 0.1);
+body.dark {
+    --color-background: #111418;
+    --color-on-background: #e4e6eb;
+    --color-background-hover: #1c2128;
+    --color-surface: #181c22;
+    --color-surface-hover: #1f242c;
+    --color-border: #2a3038;
+    --color-primary: #4ade80;
+    --color-primary-hover: #22c55e;
+    --color-primary-glow: rgba(74, 222, 128, 0.2);
+    --color-secondary: #38bdf8;
+    --color-accent: #fb7185;
+    --color-success: #4ade80;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    --color-on-error: #1a1d23;
+    --color-muted: #8b929e;
+    --scrollbar-thumb: #2a3038;
+    --scrollbar-track: transparent;
+    --header-bg: #0d0f12;
+    --header-fg: #e4e6eb;
 }
 
 html, body {
@@ -56,96 +56,45 @@ body {
     background: var(--color-background);
     color: var(--color-on-background);
     font-family: "Lexend Deca", sans-serif;
-    transition: background-color 0.25s ease, color 0.25s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Animated GD-style grid background */
-body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-        linear-gradient(var(--grid-color) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
-        radial-gradient(circle at 15% 15%, rgba(69, 181, 69, 0.12) 0%, transparent 45%),
-        radial-gradient(circle at 85% 85%, rgba(0, 217, 255, 0.08) 0%, transparent 45%);
-    background-size: 48px 48px, 48px 48px, 100% 100%, 100% 100%;
-    pointer-events: none;
-    z-index: 0;
-    animation: gridMove 18s linear infinite;
-}
-
-@keyframes gridMove {
-    from { background-position: 0 0, 0 0, 0 0, 0 0; }
-    to   { background-position: 48px 48px, 48px 48px, 0 0, 0 0; }
-}
-
-/* moving accent line at top of viewport */
-body::after {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--color-primary), var(--color-secondary), var(--color-primary), transparent);
-    background-size: 200% 100%;
-    z-index: 60;
-    pointer-events: none;
-    animation: scanline 4s linear infinite;
-    opacity: 0.7;
-}
-
-@keyframes scanline {
-    from { background-position: 200% 0; }
-    to   { background-position: -200% 0; }
-}
-
-header, main {
-    position: relative;
-    z-index: 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 header {
     display: flex;
-    height: 4.2rem;
-    padding-inline: 1.5rem;
-    background: linear-gradient(90deg, #3aa03a, #45b545, #3aa03a);
-    background-size: 200% 100%;
-    color: white;
+    height: 3.75rem;
+    padding-inline: 1.25rem;
+    background: var(--header-bg);
+    color: var(--header-fg);
     align-items: center;
-    box-shadow: 0 4px 24px rgba(69, 181, 69, 0.35), 0 0 1px rgba(69, 181, 69, 0.6);
+    border-bottom: 3px solid var(--color-primary);
     z-index: 50;
-    animation: headerPulse 6s ease-in-out infinite;
-    border-bottom: 1px solid rgba(69, 181, 69, 0.4);
-}
-
-@keyframes headerPulse {
-    0%, 100% { background-position: 0% 50%; box-shadow: 0 4px 24px rgba(69, 181, 69, 0.35); }
-    50%      { background-position: 100% 50%; box-shadow: 0 4px 32px rgba(69, 181, 69, 0.5); }
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 header .logo {
     display: flex;
-    align-items: flex-end;
-    gap: 0.7rem;
-    margin-right: 2rem;
+    align-items: center;
+    gap: 0.6rem;
+    margin-right: 1.75rem;
+}
+
+header .logo img {
+    width: 1.75rem;
+    height: 1.75rem;
 }
 
 header .logo h2 {
-    font-size: 1.4rem;
+    font-size: 1.15rem;
     font-weight: 800;
     margin: 0;
-    letter-spacing: 0.02em;
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.01em;
 }
 
 header .logo p {
-    font-size: 0.75rem;
-    opacity: 0.85;
-    margin: 0 0 2px 0;
+    font-size: 0.7rem;
+    opacity: 0.55;
+    margin: 0;
+    font-weight: 500;
 }
 
 header .nav {
@@ -158,9 +107,9 @@ main {
     flex: 1;
     height: 0;
     overflow: hidden;
-    background: transparent;
+    background: var(--color-background);
     color: var(--color-on-background);
-    transition: background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 main > div {
@@ -168,31 +117,28 @@ main > div {
     overflow-y: auto;
 }
 
-/* ========== CUSTOM SCROLLBAR ========== */
+/* SCROLLBAR */
 * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-primary) var(--scrollbar-track);
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
 
 *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
 }
 
 *::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: 4px;
+    background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-    background: var(--color-primary);
+    background: var(--scrollbar-thumb);
     border-radius: 4px;
-    box-shadow: 0 0 8px var(--color-primary-glow);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-    background: #5cc55c;
-    box-shadow: 0 0 12px var(--color-primary-glow);
+    background: var(--color-primary);
 }
 
 .spinner {
@@ -200,20 +146,52 @@ main > div {
     align-items: center;
     justify-content: center;
     height: 100%;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--color-primary);
-    text-shadow: 0 0 16px var(--color-primary-glow);
-    animation: pulseFade 1.2s ease-in-out infinite;
+    animation: pulseFade 1.4s ease-in-out infinite;
 }
 
 @keyframes pulseFade {
-    0%, 100% { opacity: 0.5; }
+    0%, 100% { opacity: 0.4; }
     50% { opacity: 1; }
 }
 
 .editors img {
-    width: 1.2rem;
-    height: 1.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
     object-fit: contain;
+}
+
+/* SECRET MODE — Konami code easter egg */
+body.secret-mode {
+    --color-primary: #e0454d;
+    --color-primary-hover: #c93c3c;
+    --color-primary-glow: rgba(224, 69, 77, 0.22);
+    --color-secondary: #e0454d;
+    --color-accent: #38a948;
+    animation: secretFlash 0.5s ease;
+}
+
+body.secret-mode header {
+    border-bottom-color: var(--color-primary);
+}
+
+@keyframes secretFlash {
+    0%   { filter: hue-rotate(0deg) brightness(1.3); }
+    100% { filter: none; }
+}
+
+@media (max-width: 700px) {
+    header {
+        padding-inline: 0.75rem;
+    }
+
+    header .logo {
+        margin-right: 0.75rem;
+    }
+
+    header .logo h2 {
+        font-size: 1rem;
+    }
 }

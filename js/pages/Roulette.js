@@ -12,7 +12,7 @@ export default {
         </main>
         <main v-else class="page-roulette">
             <div class="sidebar">
-                <p class="type-label-md" style="color: #aaa">
+                <p class="type-label-md sidebar-credit">
                     Shameless copy of the Extreme Demon Roulette by <a href="https://matcool.github.io/extreme-demon-roulette/" target="_blank">matcool</a>.
                 </p>
                 <form class="options">
@@ -26,9 +26,7 @@ export default {
                     </div>
                     <Btn @click.native.prevent="onStart">{{ levels.length === 0 ? 'Start' : 'Restart'}}</Btn>
                 </form>
-                <p class="type-label-md" style="color: #aaa">
-                    The roulette saves automatically.
-                </p>
+                <p class="type-label-md sidebar-credit">The roulette saves automatically.</p>
                 <form class="save">
                     <p>Manual Load/Save</p>
                     <div class="btns">
@@ -40,54 +38,55 @@ export default {
             <section class="levels-container">
                 <div class="levels">
                     <template v-if="levels.length > 0">
-                        <!-- Completed Levels -->
                         <div class="level" v-for="(level, i) in levels.slice(0, progression.length)">
-                            <a :href="level.video" class="video">
-                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="">
+                            <a :href="level.video" class="video" target="_blank">
+                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
                             </a>
                             <div class="meta">
-                                <p>#{{ level.rank }}</p>
+                                <p class="level-rank">#{{ level.rank }}</p>
                                 <h2>{{ level.name }}</h2>
-                                <p style="color: #00b54b; font-weight: 700">{{ progression[i] }}%</p>
+                                <p class="level-pct done">{{ progression[i] }}%</p>
                             </div>
                         </div>
-                        <!-- Current Level -->
-                        <div class="level" v-if="!hasCompleted">
+                        <div class="level current" v-if="!hasCompleted && !givenUp">
                             <a :href="currentLevel.video" target="_blank" class="video">
-                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="">
+                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
                             </a>
                             <div class="meta">
-                                <p>#{{ currentLevel.rank }}</p>
+                                <p class="level-rank">#{{ currentLevel.rank }}</p>
                                 <h2>{{ currentLevel.name }}</h2>
-                                <p>{{ currentLevel.id }}</p>
+                                <p class="level-pct current-pct">{{ currentLevel.id }}</p>
                             </div>
                             <form class="actions" v-if="!givenUp">
                                 <input type="number" v-model="percentage" :placeholder="placeholder" :min="currentPercentage + 1" max=100>
                                 <Btn @click.native.prevent="onDone">Done</Btn>
-                                <Btn @click.native.prevent="onGiveUp" style="background-color: #e91e63;">Give Up</Btn>
+                                <Btn @click.native.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
                             </form>
                         </div>
-                        <!-- Results -->
                         <div v-if="givenUp || hasCompleted" class="results">
                             <h1>Results</h1>
                             <p>Number of levels: {{ progression.length }}</p>
                             <p>Highest percent: {{ currentPercentage }}%</p>
                             <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.native.prevent="showRemaining = true">Show remaining levels</Btn>
                         </div>
-                        <!-- Remaining Levels -->
                         <template v-if="givenUp && showRemaining">
                             <div class="level" v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)">
                                 <a :href="level.video" target="_blank" class="video">
-                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="">
+                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
                                 </a>
                                 <div class="meta">
-                                    <p>#{{ level.rank }}</p>
+                                    <p class="level-rank">#{{ level.rank }}</p>
                                     <h2>{{ level.name }}</h2>
-                                    <p style="color: #d50000; font-weight: 700">{{ currentPercentage + 2 + i }}%</p>
+                                    <p class="level-pct missed">{{ currentPercentage + 2 + i }}%</p>
                                 </div>
                             </div>
                         </template>
                     </template>
+                    <div v-else class="empty-state">
+                        <div class="empty-icon">◆</div>
+                        <h2>No roulette in progress</h2>
+                        <p>Pick a list above and hit <strong>Start</strong> to begin a run.</p>
+                    </div>
                 </div>
             </section>
             <div class="toasts-container">
@@ -141,7 +140,8 @@ export default {
         },
         hasCompleted() {
             return (
-                this.progression[this.progression.length - 1] >= 100 ||
+                (this.progression.length > 0 &&
+                    this.progression[this.progression.length - 1] >= 100) ||
                 this.progression.length === this.levels.length
             );
         },
@@ -164,12 +164,19 @@ export default {
             }
 
             if (!this.useMainList && !this.useExtendedList) {
+                this.showToast('Select at least one list.');
                 return;
             }
 
             this.loading = true;
 
             const fullList = await fetchList();
+
+            if (!fullList) {
+                this.loading = false;
+                this.showToast('Failed to load list. Try again in a moment.');
+                return;
+            }
 
             if (fullList.filter(([_, err]) => err).length > 0) {
                 this.loading = false;
@@ -285,6 +292,9 @@ export default {
             a.download = 'tsl_roulette';
             a.click();
             URL.revokeObjectURL(a.href);
+        },
+        onImgError(e) {
+            e.target.style.display = 'none';
         },
         showToast(msg) {
             this.toasts.push(msg);
