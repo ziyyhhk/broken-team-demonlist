@@ -4,6 +4,7 @@
     min-height: 0;
     height: 100%;
     overflow: hidden;
+    animation: pageIn 0.5s var(--ease-out) both;
 }
 
 .page-leaderboard {
@@ -15,15 +16,8 @@
     overflow: hidden;
 }
 
-.page-leaderboard .error-container {
-    grid-column: 1 / -1;
-    grid-row: 1;
-}
-
-.page-leaderboard .error-container:empty {
-    display: none;
-}
-
+.page-leaderboard .error-container { grid-column: 1 / -1; grid-row: 1; }
+.page-leaderboard .error-container:empty { display: none; }
 .page-leaderboard .error {
     margin: 0;
     padding: 0.6rem 1rem;
@@ -40,23 +34,14 @@
     border-right: 1px solid var(--color-border);
     background: color-mix(in srgb, var(--color-surface) 70%, transparent);
 }
-
-.board {
-    width: 100%;
-    border-collapse: collapse;
-}
-
+.board { width: 100%; border-collapse: collapse; }
 .board tr {
     border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
-    transition: background-color .12s ease;
+    transition: background-color .12s ease, padding-left .2s var(--ease-out);
 }
 .board tr:hover { background: var(--color-surface-hover); }
 
-.board .rank {
-    width: 3.6rem;
-    padding-left: 0.9rem;
-}
-
+.board .rank { width: 3.6rem; padding-left: 0.9rem; }
 .board .rank p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
@@ -64,15 +49,9 @@
     font-weight: 700;
     color: var(--color-muted);
 }
-
 .board tr:nth-child(1) .rank p { color: var(--color-primary); }
 
-.board .total {
-    width: 5.2rem;
-    text-align: right;
-    padding-right: 0.8rem;
-}
-
+.board .total { width: 5.2rem; text-align: right; padding-right: 0.8rem; }
 .board .total p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
@@ -81,10 +60,7 @@
     opacity: 0.75;
 }
 
-.board .user {
-    padding: 0;
-}
-
+.board .user { padding: 0; }
 .board .user button {
     width: 100%;
     text-align: left;
@@ -95,14 +71,9 @@
     cursor: pointer;
     padding: 0.6rem 0.9rem;
     font: inherit;
-    transition: background-color 0.12s ease, padding-left 0.12s ease, border-color 0.12s ease;
+    transition: background-color .12s ease, padding-left .2s var(--ease-out), border-color .2s var(--ease-out);
 }
-
-.board .user button:hover {
-    background: var(--color-surface-hover);
-    padding-left: 1.1rem;
-}
-
+.board .user button:hover { background: var(--color-surface-hover); padding-left: 1.15rem; }
 .board .user.active button {
     background: color-mix(in srgb, var(--color-primary) 12%, transparent);
     border-left-color: var(--color-primary);
@@ -110,27 +81,10 @@
     font-weight: 700;
 }
 
-.player-container {
-    grid-row: 2;
-    height: 100%;
-    overflow-y: auto;
-}
-
-.player {
-    padding: 1.6rem 1.8rem 3rem;
-    animation: rise 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.player h1 {
-    margin: 0 0 1.2rem;
-    word-break: break-word;
-}
-
-.player h2 {
-    margin: 1.8rem 0 0.4rem;
-    padding-bottom: 0.35rem;
-    border-bottom: 1px solid var(--color-border);
-}
+.player-container { grid-row: 2; height: 100%; overflow-y: auto; }
+.player { padding: 1.6rem 1.8rem 3rem; animation: pageIn 0.4s var(--ease-out) both; }
+.player h1 { margin: 0 0 1.2rem; word-break: break-word; }
+.player h2 { margin: 1.8rem 0 0.4rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--color-border); }
 
 .player-stats {
     display: grid;
@@ -141,14 +95,13 @@
     border-radius: var(--radius);
     overflow: hidden;
 }
-
 .stat-box {
     background: var(--color-surface);
     box-shadow: 0 0 0 1px var(--color-border);
     padding: 0.75rem 0.9rem;
-    transition: transform .15s ease, background-color .12s ease;
+    transition: transform .2s var(--ease-out), background-color .12s ease;
 }
-.stat-box:hover { transform: translateY(-1px); background: var(--color-surface-hover); }
+.stat-box:hover { transform: translateY(-2px); background: var(--color-surface-hover); }
 
 .stat-label {
     font-family: "Chivo Mono", monospace;
@@ -157,91 +110,49 @@
     text-transform: uppercase;
     color: var(--color-muted);
 }
-
 .stat-value {
     margin-top: 0.25rem;
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-on-background);
 }
+.stat-box:nth-child(2) .stat-value { color: var(--color-primary); }
 
-.stat-box:nth-child(2) .stat-value {
-    color: var(--color-primary);
-}
-
-.player .table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
+.player .table { width: 100%; border-collapse: collapse; }
 .player .table tr {
     border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
     transition: background-color .12s ease;
 }
-
-.player .table tr:hover {
-    background: var(--color-surface-hover);
-}
-
-.player .table .rank {
-    width: 3.5rem;
-    padding: 0.5rem 0;
-}
-
+.player .table tr:hover { background: var(--color-surface-hover); }
+.player .table .rank { width: 3.5rem; padding: 0.5rem 0; }
 .player .table .rank p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
     font-size: 0.8rem;
     color: var(--color-muted);
 }
-
 .player .table .level a {
     text-decoration: none;
     border-bottom: 1px solid transparent;
-    transition: color .12s ease, border-color .12s ease;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    transition: background-size .35s var(--ease-out), color .15s ease;
 }
-
-.player .table .level a:hover {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-}
-
-.player .table .score {
-    width: 6rem;
-    text-align: right;
-}
-
+.player .table .level a:hover { color: var(--color-primary); background-size: 100% 1px; }
+.player .table .score { width: 6rem; text-align: right; }
 .player .table .score p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
     font-size: 0.82rem;
     color: var(--color-primary);
 }
-
-.player .empty {
-    color: var(--color-muted);
-}
+.player .empty { color: var(--color-muted); }
 
 @media (max-width: 760px) {
-    .page-leaderboard {
-        display: block;
-        height: 100%;
-        overflow-y: auto;
-    }
-
-    .board-container {
-        height: auto;
-        max-height: 40vh;
-        border-right: none;
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .player-container {
-        height: auto;
-        overflow: visible;
-    }
-
-    .player {
-        padding: 1.2rem 1rem 2rem;
-    }
+    .page-leaderboard { display: block; height: 100%; overflow-y: auto; }
+    .board-container { height: auto; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--color-border); }
+    .player-container { height: auto; overflow: visible; }
+    .player { padding: 1.2rem 1rem 2rem; }
 }
