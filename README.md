@@ -1,48 +1,69 @@
-# Welcome to the Geometry Dash Shitty List template !
+# The Broken List — Broken Team Demonlist
 
-# FAQ
+Geometry Dash-style demon list site (based on the Shitty List template).
 
----
+## List tiers (like Pointercrate)
 
-### Website FAQ
+| Tier | Ranks | Notes |
+|------|-------|--------|
+| **Main** | #1 – #75 | Percentage records count toward points |
+| **Extended** | #76 – #150 | Only 100% completions count |
+| **Legacy** | #151+ | Old top-150 levels that fell off; no new records |
 
-Can I use the Shitty List template?
-
-- Sure. Credits to the shitty list are embedded onto this template so keep that in.
-
-The website isn't loading! What can I do?
-
-- Since no webhost is perfect, downtime is expected. You can either wait till the
-  website is back online or you can do some behind the scene stuff and run it
-  locally.
+Use the **Main / Extended / Legacy** tabs on the List page to filter.
 
 ---
 
-### Usage FAQ
+## How to put a level on the Legacy List
 
-How do I add levels to the list?
+Order in `data/_list.json` **is** the ranking. Position in the array = list rank.
 
-- Use one of the provided template json files and modify the details to fill in the details
-  accordingly. If there are any errors, the site will not load, or you will get a pop up
-  saying which level isn't loading.
+### Example
 
-How do I add records to the list?
+```json
+[
+  "HardestLevel",
+  "SecondHardest",
+  "... up to 150 entries for Main + Extended ...",
+  "OldTopLevel",
+  "AnotherFallenLevel"
+]
+```
 
-- Again, use one of the given templates, and modify the details accordingly. For mobile
-  records, you can add the code `mobile: true` within the braces. Make sure there are no
-  excess or missing commas, or the website might not load properly.
+- Entries **1–75** → Main List  
+- Entries **76–150** → Extended List  
+- Entries **151 and after** → **Legacy List**
 
-What are some common reasons for the website not loading?
+### Steps to move a level to Legacy
 
-- The most common cause is missing commas and inverted commas, or extra commas at the end of
-  the last lines within list entries. A good way to find the error-causing lines can be found
-  by using `Inspect Element` and going to the `Console` tab.
+1. Open `data/_list.json`.
+2. Find the level filename (without `.json`), e.g. `"Bloodbath"`.
+3. **Cut** that entry from its current position.
+4. **Paste** it **after** the 150th entry (or at the end if you have fewer than 150).
+5. Save. GitHub Pages will rebuild; the level appears under the **Legacy** tab.
+6. Optional: keep its `data/Bloodbath.json` file — records stay visible, but the site will show “does not accept new records.”
+
+### Adding a brand-new Main List level
+
+1. Create `data/YourLevel.json` (copy a sample file).
+2. Add `"YourLevel"` near the **top** of `_list.json` (e.g. position 1–75).
+3. Everything below shifts down one rank. If something was #150, it becomes #151 → **Legacy** automatically.
+
+### Notes
+
+- Legacy levels award **0 points** on the leaderboard.
+- After a level falls to Legacy, the site rules say records are accepted for **24 hours**, then never again (enforce this when reviewing submissions).
+- Filenames in `_list.json` must match the JSON files in `data/` (no `.json` extension in the list).
 
 ---
 
-## More Coming Soon!
+## FAQ
 
-## Repo Maintainers:
+**Website isn’t loading?**  
+Check the browser console, or wait for GitHub Pages. Invalid JSON in `data/` will break the list.
 
-- Prometheus
-- Emonadeo
+**How do I add records?**  
+Edit the level’s JSON `records` array. Use `"mobile": true` for mobile completions.
+
+**Credits**  
+Layout based on [TheShittyList](https://tsl.pages.dev/).

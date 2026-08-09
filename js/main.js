@@ -3,15 +3,29 @@ import routes from './routes.js';
 export const store = Vue.reactive({
     dark: JSON.parse(localStorage.getItem('dark')) || false,
     toggleDark() {
-        // Smooth theme crossfade
-        document.documentElement.classList.add('theme-transitioning');
-        this.dark = !this.dark;
-        localStorage.setItem('dark', JSON.stringify(this.dark));
-        document.body.classList.toggle('dark', this.dark);
+        // Full-page veil so the theme swap feels animated even when
+        // CSS variables don't interpolate cleanly.
+        const veil = document.createElement('div');
+        veil.className = 'theme-veil';
+        document.body.appendChild(veil);
+
+        // Force reflow, then fade in
+        void veil.offsetWidth;
+        veil.classList.add('theme-veil--in');
+
         window.clearTimeout(store._themeTimer);
         store._themeTimer = window.setTimeout(() => {
-            document.documentElement.classList.remove('theme-transitioning');
-        }, 450);
+            this.dark = !this.dark;
+            localStorage.setItem('dark', JSON.stringify(this.dark));
+            document.body.classList.toggle('dark', this.dark);
+
+            veil.classList.remove('theme-veil--in');
+            veil.classList.add('theme-veil--out');
+
+            window.setTimeout(() => {
+                veil.remove();
+            }, 320);
+        }, 180);
     },
 });
 

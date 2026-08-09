@@ -14,6 +14,10 @@ const roleIconMap = {
     trial: "user-lock",
 };
 
+/** Pointercrate-style tiers */
+const MAIN_CUTOFF = 75;
+const EXTENDED_CUTOFF = 150;
+
 const rules = [
     "Achieved the record without using hacks (FPS bypass is allowed, up to 360fps).",
     "Achieved the record on the level listed on the site — check the level ID before submitting.",
@@ -33,6 +37,26 @@ export default {
         </main>
         <main v-else class="page-list">
             <div class="list-container">
+                <div class="list-tiers">
+                    <button
+                        type="button"
+                        class="list-tier"
+                        :class="{ active: tier === 'main' }"
+                        @click="setTier('main')"
+                    >Main</button>
+                    <button
+                        type="button"
+                        class="list-tier"
+                        :class="{ active: tier === 'extended' }"
+                        @click="setTier('extended')"
+                    >Extended</button>
+                    <button
+                        type="button"
+                        class="list-tier"
+                        :class="{ active: tier === 'legacy' }"
+                        @click="setTier('legacy')"
+                    >Legacy</button>
+                </div>
                 <div class="list-search">
                     <input
                         type="text"
@@ -40,13 +64,13 @@ export default {
                         placeholder="Search level"
                         aria-label="Search level"
                     />
-                    <span class="count">{{ filtered.length }}/{{ list.length }}</span>
+                    <span class="count">{{ filtered.length }}</span>
                 </div>
                 <table class="list" v-if="filtered.length > 0">
                     <tr v-for="{ level, err, index } in filtered" :key="index">
                         <td class="rank">
-                            <p v-if="index + 1 <= 150" class="type-label-lg">#{{ index + 1 }}</p>
-                            <p v-else class="type-label-lg">Legacy</p>
+                            <p v-if="index + 1 <= EXTENDED_CUTOFF" class="type-label-lg">#{{ index + 1 }}</p>
+                            <p v-else class="type-label-lg legacy-tag">Legacy</p>
                         </td>
                         <td class="level" :class="{ 'active': selected == index, 'error': !level }">
                             <button @click="selected = index">
@@ -55,13 +79,16 @@ export default {
                         </td>
                     </tr>
                 </table>
-                <p v-else class="type-label-md" style="padding: 1rem; color: var(--color-muted);">
-                    No level matches "{{ query }}".
+                <p v-else class="type-label-md list-empty">
+                    <template v-if="query">No level matches "{{ query }}".</template>
+                    <template v-else-if="tier === 'legacy'">No legacy levels yet. Levels past #150 show up here.</template>
+                    <template v-else-if="tier === 'extended'">No extended list levels yet (ranks 76–150).</template>
+                    <template v-else>No main list levels yet (ranks 1–75).</template>
                 </p>
             </div>
             <div class="level-container">
                 <div class="level" v-if="level" :key="selected">
-                    <p class="level-tag">{{ selected + 1 <= 150 ? 'Rank #' + (selected + 1) : 'Legacy' }}</p>
+                    <p class="level-tag">{{ rankLabel }}</p>
                     <h1>{{ level.name }}</h1>
                     <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
                     <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
@@ -87,8 +114,8 @@ export default {
                         </li>
                     </ul>
                     <h2>Records ({{ level.records.length }})</h2>
-                    <p v-if="selected + 1 <= 75"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
-                    <p v-else-if="selected + 1 <= 150"><strong>100%</strong> or better to qualify</p>
+                    <p v-if="selected + 1 <= MAIN_CUTOFF"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
+                    <p v-else-if="selected + 1 <= EXTENDED_CUTOFF"><strong>100%</strong> or better to qualify</p>
                     <p v-else>This level does not accept new records.</p>
                     <table class="records" v-if="level.records.length > 0">
                         <tr v-for="record in level.records" class="record">
@@ -144,33 +171,44 @@ export default {
         loading: true,
         selected: 0,
         query: "",
+        tier: "main", // main | extended | legacy
         errors: [],
         toggledShowcase: false,
         roleIconMap,
         rules,
         store,
+        MAIN_CUTOFF,
+        EXTENDED_CUTOFF,
     }),
     computed: {
         filtered() {
             const query = this.query.trim().toLowerCase();
             return this.list
                 .map(([level, err], index) => ({ level, err, index }))
-                .filter(({ level, err }) =>
-                    query === ""
-                        ? true
-                        : (level?.name ?? err ?? "").toLowerCase().includes(query)
-                );
+                .filter(({ level, err, index }) => {
+                    const rank = index + 1;
+                    let inTier = true;
+                    if (this.tier === "main") inTier = rank <= MAIN_CUTOFF;
+                    else if (this.tier === "extended") inTier = rank > MAIN_CUTOFF && rank <= EXTENDED_CUTOFF;
+                    else if (this.tier === "legacy") inTier = rank > EXTENDED_CUTOFF;
+
+                    if (!inTier) return false;
+                    if (query === "") return true;
+                    return (level?.name ?? err ?? "").toLowerCase().includes(query);
+                });
         },
         level() {
             return this.list[this.selected]?.[0] ?? null;
         },
+        rankLabel() {
+            const r = this.selected + 1;
+            if (r <= MAIN_CUTOFF) return "Main · Rank #" + r;
+            if (r <= EXTENDED_CUTOFF) return "Extended · Rank #" + r;
+            return "Legacy";
+        },
         video() {
-            if (!this.level) {
-                return "";
-            }
-            if (!this.level.showcase) {
-                return embed(this.level.verification);
-            }
+            if (!this.level) return "";
+            if (!this.level.showcase) return embed(this.level.verification);
             return embed(
                 this.toggledShowcase
                     ? this.level.showcase
@@ -181,6 +219,20 @@ export default {
     watch: {
         selected() {
             this.toggledShowcase = false;
+        },
+        tier() {
+            // When switching tier, select first visible level
+            if (this.filtered.length > 0) {
+                this.selected = this.filtered[0].index;
+            }
+        },
+    },
+    methods: {
+        embed,
+        score,
+        setTier(t) {
+            this.tier = t;
+            this.query = "";
         },
     },
     async mounted() {
@@ -201,14 +253,18 @@ export default {
                 this.errors.push("Failed to load list editors.");
             }
 
-            // Select the first level that actually loaded
             const firstValid = this.list.findIndex(([level]) => level);
             this.selected = firstValid === -1 ? 0 : firstValid;
+
+            // Auto-pick tier based on first valid level
+            const r = this.selected + 1;
+            if (r > EXTENDED_CUTOFF) this.tier = "legacy";
+            else if (r > MAIN_CUTOFF) this.tier = "extended";
+            else this.tier = "main";
         }
 
         this.loading = false;
 
-        // Secrets
         console.log(
             "%c broken team was here ",
             "background:#7cff3f;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold"
@@ -226,9 +282,5 @@ export default {
                 document.body.classList.remove("secret-mode");
             }, 3000);
         };
-    },
-    methods: {
-        embed,
-        score,
     },
 };

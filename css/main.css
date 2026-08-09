@@ -58,18 +58,22 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* Smooth theme switch — applied while class is on <html> */
-html.theme-transitioning,
-html.theme-transitioning *,
-html.theme-transitioning *::before,
-html.theme-transitioning *::after {
-    transition:
-        background-color 0.4s var(--ease-out),
-        color 0.4s var(--ease-out),
-        border-color 0.4s var(--ease-out),
-        box-shadow 0.4s var(--ease-out),
-        fill 0.4s var(--ease-out),
-        stroke 0.4s var(--ease-out) !important;
+/* Theme veil — visible crossfade when toggling dark mode */
+.theme-veil {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background: var(--color-on-background);
+    opacity: 0;
+    transition: opacity 0.28s var(--ease-out);
+}
+.theme-veil.theme-veil--in {
+    opacity: 0.22;
+}
+.theme-veil.theme-veil--out {
+    opacity: 0;
+    transition: opacity 0.32s var(--ease-out);
 }
 
 #app {
@@ -184,14 +188,20 @@ main > div {
     100% { transform: translateX(320%); }
 }
 
-.app-fade-enter-active,
-.app-fade-leave-active {
-    transition: opacity 0.28s var(--ease-out), transform 0.35s var(--ease-out);
+/* Smooth page route transitions */
+.app-fade-enter-active {
+    transition: opacity 0.38s var(--ease-out), transform 0.42s var(--ease-out);
 }
-.app-fade-enter-from,
+.app-fade-leave-active {
+    transition: opacity 0.22s ease, transform 0.28s ease;
+}
+.app-fade-enter-from {
+    opacity: 0;
+    transform: translateY(14px);
+}
 .app-fade-leave-to {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(-8px);
 }
 
 .editors img {
@@ -245,11 +255,9 @@ body.secret-mode {
         animation-iteration-count: 1 !important;
         transition-duration: 0.001ms !important;
     }
-    html.theme-transitioning,
-    html.theme-transitioning *,
-    html.theme-transitioning *::before,
-    html.theme-transitioning *::after {
-        transition: none !important;
+    /* Keep theme veil usable even with reduced motion */
+    .theme-veil {
+        transition: opacity 0.15s ease !important;
     }
 }
 
