@@ -1,71 +1,9 @@
-h1, .type-h1, .type-headline-lg {
-    font-family: "Archivo", sans-serif;
-    font-size: clamp(1.9rem, 3.4vw, 2.6rem);
-    line-height: 1.02;
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    text-transform: uppercase;
-}
-
-h2, .type-h2, .type-headline-md {
-    font-family: "Archivo", sans-serif;
-    font-size: 1.35rem;
-    line-height: 1.15;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-}
-
-h3, .type-h3, .type-headline-sm {
-    font-family: "Archivo", sans-serif;
-    font-size: 1rem;
-    line-height: 1.25;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
-h4, .type-h4, .type-title-lg,
-h5, .type-h5, .type-title-md,
-h6, dt, .type-h6, .type-title-sm {
-    font-family: "Chivo Mono", ui-monospace, monospace;
-    font-size: 0.7rem;
-    line-height: 1.4;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--color-muted);
-}
-
-label, input[type="text"], input[type="number"], .type-label-lg {
-    font-family: "Archivo", sans-serif;
-    font-size: 0.95rem;
-    line-height: 1.3;
-    font-weight: 600;
-}
-
-.type-label-md {
-    font-family: "Archivo", sans-serif;
-    font-size: 0.85rem;
-    line-height: 1.35;
-    font-weight: 500;
-}
-
-.type-label-sm {
-    font-family: "Chivo Mono", ui-monospace, monospace;
-    font-size: 0.72rem;
-    line-height: 1.2;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-}
-
-p, .type-body {
-    font-family: "Archivo", sans-serif;
-    font-size: 0.95rem;
-    line-height: 1.55;
-    font-weight: 500;
-}
-
-.mono, .rank p, .percent p, .score p, .total p, .stat-value, .hz p {
-    font-family: "Chivo Mono", ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
-}
+h1, .type-h1, .type-headline-lg { font-family: "Archivo", sans-serif; font-size: clamp(2rem, 3.5vw, 2.8rem); line-height: 1.05; font-weight: 900; letter-spacing: -0.04em; }
+h2, .type-h2, .type-headline-md { font-family: "Archivo", sans-serif; font-size: 1.5rem; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
+h3, .type-h3, .type-headline-sm { font-family: "Archivo", sans-serif; font-size: 1.25rem; line-height: 1.25; font-weight: 800; }
+h4, .type-h4, .type-title-lg, h5, .type-h5, .type-title-md, h6, dt, .type-h6, .type-title-sm { font-family: "Archivo", sans-serif; font-size: .95rem; line-height: 1.4; font-weight: 800; }
+label, input[type="text"], input[type="number"], .type-label-lg { font-family: "Archivo", sans-serif; font-size: 1rem; line-height: 1.3; font-weight: 700; }
+.type-label-md { font-family: "Archivo", sans-serif; font-size: .9rem; line-height: 1.35; font-weight: 600; }
+.type-label-sm { font-family: "Archivo", sans-serif; font-size: .8rem; line-height: 1.2; font-weight: 600; }
+p, .type-body { font-family: "Archivo", sans-serif; font-size: 1rem; line-height: 1.55; font-weight: 600; }
+.mono, .rank p, .percent p, .score p, .total p, .stat-value, .hz p { font-family: "Archivo", sans-serif; font-variant-numeric: tabular-nums; }
