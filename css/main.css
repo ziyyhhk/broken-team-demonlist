@@ -108,5 +108,5 @@ body.secret-mode { --color-primary: #ff2d55; --color-primary-hover: #ff5c7a; --h
         transition-duration: .01ms !important;
     }
 }
-@media (max-width: 820px) { header { padding: .75rem 1rem; flex-wrap: wrap; row-gap: .5rem; } header .logo__text h2 { font-size: 1.7rem; } }
+@media (max-width: 820px) { header { min-height: auto; padding: .7rem 1rem .55rem; flex-wrap: wrap; row-gap: .45rem; overflow: hidden; } header .logo { max-width: 100%; margin-right: 0; } header .logo__text { min-width: 0; } header .logo__text h2 { max-width: calc(100vw - 2rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: clamp(1.45rem, 7vw, 1.9rem); } }
 @media (max-width: 520px) { header .logo__text { gap: .5rem; } header .logo__text p { font-size: .75rem; } }

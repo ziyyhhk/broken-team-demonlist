@@ -12,18 +12,25 @@
 .list .rank { width: 2.7rem; padding: 0; vertical-align: middle; }
 .list .rank p { margin: 0; color: var(--color-muted); font-weight: 700; font-size: 1rem; }
 .list .level { padding: 0; }
-.list .level button { width: 100%; text-align: left; background: #ededed; border: 1px solid transparent; color: #111; cursor: pointer; padding: .75rem 1.1rem; font: inherit; border-radius: .65rem; transition: background-color .15s ease, border-color .15s ease, transform .15s ease; }
+.list .level button { position: relative; width: 100%; text-align: left; background: #f0f1f0; border: 1px solid transparent; color: #111; cursor: pointer; padding: .85rem 1.1rem; font: inherit; border-radius: 1rem; transition: background-color 420ms var(--ease-out), color 420ms var(--ease-out), transform 520ms var(--ease-out), box-shadow 420ms ease; }
 body.dark .list .level button { background: #252a25; color: var(--color-on-background); }
-.list .level button:hover { background: #e2e2e2; transform: translateX(2px); }
+.list .level button:hover { background: #e2e6e2; transform: translateX(5px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
 body.dark .list .level button:hover { background: #303730; }
-.list .level.active button { background: var(--color-primary); color: #fff; border-color: #111; box-shadow: 0 2px 6px rgba(0,0,0,.16); }
+.list .level.active button { background: var(--color-primary); color: #fff; border-color: transparent; box-shadow: 0 8px 18px var(--color-primary-glow); transform: translateX(3px); }
+.list .level.active button::before { content: ""; position: absolute; left: .35rem; top: .45rem; bottom: .45rem; width: .22rem; border-radius: 999px; background: rgba(255,255,255,.8); opacity: .9; }
 .list .level.active span { color: inherit; font-weight: 800; }
 .list .level.error span { color: var(--color-error); }
 .level-container { border-right: 0; }
 .level-container .level { display: flex; flex-direction: column; padding: 2rem 2.2rem 3rem; gap: .55rem; }
-.level-swap-enter-active, .level-swap-leave-active { transition: opacity 520ms var(--ease-out), transform 620ms var(--ease-out), filter 520ms ease; }
-.level-swap-enter-from { opacity: 0; transform: translate3d(28px, 12px, 0) scale(.985); filter: blur(5px); }
-.level-swap-leave-to { opacity: 0; transform: translate3d(-24px, -6px, 0) scale(.99); filter: blur(4px); }
+.level-swap-enter-active, .level-swap-leave-active { transition: opacity 700ms var(--ease-out), transform 820ms var(--ease-out), filter 700ms ease; }
+.level-swap-enter-from { opacity: 0; transform: translate3d(48px, 18px, 0) scale(.975); filter: blur(8px); }
+.level-swap-leave-to { opacity: 0; transform: translate3d(-34px, -10px, 0) scale(.985); filter: blur(7px); }
+.level-swap-enter-active .level-tag { animation: detail-label-in 760ms 90ms var(--ease-out) both; }
+.level-swap-enter-active h1 { animation: detail-title-in 850ms 130ms var(--ease-out) both; }
+.level-swap-enter-active .level-authors { animation: fade-up 700ms 210ms var(--ease-out) both; }
+.level-swap-enter-active .stats { animation: fade-up 700ms 390ms var(--ease-out) both; }
+@keyframes detail-label-in { from { opacity: 0; letter-spacing: .22em; transform: translateY(8px); } to { opacity: 1; letter-spacing: normal; transform: none; } }
+@keyframes detail-title-in { from { opacity: 0; transform: translateY(18px) scale(.97); } to { opacity: 1; transform: none; } }
 .level-swap-enter-active .video { animation: media-in 700ms 150ms var(--ease-out) both; }
 .level-swap-enter-active .stats li, .level-swap-enter-active .records .record { animation: fade-up 520ms 220ms var(--ease-out) both; }
 .level-swap-enter-active .stats li:nth-child(2) { animation-delay: 280ms; }
