@@ -2,7 +2,9 @@
 .page-list > div { height: 100%; overflow-y: auto; }
 .list-container { border-right: 0; background: var(--color-background); padding: 2.6rem 1rem 2rem 2.1rem; }
 .list-search { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; }
-.list-search input { flex: 1; min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: .45rem; color: inherit; padding: .55rem .7rem; font-family: "Archivo", sans-serif; font-size: .9rem; }
+.list-search input { flex: 1; min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: .45rem; color: inherit; padding: .55rem .7rem; font-family: "Archivo", sans-serif; font-size: .9rem; transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out); }
+.list-search input:hover { border-color: var(--color-primary); }
+.list-search input:focus { transform: translateY(-1px); box-shadow: 0 4px 14px var(--color-primary-glow); }
 .list-search input:focus { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 .list-search .count { font-size: .8rem; color: var(--color-muted); white-space: nowrap; }
 .list { width: 100%; border-collapse: separate; border-spacing: 0 .45rem; }
@@ -61,3 +63,25 @@ body.dark .list .level button:hover { background: #303730; }
 .rules li { font-size: .95rem; line-height: 1.5; }
 @media (max-width: 900px) { .page-list { grid-template-columns: 220px minmax(0, 1fr); } .meta-container { grid-column: 1 / -1; border-top: 1px solid var(--color-border); } }
 @media (max-width: 760px) { .page-list { display: block; overflow-y: auto; } .page-list > div { height: auto; overflow: visible; } .list-container { padding: 1rem; border-bottom: 1px solid var(--color-border); max-height: 38vh; overflow-y: auto !important; } .level-container .level { padding: 1.2rem 1rem 2rem; } .stats { grid-template-columns: 1fr; gap: .65rem; } .meta-container { border-top: 1px solid var(--color-border); } }
+
+.legacy-guide { margin: 0 0 .85rem; border: 1px solid var(--color-border); border-radius: .65rem; background: var(--color-surface); overflow: hidden; animation: fade-up var(--motion-base) var(--ease-out) both; }
+.legacy-guide summary { cursor: pointer; padding: .65rem .75rem; color: var(--color-primary-hover); font-weight: 800; list-style-position: inside; transition: background-color var(--motion-fast) ease; }
+.legacy-guide summary:hover, .legacy-guide summary:focus-visible { background: var(--color-surface-hover); }
+.legacy-guide__body { padding: 0 .75rem .7rem; color: var(--color-muted); font-size: .78rem; line-height: 1.45; }
+.legacy-guide__body p { margin: .5rem 0 0; }
+.legacy-guide code { padding: .08rem .25rem; border-radius: .25rem; background: var(--color-surface-hover); font-family: "Chivo Mono", monospace; font-size: .72rem; }
+.list tbody tr, .list tr { animation: row-in var(--motion-base) var(--ease-out) both; }
+.list tr:nth-child(2) { animation-delay: 35ms; }
+.list tr:nth-child(3) { animation-delay: 70ms; }
+.list tr:nth-child(4) { animation-delay: 105ms; }
+.list tr:nth-child(5) { animation-delay: 140ms; }
+.list .level button { transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out), box-shadow var(--motion-fast) ease; }
+.list .level.active button { box-shadow: 0 5px 14px var(--color-primary-glow); }
+.video { animation: media-in var(--motion-slow) var(--ease-out) both; }
+.records .record { transition: background-color var(--motion-fast) ease, transform var(--motion-fast) var(--ease-out); }
+.records .record:hover { transform: translateX(4px); }
+.editors li { transition: transform var(--motion-fast) var(--ease-out), color var(--motion-fast) ease; }
+.editors li:hover { transform: translateX(4px); color: var(--color-primary-hover); }
+@keyframes row-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+@keyframes media-in { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: scale(1); } }
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

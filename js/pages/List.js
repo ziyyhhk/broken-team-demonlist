@@ -42,6 +42,14 @@ export default {
                     />
                     <span class="count">{{ filtered.length }}/{{ list.length }}</span>
                 </div>
+                <details class="legacy-guide">
+                    <summary>How to add a level</summary>
+                    <div class="legacy-guide__body">
+                        <p>Add a JSON file inside <code>data/</code>, then add its filename without <code>.json</code> to the end of <code>data/_list.json</code>.</p>
+                        <p>Use an existing level file as the template. Include <strong>name</strong>, <strong>id</strong>, <strong>author</strong>, <strong>verification</strong>, and <strong>records</strong>.</p>
+                        <p>Entries after the ranked list become Legacy entries and do not accept new records.</p>
+                    </div>
+                </details>
                 <table class="list" v-if="filtered.length > 0">
                     <tr v-for="{ level, err, index } in filtered" :key="index">
                         <td class="rank">
