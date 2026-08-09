@@ -212,3 +212,16 @@
         flex-direction: column;
     }
 }
+
+/* consistent record hover */
+.page-list .level-container .level .records tr {
+    transition: background 0.15s ease;
+}
+
+.page-list .level-container .level .records tr:hover {
+    background: rgba(69, 181, 69, 0.08);
+}
+
+.page-list .level-container .level .records tr:hover .user a {
+    color: #45b545;
+}
