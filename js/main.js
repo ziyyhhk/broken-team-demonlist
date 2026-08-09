@@ -25,11 +25,12 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
+// Header is rendered statically in index.html so it never goes
+// away. Vue only owns #app, which is a child div that holds the
+// <router-view>. The <transition> wrapper gives every route
+// change a soft fade.
 const app = Vue.createApp({
     data: () => ({ store }),
-    // Wrap router-view in a fade transition so every page change
-    // gets a cinematic crossfade (CSS handles enter/leave classes
-    // via the .app-fade-* selectors in main.css).
     template: `
         <router-view v-slot="{ Component, route }">
             <transition name="app-fade" mode="out-in">
@@ -38,11 +39,11 @@ const app = Vue.createApp({
         </router-view>
     `,
 });
+
 const router = VueRouter.createRouter({
     history: VueRouter.createWebHashHistory(),
     routes,
 });
 
 app.use(router);
-
 app.mount('#app');
