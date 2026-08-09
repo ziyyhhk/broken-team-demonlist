@@ -1,9 +1,6 @@
-.tabs {
-    display: flex;
-    gap: 0.25rem;
-}
-
+.tabs { display: flex; gap: 0.25rem; }
 .tabs .tab {
+    position: relative;
     border: none;
     cursor: pointer;
     font: inherit;
@@ -11,23 +8,22 @@
     margin: 0;
     background-color: transparent;
     color: var(--color-on-background);
-    border-bottom: 3px solid transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
-
-.tabs .tab:first-child {
-    border-top-left-radius: 0.5rem;
+.tabs .tab:first-child { border-top-left-radius: 0.5rem; }
+.tabs .tab:last-child { border-top-right-radius: 0.5rem; }
+.tabs .tab::after {
+    content: "";
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: 0;
+    height: 3px;
+    background: var(--color-primary);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform .35s var(--ease-out);
 }
-
-.tabs .tab:last-child {
-    border-top-right-radius: 0.5rem;
-}
-
-.tabs .tab.selected {
-    border-bottom: 3px solid var(--color-primary);
-    font-weight: 700;
-}
-
-.tabs .tab:hover {
-    background-color: var(--color-background-hover);
-}
+.tabs .tab.selected { font-weight: 700; }
+.tabs .tab.selected::after { transform: scaleX(1); }
+.tabs .tab:hover { background-color: var(--color-background-hover); }
