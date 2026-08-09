@@ -45,67 +45,22 @@
         <script src="https://unpkg.com/vue@3.2.31/dist/vue.global.js"></script>
         <script src="https://unpkg.com/vue-router@4.0.14/dist/vue-router.global.prod.js"></script>
         <script type="module" src="./js/main.js"></script>
+        <style>
+            /* Hide everything until Vue has mounted, so the page
+               doesn't blink with an unstyled state. */
+            html, body { background: #3dbb45; }
+            body.dark { background: #23802b; }
+            #app:empty + noscript { display: block; }
+        </style>
     </head>
     <!--
-        NOTE: <body> deliberately has NO id. Vue mounts on the
-        <div id="app"> below. This keeps the <header> as plain
-        HTML so Vue can never replace it.
+        Vue mounts the whole <body>. The header (with its
+        <router-link> tabs) and the <router-view> are both
+        inside the app template, so router-link is properly
+        registered and the nav actually works.
     -->
     <body>
-        <header>
-            <div class="logo">
-                <div class="logo__text">
-                    <h2>The Broken List</h2>
-                    <p>v1.0.0</p>
-                </div>
-            </div>
-            <nav class="nav">
-                <div class="nav__tabs">
-                    <router-link class="nav__tab" to="/">
-                        <span class="type-label-lg">List</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/leaderboard">
-                        <span class="type-label-lg">Leaderboard</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/roulette">
-                        <span class="type-label-lg">Roulette</span>
-                    </router-link>
-                </div>
-                <div class="nav__actions">
-                    <button
-                        class="nav__icon"
-                        title="Toggle theme"
-                        aria-label="Toggle theme"
-                        @click.prevent="store.toggleDark()"
-                    >
-                        <img
-                            :src="store.dark ? './assets/light.svg' : './assets/dark.svg'"
-                            alt=""
-                        />
-                    </button>
-                    <!-- Replace the '#' with your discord server's invite-->
-                    <a
-                        class="nav__icon"
-                        title="Discord"
-                        href="https://discord.gg/swuWBj59yp"
-                        target="_blank"
-                        rel="noopener"
-                    >
-                        <img src="./assets/discord.svg" alt="Discord" />
-                    </a>
-                    <!-- List record submission form -->
-                    <a
-                        class="nav__cta type-label-lg"
-                        href="https://forms.gle/2j7Xy5QLZqG3sijj9"
-                        target="_blank"
-                        rel="noopener"
-                        >Submit Record</a
-                    >
-                </div>
-            </nav>
-        </header>
-        <!-- Vue mounts here. The <transition> inside the app template
-             fades pages on every route change. -->
         <div id="app"></div>
-    <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a286d43a8d1725dd',t:'MTc4NjI3OTIyMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+        <noscript>The Broken List requires JavaScript to run.</noscript>
+    <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a286f6a0b9240b5f',t:'MTc4NjI4MDYzMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
