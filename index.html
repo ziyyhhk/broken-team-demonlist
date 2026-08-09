@@ -46,7 +46,12 @@
         <script src="https://unpkg.com/vue-router@4.0.14/dist/vue-router.global.prod.js"></script>
         <script type="module" src="./js/main.js"></script>
     </head>
-    <body id="app">
+    <!--
+        NOTE: <body> deliberately has NO id. Vue mounts on the
+        <div id="app"> below. This keeps the <header> as plain
+        HTML so Vue can never replace it.
+    -->
+    <body>
         <header>
             <div class="logo">
                 <div class="logo__text">
@@ -99,6 +104,8 @@
                 </div>
             </nav>
         </header>
-        <router-view></router-view>
-    </body>
+        <!-- Vue mounts here. The <transition> inside the app template
+             fades pages on every route change. -->
+        <div id="app"></div>
+    <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a286d43a8d1725dd',t:'MTc4NjI3OTIyMw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
