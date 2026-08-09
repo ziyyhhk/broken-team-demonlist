@@ -1,5 +1,5 @@
 import { store } from "../main.js";
-import { embed } from "../util.js";
+import { embed, getThumbnailFromId, getYoutubeIdFromUrl } from "../util.js";
 import { score } from "../score.js";
 import { fetchEditors, fetchList } from "../content.js";
 
@@ -14,10 +14,7 @@ const roleIconMap = {
     trial: "user-lock",
 };
 
-/*
- * Demo cutoffs so a small sample list can show all 3 tiers.
- * For a full Pointercrate-style list, set MAIN_CUTOFF = 75 and EXTENDED_CUTOFF = 150.
- */
+/** Demo cutoffs — production: 75 / 150 */
 const MAIN_CUTOFF = 2;
 const EXTENDED_CUTOFF = 4;
 
@@ -38,12 +35,19 @@ export default {
         <main v-if="loading" class="page-shell">
             <Spinner></Spinner>
         </main>
-        <main v-else class="page-list page-shell">
-            <div class="list-container">
-                <div class="list-tiers">
-                    <button type="button" class="list-tier" :class="{ active: tier === 'main' }" @click="setTier('main')">Main</button>
-                    <button type="button" class="list-tier" :class="{ active: tier === 'extended' }" @click="setTier('extended')">Extended</button>
-                    <button type="button" class="list-tier" :class="{ active: tier === 'legacy' }" @click="setTier('legacy')">Legacy</button>
+        <main v-else class="page-list page-shell" :class="'view-' + viewMode">
+            <!-- CLASSIC: left sidebar list -->
+            <div class="list-container" v-if="viewMode === 'classic'">
+                <div class="list-toolbar">
+                    <div class="list-tiers">
+                        <button type="button" class="list-tier" :class="{ active: tier === 'main' }" @click="setTier('main')">Main</button>
+                        <button type="button" class="list-tier" :class="{ active: tier === 'extended' }" @click="setTier('extended')">Extended</button>
+                        <button type="button" class="list-tier" :class="{ active: tier === 'legacy' }" @click="setTier('legacy')">Legacy</button>
+                    </div>
+                    <div class="view-toggle" title="Switch list layout">
+                        <button type="button" :class="{ active: viewMode === 'classic' }" @click="setView('classic')" aria-label="Classic view">☰</button>
+                        <button type="button" :class="{ active: viewMode === 'cards' }" @click="setView('cards')" aria-label="Cards view">▦</button>
+                    </div>
                 </div>
                 <div class="list-search">
                     <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />
@@ -53,7 +57,7 @@ export default {
                     <tr v-for="{ level, err, index } in filtered" :key="index">
                         <td class="rank">
                             <p v-if="index + 1 <= EXTENDED_CUTOFF" class="type-label-lg">#{{ index + 1 }}</p>
-                            <p v-else class="type-label-lg legacy-tag">Legacy</p>
+                            <p v-else class="type-label-lg legacy-tag">LEGACY</p>
                         </td>
                         <td class="level" :class="{ 'active': selected == index, 'error': !level }">
                             <button @click="selected = index">
@@ -64,24 +68,17 @@ export default {
                 </table>
                 <p v-else class="type-label-md list-empty">
                     <template v-if="query">No level matches "{{ query }}".</template>
-                    <template v-else-if="tier === 'legacy'">No legacy levels yet.</template>
-                    <template v-else-if="tier === 'extended'">No extended list levels yet.</template>
-                    <template v-else>No main list levels yet.</template>
+                    <template v-else>No levels in this tier yet.</template>
                 </p>
             </div>
-            <div class="level-container">
+
+            <!-- CLASSIC detail panel -->
+            <div class="level-container" v-if="viewMode === 'classic'">
                 <div class="level" v-if="level" :key="selected">
                     <p class="level-tag">{{ rankLabel }}</p>
                     <h1>{{ level.name }}</h1>
                     <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
-                    <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
-                    <button
-                        v-if="level.showcase"
-                        class="btn btn-ghost showcase-toggle"
-                        @click.prevent="toggledShowcase = !toggledShowcase"
-                    >
-                        {{ toggledShowcase ? 'Show verification' : 'Show showcase' }}
-                    </button>
+                    <iframe class="video" :src="video" frameborder="0" allowfullscreen></iframe>
                     <ul class="stats">
                         <li>
                             <div class="type-title-sm">Points when completed</div>
@@ -106,9 +103,6 @@ export default {
                             <td class="user">
                                 <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>
                             </td>
-                            <td class="mobile">
-                                <img v-if="record.mobile" :src="\`./assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
-                            </td>
                             <td class="hz"><p>{{ record.hz }}Hz</p></td>
                         </tr>
                     </table>
@@ -118,7 +112,91 @@ export default {
                     <p>This level could not be loaded.</p>
                 </div>
             </div>
-            <div class="meta-container">
+
+            <!-- CARDS view (AreDL-style) -->
+            <div class="cards-view" v-if="viewMode === 'cards'">
+                <div class="cards-toolbar">
+                    <div class="list-tiers">
+                        <button type="button" class="list-tier" :class="{ active: tier === 'main' }" @click="setTier('main')">Main</button>
+                        <button type="button" class="list-tier" :class="{ active: tier === 'extended' }" @click="setTier('extended')">Extended</button>
+                        <button type="button" class="list-tier" :class="{ active: tier === 'legacy' }" @click="setTier('legacy')">Legacy</button>
+                    </div>
+                    <div class="list-search cards-search">
+                        <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />
+                    </div>
+                    <div class="view-toggle" title="Switch list layout">
+                        <button type="button" :class="{ active: viewMode === 'classic' }" @click="setView('classic')" aria-label="Classic view">☰</button>
+                        <button type="button" :class="{ active: viewMode === 'cards' }" @click="setView('cards')" aria-label="Cards view">▦</button>
+                    </div>
+                </div>
+
+                <div class="card-stack" v-if="filtered.length > 0">
+                    <article
+                        class="level-card"
+                        v-for="{ level, err, index } in filtered"
+                        :key="index"
+                        :class="{ selected: selected === index }"
+                        @click="selected = index"
+                    >
+                        <div class="level-card__thumb">
+                            <img
+                                v-if="level"
+                                :src="thumb(level)"
+                                alt=""
+                                @error="onThumbError"
+                            />
+                            <div v-else class="level-card__thumb-fallback">?</div>
+                            <span class="level-card__rank">{{ index + 1 <= EXTENDED_CUTOFF ? '#' + (index + 1) : 'LEGACY' }}</span>
+                        </div>
+                        <div class="level-card__body">
+                            <h2 class="level-card__name">{{ level?.name || ('Error (' + err + ')') }}</h2>
+                            <p class="level-card__by" v-if="level">
+                                by {{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}
+                            </p>
+                            <div class="level-card__tags" v-if="level">
+                                <span class="tag">{{ tierName(index) }}</span>
+                                <span class="tag">ID {{ level.id }}</span>
+                                <span class="tag" v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+ to qualify</span>
+                                <span class="tag" v-else-if="index + 1 <= EXTENDED_CUTOFF">100% only</span>
+                                <span class="tag tag-muted" v-else>No new records</span>
+                            </div>
+                        </div>
+                        <div class="level-card__side" v-if="level">
+                            <div class="level-card__pts">{{ score(index + 1, 100, level.percentToQualify) }}</div>
+                            <div class="level-card__pts-label">pts</div>
+                            <div class="level-card__recs">{{ level.records.length }} record{{ level.records.length === 1 ? '' : 's' }}</div>
+                        </div>
+                    </article>
+                </div>
+                <p v-else class="type-label-md list-empty">No levels in this tier yet.</p>
+
+                <!-- Expanded detail under cards when one is selected -->
+                <div class="card-detail" v-if="level && selected !== null">
+                    <div class="card-detail__inner">
+                        <h2>{{ level.name }}</h2>
+                        <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
+                        <iframe class="video" :src="video" frameborder="0" allowfullscreen></iframe>
+                        <div class="card-detail__meta">
+                            <span>Points: <strong>{{ score(selected + 1, 100, level.percentToQualify) }}</strong></span>
+                            <span>ID: <strong>{{ level.id }}</strong></span>
+                            <span>Password: <strong>{{ level.password || 'Free to Copy' }}</strong></span>
+                        </div>
+                        <h3>Records ({{ level.records.length }})</h3>
+                        <table class="records" v-if="level.records.length > 0">
+                            <tr v-for="record in level.records" class="record">
+                                <td class="percent"><p>{{ record.percent }}%</p></td>
+                                <td class="user">
+                                    <a :href="record.link" target="_blank" rel="noopener">{{ record.user }}</a>
+                                </td>
+                                <td class="hz"><p>{{ record.hz }}Hz</p></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Meta sidebar (classic only) -->
+            <div class="meta-container" v-if="viewMode === 'classic'">
                 <div class="meta">
                     <div class="errors" v-show="errors.length > 0">
                         <p class="error" v-for="error of errors">{{ error }}</p>
@@ -151,6 +229,7 @@ export default {
         selected: 0,
         query: "",
         tier: "main",
+        viewMode: localStorage.getItem("listView") || "classic",
         errors: [],
         toggledShowcase: false,
         roleIconMap,
@@ -170,7 +249,6 @@ export default {
                     if (this.tier === "main") inTier = rank <= MAIN_CUTOFF;
                     else if (this.tier === "extended") inTier = rank > MAIN_CUTOFF && rank <= EXTENDED_CUTOFF;
                     else if (this.tier === "legacy") inTier = rank > EXTENDED_CUTOFF;
-
                     if (!inTier) return false;
                     if (query === "") return true;
                     return (level?.name ?? err ?? "").toLowerCase().includes(query);
@@ -202,9 +280,28 @@ export default {
     methods: {
         embed,
         score,
+        getThumbnailFromId,
+        getYoutubeIdFromUrl,
         setTier(t) {
             this.tier = t;
             this.query = "";
+        },
+        setView(mode) {
+            this.viewMode = mode;
+            localStorage.setItem("listView", mode);
+        },
+        thumb(level) {
+            const id = getYoutubeIdFromUrl(level.verification || "");
+            return id ? getThumbnailFromId(id) : "";
+        },
+        tierName(index) {
+            const r = index + 1;
+            if (r <= MAIN_CUTOFF) return "Main";
+            if (r <= EXTENDED_CUTOFF) return "Extended";
+            return "Legacy";
+        },
+        onThumbError(e) {
+            e.target.style.opacity = "0.25";
         },
     },
     async mounted() {
@@ -220,7 +317,6 @@ export default {
                     .map(([_, err]) => `Failed to load level. (${err}.json)`)
             );
             if (!this.editors) this.errors.push("Failed to load list editors.");
-
             const firstValid = this.list.findIndex(([level]) => level);
             this.selected = firstValid === -1 ? 0 : firstValid;
             const r = this.selected + 1;
@@ -228,16 +324,6 @@ export default {
             else if (r > MAIN_CUTOFF) this.tier = "extended";
             else this.tier = "main";
         }
-
         this.loading = false;
-
-        console.log("%c broken team was here ", "background:#7cff3f;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold");
-        console.log("%c type 'broken()' in the console for a secret ", "color:#7cff3f");
-
-        window.broken = () => {
-            console.log("%c you found the secret ", "background:#111;color:#7cff3f;padding:8px 14px;border-radius:2px;font-size:14px");
-            document.body.classList.add("secret-mode");
-            setTimeout(() => document.body.classList.remove("secret-mode"), 3000);
-        };
     },
 };

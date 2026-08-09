@@ -36,48 +36,77 @@ export default {
                 </form>
             </div>
             <section class="levels-container">
-                <div class="levels">
-                    <template v-if="levels.length > 0">
-                        <transition-group name="level-list" tag="div" class="levels" style="display:contents">
-                            <div class="level" v-for="(level, i) in levels.slice(0, progression.length)" :key="'done-' + level.id + '-' + i">
-                                <a :href="level.video" class="video" target="_blank">
-                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
-                                </a>
-                                <div class="meta">
-                                    <p class="level-rank">#{{ level.rank }}</p>
-                                    <h2>{{ level.name }}</h2>
-                                    <p class="level-pct done">{{ progression[i] }}%</p>
-                                </div>
+                <div class="levels" v-if="levels.length > 0">
+                    <div
+                        class="level"
+                        v-for="(level, i) in levels.slice(0, progression.length)"
+                        :key="'done-' + i + '-' + level.id"
+                    >
+                        <a :href="level.video" class="video" target="_blank" rel="noopener">
+                            <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
+                        </a>
+                        <div class="meta">
+                            <p class="level-rank">#{{ level.rank }}</p>
+                            <h2>{{ level.name }}</h2>
+                            <p class="level-pct done">{{ progression[i] }}%</p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="level current"
+                        v-if="currentLevel && !hasCompleted && !givenUp"
+                        :key="'cur-' + currentLevel.id"
+                    >
+                        <a :href="currentLevel.video" class="video" target="_blank" rel="noopener">
+                            <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
+                        </a>
+                        <div class="meta">
+                            <p class="level-rank">#{{ currentLevel.rank }}</p>
+                            <h2>{{ currentLevel.name }}</h2>
+                            <p class="level-pct current-pct">ID {{ currentLevel.id }}</p>
+                        </div>
+                        <form class="actions" @submit.prevent="onDone">
+                            <input
+                                type="number"
+                                v-model.number="percentage"
+                                :placeholder="placeholder"
+                                :min="currentPercentage + 1"
+                                max="100"
+                            >
+                            <Btn @click.prevent="onDone">Done</Btn>
+                            <Btn @click.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
+                        </form>
+                    </div>
+
+                    <div v-if="givenUp || hasCompleted" class="results">
+                        <h1>{{ hasCompleted ? 'You cleared it' : 'Results' }}</h1>
+                        <p>Number of levels: {{ progression.length }}</p>
+                        <p>Highest percent: {{ currentPercentage }}%</p>
+                        <p v-if="hasCompleted" class="results-note">the list is still broken. you are not.</p>
+                        <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
+                    </div>
+
+                    <template v-if="givenUp && showRemaining">
+                        <div
+                            class="level missed"
+                            v-for="(level, i) in remainingLevels"
+                            :key="'miss-' + i + '-' + level.id"
+                        >
+                            <a :href="level.video" class="video" target="_blank" rel="noopener">
+                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
+                            </a>
+                            <div class="meta">
+                                <p class="level-rank">#{{ level.rank }}</p>
+                                <h2>{{ level.name }}</h2>
+                                <p class="level-pct missed">skipped</p>
                             </div>
-                            <div class="level current" v-if="!hasCompleted && !givenUp" :key="'current-' + (currentLevel && currentLevel.id)">
-                                <a :href="currentLevel.video" target="_blank" class="video">
-                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
-                                </a>
-                                <div class="meta">
-                                    <p class="level-rank">#{{ currentLevel.rank }}</p>
-                                    <h2>{{ currentLevel.name }}</h2>
-                                    <p class="level-pct current-pct">{{ currentLevel.id }}</p>
-                                </div>
-                                <form class="actions" v-if="!givenUp">
-                                    <input type="number" v-model.number="percentage" :placeholder="placeholder" :min="currentPercentage + 1" max=100>
-                                    <Btn @click.prevent="onDone">Done</Btn>
-                                    <Btn @click.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
-                                </form>
-                            </div>
-                        </transition-group>
-                        <div v-if="givenUp || hasCompleted" class="results" key="results">
-                            <h1>{{ hasCompleted ? 'You cleared it' : 'Results' }}</h1>
-                            <p>Number of levels: {{ progression.length }}</p>
-                            <p>Highest percent: {{ currentPercentage }}%</p>
-                            <p v-if="hasCompleted" style="margin-top:0.5rem;color:var(--color-primary);font-weight:700;">the list is still broken. you are not.</p>
-                            <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                         </div>
                     </template>
-                    <div v-else class="empty-state">
-                        <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="...">◆</div>
-                        <h2>No roulette in progress</h2>
-                        <p>Pick a list above and hit <strong>Start</strong> to begin a run.</p>
-                    </div>
+                </div>
+                <div v-else class="empty-state">
+                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="...">◆</div>
+                    <h2>No roulette in progress</h2>
+                    <p>Pick a list above and hit <strong>Start</strong> to begin a run.</p>
                 </div>
             </section>
             <div class="toasts-container">
@@ -112,23 +141,38 @@ export default {
         this.fileInput.accept = '.json';
         this.fileInput.addEventListener('change', this.onImportUpload);
 
-        const roulette = JSON.parse(localStorage.getItem('roulette'));
-        if (!roulette) return;
-        this.levels = roulette.levels;
-        this.progression = roulette.progression;
+        try {
+            const roulette = JSON.parse(localStorage.getItem('roulette'));
+            if (roulette?.levels && Array.isArray(roulette.progression)) {
+                this.levels = roulette.levels;
+                this.progression = roulette.progression;
+            }
+        } catch {
+            localStorage.removeItem('roulette');
+        }
     },
     computed: {
-        currentLevel() { return this.levels[this.progression.length]; },
-        currentPercentage() { return this.progression[this.progression.length - 1] || 0; },
-        placeholder() { return `At least ${this.currentPercentage + 1}%`; },
+        currentLevel() {
+            return this.levels[this.progression.length] || null;
+        },
+        currentPercentage() {
+            return this.progression[this.progression.length - 1] || 0;
+        },
+        placeholder() {
+            return `At least ${this.currentPercentage + 1}%`;
+        },
         hasCompleted() {
-            return (
-                (this.progression.length > 0 && this.progression[this.progression.length - 1] >= 100) ||
-                this.progression.length === this.levels.length
-            );
+            if (this.levels.length === 0) return false;
+            if (this.progression.length === 0) return false;
+            if (this.progression[this.progression.length - 1] >= 100) return true;
+            return this.progression.length >= this.levels.length;
         },
         isActive() {
             return this.progression.length > 0 && !this.givenUp && !this.hasCompleted;
+        },
+        remainingLevels() {
+            // levels after the one you gave up on
+            return this.levels.slice(this.progression.length + 1);
         },
     },
     methods: {
@@ -153,7 +197,7 @@ export default {
             }
             if (fullList.filter(([_, err]) => err).length > 0) {
                 this.loading = false;
-                this.showToast("List is currently broken. Wait until it's fixed to start a roulette.");
+                this.showToast("List is currently broken. Wait until it's fixed.");
                 return;
             }
             const fullListMapped = fullList.map(([lvl, _], i) => ({
@@ -172,10 +216,14 @@ export default {
             this.progression = [];
             this.percentage = undefined;
             this.loading = false;
+            this.save();
             this.showToast('roulette started. good luck.');
         },
         save() {
-            localStorage.setItem('roulette', JSON.stringify({ levels: this.levels, progression: this.progression }));
+            localStorage.setItem(
+                'roulette',
+                JSON.stringify({ levels: this.levels, progression: this.progression }),
+            );
         },
         onDone() {
             const percentage = Number(this.percentage);
@@ -208,10 +256,6 @@ export default {
         async onImportUpload() {
             if (this.fileInput.files.length === 0) return;
             const file = this.fileInput.files[0];
-            if (file.type && file.type !== 'application/json') {
-                this.showToast('Invalid file.');
-                return;
-            }
             try {
                 const roulette = JSON.parse(await file.text());
                 if (!roulette.levels || !roulette.progression) {
@@ -229,14 +273,19 @@ export default {
             }
         },
         onExport() {
-            const file = new Blob([JSON.stringify({ levels: this.levels, progression: this.progression })], { type: 'application/json' });
+            const file = new Blob(
+                [JSON.stringify({ levels: this.levels, progression: this.progression })],
+                { type: 'application/json' },
+            );
             const a = document.createElement('a');
             a.href = URL.createObjectURL(file);
             a.download = 'broken_roulette';
             a.click();
             URL.revokeObjectURL(a.href);
         },
-        onImgError(e) { e.target.style.display = 'none'; },
+        onImgError(e) {
+            e.target.style.opacity = '0.3';
+        },
         showToast(msg) {
             this.toasts.push(msg);
             setTimeout(() => this.toasts.shift(), 3200);
