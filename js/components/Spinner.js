@@ -2,7 +2,8 @@ export default {
     template: `
         <div class="spinner" role="status" aria-live="polite">
             <div class="spinner__mark" aria-hidden="true">
-                <span></span><span></span><span></span>
+                <span class="spinner__orbit"></span>
+                <span class="spinner__dot"></span>
             </div>
             <div class="spinner__copy">
                 <strong>The Broken List</strong>
