@@ -1,9 +1,17 @@
+/* =========================================================
+   pages/leaderboard.css — cinematic motion pass
+   - staggered leaderboard rows
+   - smooth player crossfade
+   - stat-box hover lift + accent reveal
+   ========================================================= */
+
 .page-leaderboard-container {
     display: flex;
     flex-direction: column;
     min-height: 0;
     height: 100%;
     overflow: hidden;
+    animation: pageEnter 0.55s var(--ease-out) both;
 }
 
 .page-leaderboard {
@@ -15,15 +23,8 @@
     overflow: hidden;
 }
 
-.page-leaderboard .error-container {
-    grid-column: 1 / -1;
-    grid-row: 1;
-}
-
-.page-leaderboard .error-container:empty {
-    display: none;
-}
-
+.page-leaderboard .error-container { grid-column: 1 / -1; grid-row: 1; }
+.page-leaderboard .error-container:empty { display: none; }
 .page-leaderboard .error {
     margin: 0;
     padding: 0.6rem 1rem;
@@ -40,37 +41,41 @@
     border-right: 1px solid var(--color-border);
     background: color-mix(in srgb, var(--color-surface) 70%, transparent);
 }
-
-.board {
-    width: 100%;
-    border-collapse: collapse;
-}
-
+.board { width: 100%; border-collapse: collapse; }
 .board tr {
     border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+    animation: rowIn 0.4s var(--ease-out) both;
 }
+/* up to ~30 rows of stagger */
+.board tr:nth-child(1)  { animation-delay: 30ms; }
+.board tr:nth-child(2)  { animation-delay: 45ms; }
+.board tr:nth-child(3)  { animation-delay: 60ms; }
+.board tr:nth-child(4)  { animation-delay: 75ms; }
+.board tr:nth-child(5)  { animation-delay: 90ms; }
+.board tr:nth-child(6)  { animation-delay: 105ms; }
+.board tr:nth-child(7)  { animation-delay: 120ms; }
+.board tr:nth-child(8)  { animation-delay: 135ms; }
+.board tr:nth-child(9)  { animation-delay: 150ms; }
+.board tr:nth-child(10) { animation-delay: 165ms; }
+.board tr:nth-child(11) { animation-delay: 180ms; }
+.board tr:nth-child(12) { animation-delay: 195ms; }
+.board tr:nth-child(13) { animation-delay: 210ms; }
+.board tr:nth-child(14) { animation-delay: 225ms; }
+.board tr:nth-child(15) { animation-delay: 240ms; }
+.board tr:nth-child(n+16) { animation-delay: 255ms; }
 
-.board .rank {
-    width: 3.6rem;
-    padding-left: 0.9rem;
-}
-
+.board .rank { width: 3.6rem; padding-left: 0.9rem; }
 .board .rank p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
     font-size: 0.78rem;
     font-weight: 700;
     color: var(--color-muted);
+    transition: color 0.2s var(--ease-in-out);
 }
-
 .board tr:nth-child(1) .rank p { color: var(--color-primary); }
 
-.board .total {
-    width: 5.2rem;
-    text-align: right;
-    padding-right: 0.8rem;
-}
-
+.board .total { width: 5.2rem; text-align: right; padding-right: 0.8rem; }
 .board .total p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
@@ -79,10 +84,7 @@
     opacity: 0.75;
 }
 
-.board .user {
-    padding: 0;
-}
-
+.board .user { padding: 0; }
 .board .user button {
     width: 100%;
     text-align: left;
@@ -93,14 +95,12 @@
     cursor: pointer;
     padding: 0.6rem 0.9rem;
     font: inherit;
-    transition: background-color 0.12s ease, padding-left 0.12s ease;
+    transition: background-color 0.2s var(--ease-in-out), padding-left 0.2s var(--ease-out), border-color 0.2s var(--ease-in-out);
 }
-
 .board .user button:hover {
     background: var(--color-surface-hover);
-    padding-left: 1.1rem;
+    padding-left: 1.15rem;
 }
-
 .board .user.active button {
     background: color-mix(in srgb, var(--color-primary) 12%, transparent);
     border-left-color: var(--color-primary);
@@ -108,22 +108,12 @@
     font-weight: 700;
 }
 
-.player-container {
-    grid-row: 2;
-    height: 100%;
-    overflow-y: auto;
-}
-
+.player-container { grid-row: 2; height: 100%; overflow-y: auto; }
 .player {
     padding: 1.6rem 1.8rem 3rem;
-    animation: rise 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: pageEnter 0.55s var(--ease-out) both;
 }
-
-.player h1 {
-    margin: 0 0 1.2rem;
-    word-break: break-word;
-}
-
+.player h1 { margin: 0 0 1.2rem; word-break: break-word; }
 .player h2 {
     margin: 1.8rem 0 0.4rem;
     padding-bottom: 0.35rem;
@@ -139,12 +129,20 @@
     border-radius: var(--radius);
     overflow: hidden;
 }
-
 .stat-box {
     background: var(--color-surface);
     box-shadow: 0 0 0 1px var(--color-border);
     padding: 0.75rem 0.9rem;
+    transition: transform 0.25s var(--ease-spring), background-color 0.2s var(--ease-in-out);
+    animation: rowIn 0.4s var(--ease-out) both;
 }
+.stat-box:nth-child(1) { animation-delay: 0.08s; }
+.stat-box:nth-child(2) { animation-delay: 0.14s; }
+.stat-box:nth-child(3) { animation-delay: 0.20s; }
+.stat-box:nth-child(4) { animation-delay: 0.26s; }
+.stat-box:nth-child(5) { animation-delay: 0.32s; }
+.stat-box:nth-child(6) { animation-delay: 0.38s; }
+.stat-box:hover { transform: translateY(-2px); background: var(--color-surface-hover); }
 
 .stat-label {
     font-family: "Chivo Mono", monospace;
@@ -153,89 +151,49 @@
     text-transform: uppercase;
     color: var(--color-muted);
 }
-
 .stat-value {
     margin-top: 0.25rem;
     font-size: 0.95rem;
     font-weight: 700;
     color: var(--color-on-background);
 }
+.stat-box:nth-child(2) .stat-value { color: var(--color-primary); }
 
-.stat-box:nth-child(2) .stat-value {
-    color: var(--color-primary);
-}
-
-.player .table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
+.player .table { width: 100%; border-collapse: collapse; }
 .player .table tr {
     border-bottom: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
+    transition: background-color 0.2s var(--ease-in-out);
 }
-
-.player .table tr:hover {
-    background: var(--color-surface-hover);
-}
-
-.player .table .rank {
-    width: 3.5rem;
-    padding: 0.5rem 0;
-}
-
+.player .table tr:hover { background: var(--color-surface-hover); }
+.player .table .rank { width: 3.5rem; padding: 0.5rem 0; }
 .player .table .rank p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
     font-size: 0.8rem;
     color: var(--color-muted);
 }
-
 .player .table .level a {
     text-decoration: none;
     border-bottom: 1px solid transparent;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-repeat: no-repeat;
+    background-size: 0% 1px;
+    background-position: 0 100%;
+    transition: background-size 0.35s var(--ease-out), color 0.2s var(--ease-in-out), border-color 0.2s var(--ease-in-out);
 }
-
-.player .table .level a:hover {
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-}
-
-.player .table .score {
-    width: 6rem;
-    text-align: right;
-}
-
+.player .table .level a:hover { color: var(--color-primary); background-size: 100% 1px; }
+.player .table .score { width: 6rem; text-align: right; }
 .player .table .score p {
     margin: 0;
     font-family: "Chivo Mono", monospace;
     font-size: 0.82rem;
     color: var(--color-primary);
 }
-
-.player .empty {
-    color: var(--color-muted);
-}
+.player .empty { color: var(--color-muted); }
 
 @media (max-width: 760px) {
-    .page-leaderboard {
-        display: block;
-        height: 100%;
-        overflow-y: auto;
-    }
-
-    .board-container {
-        height: auto;
-        max-height: 40vh;
-        border-right: none;
-        border-bottom: 1px solid var(--color-border);
-    }
-
-    .player-container {
-        height: auto;
-        overflow: visible;
-    }
-
-    .player {
-        padding: 1.2rem 1rem 2rem;
-    }
+    .page-leaderboard { display: block; height: 100%; overflow-y: auto; }
+    .board-container { height: auto; max-height: 40vh; border-right: none; border-bottom: 1px solid var(--color-border); }
+    .player-container { height: auto; overflow: visible; }
+    .player { padding: 1.2rem 1rem 2rem; }
 }
