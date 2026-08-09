@@ -4,27 +4,27 @@
 const scale = 3;
 
 /**
+ * Demo cutoffs — must match List.js.
+ * For production Pointercrate-style: mainEnd = 75, extendedEnd = 150.
+ */
+const mainEnd = 2;
+const extendedEnd = 4;
+
+/**
  * Calculate the score awarded when having a certain percentage on a list level
- * @param {Number} rank Position on the list
- * @param {Number} percent Percentage of completion
- * @param {Number} minPercent Minimum percentage required
- * @returns {Number}
  */
 export function score(rank, percent, minPercent) {
-    if (rank > 150) {
+    if (rank > extendedEnd) {
         return 0;
     }
-    if (rank > 75 && percent < 100) {
+    if (rank > mainEnd && percent < 100) {
         return 0;
     }
 
-    // Old formula
-    /*
-    let score = (100 / Math.sqrt((rank - 1) / 50 + 0.444444) - 50) *
-        ((percent - (minPercent - 1)) / (100 - (minPercent - 1)));
-    */
-    // New formula
-    let score = (-24.9975*Math.pow(rank-1, 0.4) + 200) *
+    // Scale formula so small demo ranks still give readable points
+    const scaledRank = 1 + ((rank - 1) / Math.max(extendedEnd - 1, 1)) * 149;
+    let score =
+        (-24.9975 * Math.pow(scaledRank - 1, 0.4) + 200) *
         ((percent - (minPercent - 1)) / (100 - (minPercent - 1)));
 
     score = Math.max(0, score);

@@ -4,9 +4,7 @@ import { localize } from '../util.js';
 import Spinner from '../components/Spinner.js';
 
 export default {
-    components: {
-        Spinner,
-    },
+    components: { Spinner },
     data: () => ({
         leaderboard: [],
         loading: true,
@@ -15,10 +13,10 @@ export default {
         err: [],
     }),
     template: `
-        <main v-if="loading">
+        <main v-if="loading" class="page-shell">
             <Spinner></Spinner>
         </main>
-        <main v-else class="page-leaderboard-container">
+        <main v-else class="page-leaderboard-container page-shell">
             <div class="page-leaderboard">
                 <div class="error-container">
                     <p class="error" v-if="err.length > 0">
@@ -27,22 +25,13 @@ export default {
                 </div>
                 <div class="board-container">
                     <div class="list-search">
-                        <input
-                            type="text"
-                            v-model="query"
-                            placeholder="Search player"
-                            aria-label="Search player"
-                        />
+                        <input type="text" v-model="query" placeholder="Search player" aria-label="Search player" />
                         <span class="count">{{ filtered.length }}</span>
                     </div>
                     <table class="board">
                         <tr v-for="{ entry: ientry, index } in filtered" :key="ientry.user">
-                            <td class="rank">
-                                <p class="type-label-lg">#{{ index + 1 }}</p>
-                            </td>
-                            <td class="total">
-                                <p class="type-label-lg">{{ localize(ientry.total) }}</p>
-                            </td>
+                            <td class="rank"><p class="type-label-lg">#{{ index + 1 }}</p></td>
+                            <td class="total"><p class="type-label-lg">{{ localize(ientry.total) }}</p></td>
                             <td class="user" :class="{ 'active': selected == index }">
                                 <button @click="selected = index">
                                     <span class="type-label-lg">{{ ientry.user }}</span>
@@ -54,8 +43,6 @@ export default {
                 <div class="player-container">
                     <div class="player" v-if="entry" :key="selected">
                         <h1>#{{ selected + 1 }} {{ entry.user }}</h1>
-
-                        <!-- STATS SECTION -->
                         <div class="player-stats">
                             <div class="stat-box">
                                 <div class="stat-label">List rank</div>
@@ -82,47 +69,28 @@ export default {
                                 <div class="stat-value">{{ entry.progressed.length }}</div>
                             </div>
                         </div>
-
                         <h2 v-if="entry.verified.length > 0">Verified ({{ entry.verified.length }})</h2>
                         <table class="table">
                             <tr v-for="score in entry.verified">
-                                <td class="rank">
-                                    <p>#{{ score.rank }}</p>
-                                </td>
-                                <td class="level">
-                                    <a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.level }}</a>
-                                </td>
-                                <td class="score">
-                                    <p>+{{ localize(score.score) }}</p>
-                                </td>
+                                <td class="rank"><p>#{{ score.rank }}</p></td>
+                                <td class="level"><a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.level }}</a></td>
+                                <td class="score"><p>+{{ localize(score.score) }}</p></td>
                             </tr>
                         </table>
                         <h2 v-if="entry.completed.length > 0">Completed ({{ entry.completed.length }})</h2>
                         <table class="table">
                             <tr v-for="score in entry.completed">
-                                <td class="rank">
-                                    <p>#{{ score.rank }}</p>
-                                </td>
-                                <td class="level">
-                                    <a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.level }}</a>
-                                </td>
-                                <td class="score">
-                                    <p>+{{ localize(score.score) }}</p>
-                                </td>
+                                <td class="rank"><p>#{{ score.rank }}</p></td>
+                                <td class="level"><a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.level }}</a></td>
+                                <td class="score"><p>+{{ localize(score.score) }}</p></td>
                             </tr>
                         </table>
                         <h2 v-if="entry.progressed.length > 0">Progressed ({{ entry.progressed.length }})</h2>
                         <table class="table">
                             <tr v-for="score in entry.progressed">
-                                <td class="rank">
-                                    <p>#{{ score.rank }}</p>
-                                </td>
-                                <td class="level">
-                                    <a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.percent }}% {{ score.level }}</a>
-                                </td>
-                                <td class="score">
-                                    <p>+{{ localize(score.score) }}</p>
-                                </td>
+                                <td class="rank"><p>#{{ score.rank }}</p></td>
+                                <td class="level"><a class="type-label-lg" target="_blank" rel="noopener" :href="score.link">{{ score.percent }}% {{ score.level }}</a></td>
+                                <td class="score"><p>+{{ localize(score.score) }}</p></td>
                             </tr>
                         </table>
                     </div>
@@ -148,7 +116,6 @@ export default {
         },
         hardestLevel() {
             if (!this.entry) return 'None';
-            // Highest ranked (lowest number) level this player beat or verified
             const all = [...this.entry.verified, ...this.entry.completed];
             if (all.length === 0) return 'None';
             return [...all].sort((a, b) => a.rank - b.rank)[0].level;
@@ -160,7 +127,5 @@ export default {
         this.err = err ?? [];
         this.loading = false;
     },
-    methods: {
-        localize,
-    },
+    methods: { localize },
 };

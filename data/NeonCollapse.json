@@ -1,0 +1,18 @@
+{
+    "id": 900002,
+    "name": "Neon Collapse",
+    "author": "GlowForge",
+    "creators": ["GlowForge", "Nyx"],
+    "verifier": "Nyx",
+    "verification": "https://www.youtube.com/watch?v=ISTl28wKSXc",
+    "percentToQualify": 60,
+    "password": "112233",
+    "records": [
+        {
+            "user": "Solo_Creator",
+            "link": "https://www.youtube.com/watch?v=MgJeijBGKHU",
+            "percent": 100,
+            "hz": 288
+        }
+    ]
+}

@@ -7,10 +7,10 @@ import Btn from '../components/Btn.js';
 export default {
     components: { Spinner, Btn },
     template: `
-        <main v-if="loading">
+        <main v-if="loading" class="page-shell">
             <Spinner></Spinner>
         </main>
-        <main v-else class="page-roulette">
+        <main v-else class="page-roulette page-shell">
             <div class="sidebar">
                 <p class="type-label-md sidebar-credit">
                     Shameless copy of the Extreme Demon Roulette by <a href="https://matcool.github.io/extreme-demon-roulette/" target="_blank">matcool</a>.
@@ -39,11 +39,7 @@ export default {
                 <div class="levels">
                     <template v-if="levels.length > 0">
                         <transition-group name="level-list" tag="div" class="levels" style="display:contents">
-                            <div
-                                class="level"
-                                v-for="(level, i) in levels.slice(0, progression.length)"
-                                :key="'done-' + level.id + '-' + i"
-                            >
+                            <div class="level" v-for="(level, i) in levels.slice(0, progression.length)" :key="'done-' + level.id + '-' + i">
                                 <a :href="level.video" class="video" target="_blank">
                                     <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
                                 </a>
@@ -53,11 +49,7 @@ export default {
                                     <p class="level-pct done">{{ progression[i] }}%</p>
                                 </div>
                             </div>
-                            <div
-                                class="level current"
-                                v-if="!hasCompleted && !givenUp"
-                                :key="'current-' + (currentLevel && currentLevel.id)"
-                            >
+                            <div class="level current" v-if="!hasCompleted && !givenUp" :key="'current-' + (currentLevel && currentLevel.id)">
                                 <a :href="currentLevel.video" target="_blank" class="video">
                                     <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
                                 </a>
@@ -80,31 +72,9 @@ export default {
                             <p v-if="hasCompleted" style="margin-top:0.5rem;color:var(--color-primary);font-weight:700;">the list is still broken. you are not.</p>
                             <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                         </div>
-                        <template v-if="givenUp && showRemaining">
-                            <div
-                                class="level"
-                                v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)"
-                                :key="'miss-' + level.id + '-' + i"
-                                style="animation: floatUp 0.45s var(--ease-out) both"
-                            >
-                                <a :href="level.video" target="_blank" class="video">
-                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
-                                </a>
-                                <div class="meta">
-                                    <p class="level-rank">#{{ level.rank }}</p>
-                                    <h2>{{ level.name }}</h2>
-                                    <p class="level-pct missed">{{ currentPercentage + 2 + i }}%</p>
-                                </div>
-                            </div>
-                        </template>
                     </template>
                     <div v-else class="empty-state">
-                        <div
-                            class="empty-icon"
-                            :class="{ spinning: eggSpinning }"
-                            @click="onEggClick"
-                            title="..."
-                        >◆</div>
+                        <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="...">◆</div>
                         <h2>No roulette in progress</h2>
                         <p>Pick a list above and hit <strong>Start</strong> to begin a run.</p>
                     </div>
@@ -112,14 +82,10 @@ export default {
             </section>
             <div class="toasts-container">
                 <div class="toasts">
-                    <div v-for="(toast, ti) in toasts" class="toast" :key="ti">
-                        <p>{{ toast }}</p>
-                    </div>
+                    <div v-for="(toast, ti) in toasts" class="toast" :key="ti"><p>{{ toast }}</p></div>
                 </div>
             </div>
-            <div v-if="eggBurst" class="egg-burst">
-                <span>{{ eggBurstText }}</span>
-            </div>
+            <div v-if="eggBurst" class="egg-burst"><span>{{ eggBurstText }}</span></div>
         </main>
     `,
     data: () => ({
@@ -148,33 +114,21 @@ export default {
 
         const roulette = JSON.parse(localStorage.getItem('roulette'));
         if (!roulette) return;
-
         this.levels = roulette.levels;
         this.progression = roulette.progression;
     },
     computed: {
-        currentLevel() {
-            return this.levels[this.progression.length];
-        },
-        currentPercentage() {
-            return this.progression[this.progression.length - 1] || 0;
-        },
-        placeholder() {
-            return `At least ${this.currentPercentage + 1}%`;
-        },
+        currentLevel() { return this.levels[this.progression.length]; },
+        currentPercentage() { return this.progression[this.progression.length - 1] || 0; },
+        placeholder() { return `At least ${this.currentPercentage + 1}%`; },
         hasCompleted() {
             return (
-                (this.progression.length > 0 &&
-                    this.progression[this.progression.length - 1] >= 100) ||
+                (this.progression.length > 0 && this.progression[this.progression.length - 1] >= 100) ||
                 this.progression.length === this.levels.length
             );
         },
         isActive() {
-            return (
-                this.progression.length > 0 &&
-                !this.givenUp &&
-                !this.hasCompleted
-            );
+            return this.progression.length > 0 && !this.givenUp && !this.hasCompleted;
         },
     },
     methods: {
@@ -186,30 +140,22 @@ export default {
                 this.showToast('Give up before starting a new roulette.');
                 return;
             }
-
             if (!this.useMainList && !this.useExtendedList) {
                 this.showToast('Select at least one list.');
                 return;
             }
-
             this.loading = true;
-
             const fullList = await fetchList();
-
             if (!fullList) {
                 this.loading = false;
                 this.showToast('Failed to load list. Try again in a moment.');
                 return;
             }
-
             if (fullList.filter(([_, err]) => err).length > 0) {
                 this.loading = false;
-                this.showToast(
-                    "List is currently broken. Wait until it's fixed to start a roulette.",
-                );
+                this.showToast("List is currently broken. Wait until it's fixed to start a roulette.");
                 return;
             }
-
             const fullListMapped = fullList.map(([lvl, _], i) => ({
                 rank: i + 1,
                 id: lvl.id,
@@ -217,48 +163,31 @@ export default {
                 video: lvl.verification,
             }));
             const list = [];
-            if (this.useMainList) list.push(...fullListMapped.slice(0, 75));
-            if (this.useExtendedList) {
-                list.push(...fullListMapped.slice(75, 150));
-            }
-
+            // Demo cutoffs: main 1-2, extended 3-4
+            if (this.useMainList) list.push(...fullListMapped.slice(0, 2));
+            if (this.useExtendedList) list.push(...fullListMapped.slice(2, 4));
             this.levels = shuffle(list).slice(0, 100);
             this.showRemaining = false;
             this.givenUp = false;
             this.progression = [];
             this.percentage = undefined;
-
             this.loading = false;
             this.showToast('roulette started. good luck.');
         },
         save() {
-            localStorage.setItem(
-                'roulette',
-                JSON.stringify({
-                    levels: this.levels,
-                    progression: this.progression,
-                }),
-            );
+            localStorage.setItem('roulette', JSON.stringify({ levels: this.levels, progression: this.progression }));
         },
         onDone() {
             const percentage = Number(this.percentage);
-
-            if (!percentage || Number.isNaN(percentage)) {
-                return;
-            }
-
+            if (!percentage || Number.isNaN(percentage)) return;
             if (percentage <= this.currentPercentage || percentage > 100) {
                 this.showToast('Invalid percentage.');
                 return;
             }
-
             this.progression.push(percentage);
             this.percentage = undefined;
             this.save();
-
-            if (percentage === 69) {
-                this.showToast('nice.');
-            }
+            if (percentage === 69) this.showToast('nice.');
             if (percentage === 100) {
                 this.triggerBurst('CLEARED');
                 this.showToast('cleared. the list is still broken though.');
@@ -268,45 +197,27 @@ export default {
             const pct = this.currentPercentage;
             this.givenUp = true;
             localStorage.removeItem('roulette');
-
-            if (pct === 69) {
-                this.showToast('gave up at 69%. historically accurate.');
-            } else if (pct === 0) {
-                this.showToast('zero percent and already broken. iconic.');
-            }
+            if (pct === 69) this.showToast('gave up at 69%. historically accurate.');
+            else if (pct === 0) this.showToast('zero percent and already broken. iconic.');
         },
         onImport() {
-            if (
-                this.isActive &&
-                !window.confirm('This will overwrite the currently running roulette. Continue?')
-            ) {
-                return;
-            }
-
-            if (typeof this.fileInput.showPicker === 'function') {
-                this.fileInput.showPicker();
-            } else {
-                this.fileInput.click();
-            }
+            if (this.isActive && !window.confirm('This will overwrite the currently running roulette. Continue?')) return;
+            if (typeof this.fileInput.showPicker === 'function') this.fileInput.showPicker();
+            else this.fileInput.click();
         },
         async onImportUpload() {
             if (this.fileInput.files.length === 0) return;
-
             const file = this.fileInput.files[0];
-
             if (file.type && file.type !== 'application/json') {
                 this.showToast('Invalid file.');
                 return;
             }
-
             try {
                 const roulette = JSON.parse(await file.text());
-
                 if (!roulette.levels || !roulette.progression) {
                     this.showToast('Invalid file.');
                     return;
                 }
-
                 this.levels = roulette.levels;
                 this.progression = roulette.progression;
                 this.save();
@@ -315,70 +226,44 @@ export default {
                 this.percentage = undefined;
             } catch {
                 this.showToast('Invalid file.');
-                return;
             }
         },
         onExport() {
-            const file = new Blob(
-                [JSON.stringify({
-                    levels: this.levels,
-                    progression: this.progression,
-                })],
-                { type: 'application/json' },
-            );
+            const file = new Blob([JSON.stringify({ levels: this.levels, progression: this.progression })], { type: 'application/json' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(file);
             a.download = 'broken_roulette';
             a.click();
             URL.revokeObjectURL(a.href);
         },
-        onImgError(e) {
-            e.target.style.display = 'none';
-        },
+        onImgError(e) { e.target.style.display = 'none'; },
         showToast(msg) {
             this.toasts.push(msg);
-            setTimeout(() => {
-                this.toasts.shift();
-            }, 3200);
+            setTimeout(() => this.toasts.shift(), 3200);
         },
         triggerBurst(text) {
             this.eggBurstText = text;
             this.eggBurst = true;
-            setTimeout(() => {
-                this.eggBurst = false;
-            }, 2200);
+            setTimeout(() => { this.eggBurst = false; }, 2200);
         },
         onEggClick() {
             this.eggClicks += 1;
             this.eggSpinning = true;
-            setTimeout(() => {
-                this.eggSpinning = false;
-            }, 950);
-
+            setTimeout(() => { this.eggSpinning = false; }, 950);
             if (this.eggClicks >= 7 && !this.eggArmed) {
                 this.eggArmed = true;
                 this.eggClicks = 0;
                 document.body.classList.add('roulette-chaos');
                 this.triggerBurst('YOU BROKE IT');
                 this.showToast('you broke the roulette. respect.');
-                console.log(
-                    '%c ◆ broken roulette unlocked ',
-                    'background:#3dbb45;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold',
-                );
                 setTimeout(() => {
                     document.body.classList.remove('roulette-chaos');
                     this.eggArmed = false;
                 }, 1700);
-            } else if (this.eggClicks === 3) {
-                this.showToast('keep going...');
-            } else if (this.eggClicks === 5) {
-                this.showToast('almost.');
-            }
-
+            } else if (this.eggClicks === 3) this.showToast('keep going...');
+            else if (this.eggClicks === 5) this.showToast('almost.');
             clearTimeout(this._eggTimer);
-            this._eggTimer = setTimeout(() => {
-                this.eggClicks = 0;
-            }, 2500);
+            this._eggTimer = setTimeout(() => { this.eggClicks = 0; }, 2500);
         },
     },
 };

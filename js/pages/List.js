@@ -14,9 +14,12 @@ const roleIconMap = {
     trial: "user-lock",
 };
 
-/** Pointercrate-style tiers */
-const MAIN_CUTOFF = 75;
-const EXTENDED_CUTOFF = 150;
+/*
+ * Demo cutoffs so a small sample list can show all 3 tiers.
+ * For a full Pointercrate-style list, set MAIN_CUTOFF = 75 and EXTENDED_CUTOFF = 150.
+ */
+const MAIN_CUTOFF = 2;
+const EXTENDED_CUTOFF = 4;
 
 const rules = [
     "Achieved the record without using hacks (FPS bypass is allowed, up to 360fps).",
@@ -32,38 +35,18 @@ const rules = [
 export default {
     components: { Spinner, LevelAuthors },
     template: `
-        <main v-if="loading">
+        <main v-if="loading" class="page-shell">
             <Spinner></Spinner>
         </main>
-        <main v-else class="page-list">
+        <main v-else class="page-list page-shell">
             <div class="list-container">
                 <div class="list-tiers">
-                    <button
-                        type="button"
-                        class="list-tier"
-                        :class="{ active: tier === 'main' }"
-                        @click="setTier('main')"
-                    >Main</button>
-                    <button
-                        type="button"
-                        class="list-tier"
-                        :class="{ active: tier === 'extended' }"
-                        @click="setTier('extended')"
-                    >Extended</button>
-                    <button
-                        type="button"
-                        class="list-tier"
-                        :class="{ active: tier === 'legacy' }"
-                        @click="setTier('legacy')"
-                    >Legacy</button>
+                    <button type="button" class="list-tier" :class="{ active: tier === 'main' }" @click="setTier('main')">Main</button>
+                    <button type="button" class="list-tier" :class="{ active: tier === 'extended' }" @click="setTier('extended')">Extended</button>
+                    <button type="button" class="list-tier" :class="{ active: tier === 'legacy' }" @click="setTier('legacy')">Legacy</button>
                 </div>
                 <div class="list-search">
-                    <input
-                        type="text"
-                        v-model="query"
-                        placeholder="Search level"
-                        aria-label="Search level"
-                    />
+                    <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />
                     <span class="count">{{ filtered.length }}</span>
                 </div>
                 <table class="list" v-if="filtered.length > 0">
@@ -81,9 +64,9 @@ export default {
                 </table>
                 <p v-else class="type-label-md list-empty">
                     <template v-if="query">No level matches "{{ query }}".</template>
-                    <template v-else-if="tier === 'legacy'">No legacy levels yet. Levels past #150 show up here.</template>
-                    <template v-else-if="tier === 'extended'">No extended list levels yet (ranks 76–150).</template>
-                    <template v-else>No main list levels yet (ranks 1–75).</template>
+                    <template v-else-if="tier === 'legacy'">No legacy levels yet.</template>
+                    <template v-else-if="tier === 'extended'">No extended list levels yet.</template>
+                    <template v-else>No main list levels yet.</template>
                 </p>
             </div>
             <div class="level-container">
@@ -119,18 +102,14 @@ export default {
                     <p v-else>This level does not accept new records.</p>
                     <table class="records" v-if="level.records.length > 0">
                         <tr v-for="record in level.records" class="record">
-                            <td class="percent">
-                                <p>{{ record.percent }}%</p>
-                            </td>
+                            <td class="percent"><p>{{ record.percent }}%</p></td>
                             <td class="user">
                                 <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>
                             </td>
                             <td class="mobile">
                                 <img v-if="record.mobile" :src="\`./assets/phone-landscape\${store.dark ? '-dark' : ''}.svg\`" alt="Mobile">
                             </td>
-                            <td class="hz">
-                                <p>{{ record.hz }}Hz</p>
-                            </td>
+                            <td class="hz"><p>{{ record.hz }}Hz</p></td>
                         </tr>
                     </table>
                 </div>
@@ -171,7 +150,7 @@ export default {
         loading: true,
         selected: 0,
         query: "",
-        tier: "main", // main | extended | legacy
+        tier: "main",
         errors: [],
         toggledShowcase: false,
         roleIconMap,
@@ -209,11 +188,7 @@ export default {
         video() {
             if (!this.level) return "";
             if (!this.level.showcase) return embed(this.level.verification);
-            return embed(
-                this.toggledShowcase
-                    ? this.level.showcase
-                    : this.level.verification
-            );
+            return embed(this.toggledShowcase ? this.level.showcase : this.level.verification);
         },
     },
     watch: {
@@ -221,10 +196,7 @@ export default {
             this.toggledShowcase = false;
         },
         tier() {
-            // When switching tier, select first visible level
-            if (this.filtered.length > 0) {
-                this.selected = this.filtered[0].index;
-            }
+            if (this.filtered.length > 0) this.selected = this.filtered[0].index;
         },
     },
     methods: {
@@ -240,23 +212,17 @@ export default {
         this.editors = await fetchEditors();
 
         if (this.list.length === 0) {
-            this.errors = [
-                "Failed to load list. Retry in a few minutes or notify list staff.",
-            ];
+            this.errors = ["Failed to load list. Retry in a few minutes or notify list staff."];
         } else {
             this.errors.push(
                 ...this.list
                     .filter(([_, err]) => err)
                     .map(([_, err]) => `Failed to load level. (${err}.json)`)
             );
-            if (!this.editors) {
-                this.errors.push("Failed to load list editors.");
-            }
+            if (!this.editors) this.errors.push("Failed to load list editors.");
 
             const firstValid = this.list.findIndex(([level]) => level);
             this.selected = firstValid === -1 ? 0 : firstValid;
-
-            // Auto-pick tier based on first valid level
             const r = this.selected + 1;
             if (r > EXTENDED_CUTOFF) this.tier = "legacy";
             else if (r > MAIN_CUTOFF) this.tier = "extended";
@@ -265,22 +231,13 @@ export default {
 
         this.loading = false;
 
-        console.log(
-            "%c broken team was here ",
-            "background:#7cff3f;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold"
-        );
+        console.log("%c broken team was here ", "background:#7cff3f;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold");
         console.log("%c type 'broken()' in the console for a secret ", "color:#7cff3f");
 
         window.broken = () => {
-            console.log(
-                "%c you found the secret ",
-                "background:#111;color:#7cff3f;padding:8px 14px;border-radius:2px;font-size:14px"
-            );
-            console.log("%c the list is broken... but so are the rules ", "color:#888");
+            console.log("%c you found the secret ", "background:#111;color:#7cff3f;padding:8px 14px;border-radius:2px;font-size:14px");
             document.body.classList.add("secret-mode");
-            setTimeout(() => {
-                document.body.classList.remove("secret-mode");
-            }, 3000);
+            setTimeout(() => document.body.classList.remove("secret-mode"), 3000);
         };
     },
 };

@@ -2,19 +2,18 @@ import routes from './routes.js';
 
 export const store = Vue.reactive({
     dark: JSON.parse(localStorage.getItem('dark')) || false,
+    togglingTheme: false,
     toggleDark() {
-        // Full-page veil so the theme swap feels animated even when
-        // CSS variables don't interpolate cleanly.
+        if (this.togglingTheme) return;
+        this.togglingTheme = true;
+
         const veil = document.createElement('div');
         veil.className = 'theme-veil';
         document.body.appendChild(veil);
-
-        // Force reflow, then fade in
         void veil.offsetWidth;
         veil.classList.add('theme-veil--in');
 
-        window.clearTimeout(store._themeTimer);
-        store._themeTimer = window.setTimeout(() => {
+        window.setTimeout(() => {
             this.dark = !this.dark;
             localStorage.setItem('dark', JSON.stringify(this.dark));
             document.body.classList.toggle('dark', this.dark);
@@ -24,8 +23,9 @@ export const store = Vue.reactive({
 
             window.setTimeout(() => {
                 veil.remove();
-            }, 320);
-        }, 180);
+                this.togglingTheme = false;
+            }, 380);
+        }, 220);
     },
 });
 
@@ -97,11 +97,13 @@ const app = Vue.createApp({
                 </div>
             </nav>
         </header>
-        <router-view v-slot="{ Component, route }">
-            <transition name="app-fade" mode="out-in">
-                <component :is="Component" :key="route.path" />
-            </transition>
-        </router-view>
+        <div class="page-stage">
+            <router-view v-slot="{ Component, route }">
+                <transition name="page" mode="out-in">
+                    <component :is="Component" :key="route.fullPath" />
+                </transition>
+            </router-view>
+        </div>
     `,
 });
 

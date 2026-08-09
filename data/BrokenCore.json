@@ -1,0 +1,18 @@
+{
+    "id": 900001,
+    "name": "Broken Core",
+    "author": "BrokenTeam",
+    "creators": ["Akira", "Peak"],
+    "verifier": "Akira",
+    "verification": "https://www.youtube.com/watch?v=ISTl28wKSXc",
+    "percentToQualify": 55,
+    "password": "Not Copyable",
+    "records": [
+        {
+            "user": "Sample_Victor_1",
+            "link": "https://www.youtube.com/watch?v=MgJeijBGKHU",
+            "percent": 100,
+            "hz": 360
+        }
+    ]
+}
