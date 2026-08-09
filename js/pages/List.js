@@ -68,8 +68,9 @@ export default {
                 </p>
             </div>
             <div class="level-container">
-                <div class="level" v-if="level" :key="selected">
-                    <p class="level-tag">{{ selected + 1 <= 150 ? 'Rank #' + (selected + 1) : 'Legacy' }}</p>
+                <transition name="level-swap" mode="out-in">
+                    <div class="level" v-if="level" :key="selected">
+                        <p class="level-tag">{{ selected + 1 <= 150 ? 'Rank #' + (selected + 1) : 'Legacy' }}</p>
                     <h1>{{ level.name }}</h1>
                     <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
                     <iframe class="video" id="videoframe" :src="video" frameborder="0" allowfullscreen></iframe>
@@ -114,35 +115,12 @@ export default {
                             </td>
                         </tr>
                     </table>
-                </div>
-                <div v-else class="empty">
-                    <span>(ノಠ益ಠ)ノ彡┻━┻</span>
-                    <p>This level could not be loaded.</p>
-                </div>
-            </div>
-            <div class="meta-container">
-                <div class="meta">
-                    <div class="errors" v-show="errors.length > 0">
-                        <p class="error" v-for="error of errors">{{ error }}</p>
                     </div>
-                    <template v-if="editors && editors.length">
-                        <h3>List Editors</h3>
-                        <ol class="editors">
-                            <li v-for="editor in editors">
-                                <img :src="\`./assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
-                                <a v-if="editor.link" class="type-label-lg link" target="_blank" rel="noopener" :href="editor.link">{{ editor.name }}</a>
-                                <p v-else class="type-label-lg">{{ editor.name }}</p>
-                            </li>
-                        </ol>
-                    </template>
-                    <h3>Submission Requirements</h3>
-                    <ol class="rules">
-                        <li v-for="rule in rules">{{ rule }}</li>
-                    </ol>
-                    <div class="og">
-                        <p class="type-label-md">Website layout based on <a href="https://tsl.pages.dev/" target="_blank" rel="noopener">TheShittyList</a></p>
+                    <div v-else class="empty" key="empty">
+                        <span>(ノಠ益ಠ)ノ彡┻━┻</span>
+                        <p>This level could not be loaded.</p>
                     </div>
-                </div>
+                </transition>
             </div>
         </main>
     `,
