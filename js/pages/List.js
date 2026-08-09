@@ -36,7 +36,7 @@ export default {
             <Spinner></Spinner>
         </main>
         <main v-else class="page-list page-shell" :class="'view-' + viewMode">
-            <!-- CLASSIC: left sidebar list -->
+            <!-- CLASSIC -->
             <div class="list-container" v-if="viewMode === 'classic'">
                 <div class="list-toolbar">
                     <div class="list-tiers">
@@ -53,7 +53,7 @@ export default {
                     <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />
                     <span class="count">{{ filtered.length }}</span>
                 </div>
-                <table class="list" v-if="filtered.length > 0">
+                <transition-group name="tier-list" tag="table" class="list" v-if="filtered.length > 0">
                     <tr v-for="{ level, err, index } in filtered" :key="index">
                         <td class="rank">
                             <p v-if="index + 1 <= EXTENDED_CUTOFF" class="type-label-lg">#{{ index + 1 }}</p>
@@ -65,14 +65,13 @@ export default {
                             </button>
                         </td>
                     </tr>
-                </table>
+                </transition-group>
                 <p v-else class="type-label-md list-empty">
                     <template v-if="query">No level matches "{{ query }}".</template>
                     <template v-else>No levels in this tier yet.</template>
                 </p>
             </div>
 
-            <!-- CLASSIC detail panel -->
             <div class="level-container" v-if="viewMode === 'classic'">
                 <div class="level" v-if="level" :key="selected">
                     <p class="level-tag">{{ rankLabel }}</p>
@@ -113,7 +112,7 @@ export default {
                 </div>
             </div>
 
-            <!-- CARDS view (AreDL-style) -->
+            <!-- CARDS VIEW -->
             <div class="cards-view" v-if="viewMode === 'cards'">
                 <div class="cards-toolbar">
                     <div class="list-tiers">
@@ -131,71 +130,117 @@ export default {
                 </div>
 
                 <div class="card-stack" v-if="filtered.length > 0">
-                    <article
-                        class="level-card"
-                        v-for="{ level, err, index } in filtered"
-                        :key="index"
-                        :class="{ selected: selected === index }"
-                        @click="selected = index"
-                    >
-                        <div class="level-card__thumb">
-                            <img
-                                v-if="level"
-                                :src="thumb(level)"
-                                alt=""
-                                @error="onThumbError"
-                            />
-                            <div v-else class="level-card__thumb-fallback">?</div>
-                            <span class="level-card__rank">{{ index + 1 <= EXTENDED_CUTOFF ? '#' + (index + 1) : 'LEGACY' }}</span>
+                    <transition-group name="tier-cards" tag="div" class="card-stack-inner">
+                        <div
+                            class="level-card-wrap"
+                            v-for="{ level, err, index } in filtered"
+                            :key="index"
+                        >
+                            <article
+                                class="level-card"
+                                :class="{ selected: expanded === index }"
+                                @click="toggleExpand(index)"
+                            >
+                                <div class="level-card__thumb">
+                                    <img v-if="level" :src="thumb(level)" alt="" @error="onThumbError" />
+                                    <div v-else class="level-card__thumb-fallback">?</div>
+                                    <span class="level-card__rank">{{ index + 1 <= EXTENDED_CUTOFF ? '#' + (index + 1) : 'LEGACY' }}</span>
+                                </div>
+                                <div class="level-card__body">
+                                    <h2 class="level-card__name">{{ level?.name || ('Error (' + err + ')') }}</h2>
+                                    <p class="level-card__by" v-if="level">
+                                        by {{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}
+                                    </p>
+                                    <div class="level-card__tags" v-if="level">
+                                        <span class="tag">{{ tierName(index) }}</span>
+                                        <span class="tag">ID {{ level.id }}</span>
+                                        <span class="tag" v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+ to qualify</span>
+                                        <span class="tag" v-else-if="index + 1 <= EXTENDED_CUTOFF">100% only</span>
+                                        <span class="tag tag-muted" v-else>No new records</span>
+                                    </div>
+                                </div>
+                                <div class="level-card__side" v-if="level">
+                                    <div class="level-card__pts">{{ score(index + 1, 100, level.percentToQualify) }}</div>
+                                    <div class="level-card__pts-label">pts</div>
+                                    <div class="level-card__recs">{{ level.records.length }} record{{ level.records.length === 1 ? '' : 's' }}</div>
+                                    <button type="button" class="level-card__expand-hint" @click.stop="toggleExpand(index)">
+                                        {{ expanded === index ? 'Show less ▲' : 'Show details ▼' }}
+                                    </button>
+                                </div>
+                            </article>
+
+                            <!-- Expanded panel under this card -->
+                            <transition name="expand">
+                                <div
+                                    class="card-expand"
+                                    v-if="expanded === index && level"
+                                    :key="'exp-' + index"
+                                >
+                                    <div class="card-expand__grid">
+                                        <div class="card-expand__media">
+                                            <iframe
+                                                class="card-expand__video"
+                                                :src="embed(level.verification)"
+                                                frameborder="0"
+                                                allowfullscreen
+                                            ></iframe>
+                                        </div>
+                                        <div class="card-expand__info">
+                                            <h3 class="card-expand__title">Level Information</h3>
+                                            <dl class="info-list">
+                                                <div class="info-row">
+                                                    <dt>Level ID</dt>
+                                                    <dd>{{ level.id }}</dd>
+                                                </div>
+                                                <div class="info-row">
+                                                    <dt>Creators</dt>
+                                                    <dd>{{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}</dd>
+                                                </div>
+                                                <div class="info-row">
+                                                    <dt>Verifier</dt>
+                                                    <dd>{{ level.verifier }}</dd>
+                                                </div>
+                                                <div class="info-row">
+                                                    <dt>Uploader</dt>
+                                                    <dd>{{ level.author }}</dd>
+                                                </div>
+                                                <div class="info-row">
+                                                    <dt>Password</dt>
+                                                    <dd>{{ level.password || 'Free to Copy' }}</dd>
+                                                </div>
+                                                <div class="info-row">
+                                                    <dt>Points</dt>
+                                                    <dd class="info-pts">{{ score(index + 1, 100, level.percentToQualify) }}</dd>
+                                                </div>
+                                                <div class="info-row">
+                                                    <dt>Qualify</dt>
+                                                    <dd v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+</dd>
+                                                    <dd v-else-if="index + 1 <= EXTENDED_CUTOFF">100%</dd>
+                                                    <dd v-else>Closed</dd>
+                                                </div>
+                                            </dl>
+                                            <div class="card-expand__records-head">
+                                                <span>Records</span>
+                                                <span class="records-count">{{ level.records.length }}</span>
+                                            </div>
+                                            <ul class="card-expand__records" v-if="level.records.length > 0">
+                                                <li v-for="(record, ri) in level.records" :key="ri">
+                                                    <a :href="record.link" target="_blank" rel="noopener" class="rec-user">{{ record.user }}</a>
+                                                    <a :href="record.link" target="_blank" rel="noopener" class="rec-watch">Watch run</a>
+                                                    <span class="rec-pct">{{ record.percent }}%</span>
+                                                </li>
+                                            </ul>
+                                            <p v-else class="no-recs">No records yet.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </transition>
                         </div>
-                        <div class="level-card__body">
-                            <h2 class="level-card__name">{{ level?.name || ('Error (' + err + ')') }}</h2>
-                            <p class="level-card__by" v-if="level">
-                                by {{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}
-                            </p>
-                            <div class="level-card__tags" v-if="level">
-                                <span class="tag">{{ tierName(index) }}</span>
-                                <span class="tag">ID {{ level.id }}</span>
-                                <span class="tag" v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+ to qualify</span>
-                                <span class="tag" v-else-if="index + 1 <= EXTENDED_CUTOFF">100% only</span>
-                                <span class="tag tag-muted" v-else>No new records</span>
-                            </div>
-                        </div>
-                        <div class="level-card__side" v-if="level">
-                            <div class="level-card__pts">{{ score(index + 1, 100, level.percentToQualify) }}</div>
-                            <div class="level-card__pts-label">pts</div>
-                            <div class="level-card__recs">{{ level.records.length }} record{{ level.records.length === 1 ? '' : 's' }}</div>
-                        </div>
-                    </article>
+                    </transition-group>
                 </div>
                 <p v-else class="type-label-md list-empty">No levels in this tier yet.</p>
-
-                <!-- Expanded detail under cards when one is selected -->
-                <div class="card-detail" v-if="level && selected !== null">
-                    <div class="card-detail__inner">
-                        <h2>{{ level.name }}</h2>
-                        <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
-                        <iframe class="video" :src="video" frameborder="0" allowfullscreen></iframe>
-                        <div class="card-detail__meta">
-                            <span>Points: <strong>{{ score(selected + 1, 100, level.percentToQualify) }}</strong></span>
-                            <span>ID: <strong>{{ level.id }}</strong></span>
-                            <span>Password: <strong>{{ level.password || 'Free to Copy' }}</strong></span>
-                        </div>
-                        <h3>Records ({{ level.records.length }})</h3>
-                        <table class="records" v-if="level.records.length > 0">
-                            <tr v-for="record in level.records" class="record">
-                                <td class="percent"><p>{{ record.percent }}%</p></td>
-                                <td class="user">
-                                    <a :href="record.link" target="_blank" rel="noopener">{{ record.user }}</a>
-                                </td>
-                                <td class="hz"><p>{{ record.hz }}Hz</p></td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
             </div>
 
-            <!-- Meta sidebar (classic only) -->
             <div class="meta-container" v-if="viewMode === 'classic'">
                 <div class="meta">
                     <div class="errors" v-show="errors.length > 0">
@@ -227,6 +272,7 @@ export default {
         editors: [],
         loading: true,
         selected: 0,
+        expanded: null, // cards view: which index is expanded
         query: "",
         tier: "main",
         viewMode: localStorage.getItem("listView") || "classic",
@@ -274,6 +320,7 @@ export default {
             this.toggledShowcase = false;
         },
         tier() {
+            this.expanded = null;
             if (this.filtered.length > 0) this.selected = this.filtered[0].index;
         },
     },
@@ -283,12 +330,19 @@ export default {
         getThumbnailFromId,
         getYoutubeIdFromUrl,
         setTier(t) {
+            if (this.tier === t) return;
             this.tier = t;
             this.query = "";
+            this.expanded = null;
         },
         setView(mode) {
             this.viewMode = mode;
             localStorage.setItem("listView", mode);
+            this.expanded = null;
+        },
+        toggleExpand(index) {
+            this.expanded = this.expanded === index ? null : index;
+            this.selected = index;
         },
         thumb(level) {
             const id = getYoutubeIdFromUrl(level.verification || "");
