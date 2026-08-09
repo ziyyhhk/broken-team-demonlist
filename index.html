@@ -46,21 +46,26 @@
         <script src="https://unpkg.com/vue-router@4.0.14/dist/vue-router.global.prod.js"></script>
         <script type="module" src="./js/main.js"></script>
         <style>
-            /* Hide everything until Vue has mounted, so the page
-               doesn't blink with an unstyled state. */
-            html, body { background: #3dbb45; }
-            body.dark { background: #23802b; }
-            #app:empty + noscript { display: block; }
+            /* Soft green flash only while Vue is mounting */
+            html, body {
+                height: 100%;
+                margin: 0;
+                background: #3dbb45;
+            }
+            body.dark {
+                background: #23802b;
+            }
+            #app {
+                min-height: 100%;
+                height: 100%;
+            }
+            #app:empty + noscript {
+                display: block;
+            }
         </style>
     </head>
-    <!--
-        Vue mounts the whole <body>. The header (with its
-        <router-link> tabs) and the <router-view> are both
-        inside the app template, so router-link is properly
-        registered and the nav actually works.
-    -->
     <body>
         <div id="app"></div>
         <noscript>The Broken List requires JavaScript to run.</noscript>
-    <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a286f6a0b9240b5f',t:'MTc4NjI4MDYzMg=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+    </body>
 </html>
