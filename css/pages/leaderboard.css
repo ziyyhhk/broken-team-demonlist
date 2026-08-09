@@ -27,6 +27,7 @@
     background: var(--color-error);
     color: var(--color-on-error);
     border-radius: 0.5rem;
+    box-shadow: 0 4px 18px rgba(224, 62, 62, 0.35);
 }
 
 .page-leaderboard .board-container,
@@ -52,7 +53,8 @@
     padding: 0.8rem;
     text-align: end;
     font-weight: 700;
-    color: #45b545;
+    color: var(--color-primary);
+    text-shadow: 0 0 10px rgba(69, 181, 69, 0.3);
 }
 
 .page-leaderboard .board .user {
@@ -83,7 +85,7 @@
     background: linear-gradient(135deg, #45b545, #3aa03a) !important;
     color: white !important;
     transform: translateX(7px);
-    box-shadow: 0 4px 16px rgba(69, 181, 69, 0.35);
+    box-shadow: 0 0 24px rgba(69, 181, 69, 0.45);
 }
 
 /* player side */
@@ -92,6 +94,65 @@
     flex-direction: column;
     gap: 1.5rem;
     padding-right: 1rem;
+    animation: levelIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes levelIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-leaderboard .player h1 {
+    font-size: 2rem;
+    font-weight: 900;
+    background: linear-gradient(90deg, var(--color-on-background), var(--color-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* STATS GRID */
+.page-leaderboard .player .player-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: 0.75rem;
+}
+
+.page-leaderboard .player .stat-box {
+    padding: 0.9rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-surface-border);
+    border-radius: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.page-leaderboard .player .stat-box:hover {
+    transform: translateY(-3px);
+    border-color: rgba(69, 181, 69, 0.4);
+    box-shadow: 0 6px 20px rgba(69, 181, 69, 0.18);
+}
+
+.page-leaderboard .player .stat-box .stat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+}
+
+.page-leaderboard .player .stat-box .stat-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-on-background);
+}
+
+.page-leaderboard .player h2 {
+    font-size: 1.25rem;
+    color: var(--color-primary);
+    text-shadow: 0 0 12px rgba(69, 181, 69, 0.3);
 }
 
 .page-leaderboard .player .table {
@@ -108,7 +169,7 @@
 }
 
 .page-leaderboard .player .table tr:hover a {
-    color: #45b545;
+    color: var(--color-primary);
 }
 
 .page-leaderboard .player .table td {
@@ -125,9 +186,15 @@
     text-align: end;
     width: 6rem;
     font-weight: 700;
-    color: #45b545;
+    color: var(--color-primary);
 }
 
 .page-leaderboard .player .table a:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 900px) {
+    .page-leaderboard {
+        grid-template-columns: 1fr;
+    }
 }

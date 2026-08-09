@@ -9,11 +9,12 @@
     display: flex;
     align-items: center;
     padding-inline: 0.5rem;
-    transition: border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease, opacity 0.2s ease, transform 0.2s ease, text-shadow 0.2s ease;
 }
 
 .nav .nav__tab.router-link-active {
     border-color: var(--color-on-primary);
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.6);
 }
 
 .nav .nav__tab:hover {
@@ -38,12 +39,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.2s ease, transform 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav .nav__actions .nav__icon:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.18);
     transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 0 16px rgba(255, 255, 255, 0.25);
 }
 
 .nav .nav__actions .nav__icon img {
@@ -52,18 +54,19 @@
 
 .nav .nav__actions .nav__cta {
     margin-left: 1rem;
-    padding: 0.75rem 1.25rem;
+    padding: 0.75rem 1.35rem;
     background-color: var(--color-on-primary);
     color: var(--color-primary);
     font-weight: 700;
     border-radius: 0.5rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
     transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    position: relative;
 }
 
 .nav .nav__actions .nav__cta:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 6px 18px rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 22px rgba(255, 255, 255, 0.4);
 }
 
 .nav .nav__actions .nav__cta:active {
