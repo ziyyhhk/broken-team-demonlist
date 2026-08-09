@@ -5,11 +5,12 @@
 .page-leaderboard {
     height: 100%;
     display: grid;
-    grid-template-columns: minmax(24rem, 2fr) 3fr;
+    grid-template-columns: minmax(22rem, 2fr) 3fr;
     grid-template-rows: max-content 1fr;
     column-gap: 2rem;
-    max-width: 80rem;
+    max-width: 85rem;
     margin: 0 auto;
+    padding: 1.5rem;
 }
 
 .page-leaderboard > div {
@@ -23,7 +24,7 @@
 
 .page-leaderboard .error-container .error {
     padding: 1rem;
-    background-color: var(--color-error);
+    background: var(--color-error);
     color: var(--color-on-error);
     border-radius: 0.5rem;
 }
@@ -31,27 +32,27 @@
 .page-leaderboard .board-container,
 .page-leaderboard .player-container {
     grid-row: 2;
-    padding-block: 2rem;
-}
-
-.page-leaderboard .board-container {
-    padding-inline: 1rem;
+    padding-block: 1.5rem;
 }
 
 .page-leaderboard .board {
-    table-layout: auto;
-    display: block;
     width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.4rem;
 }
 
 .page-leaderboard .board .rank {
-    padding-block: 1rem;
+    padding: 0.8rem 0.6rem;
     text-align: end;
+    opacity: 0.6;
+    font-weight: 700;
 }
 
 .page-leaderboard .board .total {
-    padding: 1rem;
+    padding: 0.8rem;
     text-align: end;
+    font-weight: 700;
+    color: #45b545;
 }
 
 .page-leaderboard .board .user {
@@ -59,128 +60,74 @@
 }
 
 .page-leaderboard .board .user button {
-    background-color: var(--color-background);
+    appearance: none;
+    border: 1px solid transparent;
+    background: var(--color-background-hover);
     color: var(--color-on-background);
-    border: none;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    text-align: start;
-    word-break: normal;
-    overflow-wrap: anywhere;
+    border-radius: 0.6rem;
+    padding: 0.85rem 1rem;
+    text-align: left;
     width: 100%;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
-                background-color 0.2s ease,
-                box-shadow 0.2s ease;
-}
-
-/* Kill the pseudo-elements that cause the $ / cut-off text */
-.page-leaderboard .board .user button .type-label-lg::before,
-.page-leaderboard .board .user button .type-label-lg::after,
-.page-leaderboard .board .user button span::before,
-.page-leaderboard .board .user button span::after {
-    display: none !important;
-    content: none !important;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .page-leaderboard .board .user button:hover {
-    background-color: var(--color-background-hover);
-    color: var(--color-on-background-hover);
-    cursor: pointer;
-    transform: translateX(4px);
+    transform: translateX(5px);
+    border-color: rgba(69, 181, 69, 0.3);
+    background: rgba(69, 181, 69, 0.1);
 }
 
 .page-leaderboard .board .user.active button {
-    background-color: var(--color-primary);
-    color: var(--color-on-primary);
-    transform: translateX(6px);
-    box-shadow: 0 4px 14px rgba(0, 102, 255, 0.3);
+    background: linear-gradient(135deg, #45b545, #3aa03a) !important;
+    color: white !important;
+    transform: translateX(7px);
+    box-shadow: 0 4px 16px rgba(69, 181, 69, 0.35);
 }
 
+/* player side */
 .page-leaderboard .player {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    padding-right: 2rem;
+    gap: 1.5rem;
+    padding-right: 1rem;
 }
 
 .page-leaderboard .player .table {
-    table-layout: fixed;
-}
-
-.page-leaderboard .player .table tr td:not(:last-child) {
-    padding-right: 2rem;
-}
-
-.page-leaderboard .player .table p,
-.page-leaderboard .player .table a {
-    padding-block: 1rem;
-    transition: color 0.15s ease;
-}
-
-.page-leaderboard .player .table .rank p,
-.page-leaderboard .player .table .score p {
-    text-align: end;
-}
-
-.page-leaderboard .player .table .level {
     width: 100%;
+    border-collapse: collapse;
+}
+
+.page-leaderboard .player .table tr {
+    transition: background 0.15s ease;
+}
+
+.page-leaderboard .player .table tr:hover {
+    background: rgba(69, 181, 69, 0.08);
+}
+
+.page-leaderboard .player .table tr:hover a {
+    color: #45b545;
+}
+
+.page-leaderboard .player .table td {
+    padding: 0.75rem 0.5rem;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.page-leaderboard .player .table .rank {
+    width: 3.5rem;
+    opacity: 0.6;
+}
+
+.page-leaderboard .player .table .score {
+    text-align: end;
+    width: 6rem;
+    font-weight: 700;
+    color: #45b545;
 }
 
 .page-leaderboard .player .table a:hover {
     text-decoration: underline;
-    color: var(--color-primary);
-}
-
-/* Animation when switching player */
-.page-leaderboard .player {
-    animation: playerSwitch 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes playerSwitch {
-    from {
-        opacity: 0;
-        transform: translateY(18px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Stats boxes */
-.player-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem 2rem;
-    margin: 1.5rem 0 2rem 0;
-}
-
-.stat-box {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.stat-label {
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    opacity: 0.65;
-    font-weight: 700;
-}
-
-.stat-value {
-    font-size: 1.15rem;
-    font-weight: 700;
-}
-
-/* Kill overlapping text on leaderboard names too */
-.page-leaderboard .board .user button .type-label-lg::before,
-.page-leaderboard .board .user button .type-label-lg::after,
-.page-leaderboard .board .user button span::before,
-.page-leaderboard .board .user button span::after,
-.page-leaderboard .player .type-label-lg::before,
-.page-leaderboard .player .type-label-lg::after {
-    content: none !important;
-    display: none !important;
 }
