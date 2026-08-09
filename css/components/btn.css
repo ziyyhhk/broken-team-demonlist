@@ -1,4 +1,5 @@
 .btn {
+    position: relative;
     border: 1px solid var(--color-primary);
     cursor: pointer;
     font-family: "Chivo Mono", monospace;
@@ -11,36 +12,39 @@
     background-color: var(--color-primary);
     color: var(--color-on-primary);
     border-radius: var(--radius);
-    transition: filter 0.15s ease, transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+    transition: filter 0.15s ease, transform 0.18s var(--ease-out), background-color 0.15s ease, box-shadow 0.2s var(--ease-out);
 }
+.btn > * { position: relative; z-index: 1; }
 
-.btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
+.btn::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent 0%, rgba(255,255,255,.45) 50%, transparent 100%);
+    transform: translateX(-150%) skewX(-18deg);
+    pointer-events: none;
+    transition: none;
 }
+.btn:not(:disabled):hover::before { animation: shine .8s var(--ease-out) forwards; }
+.btn:not(:disabled):hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 6px 16px -4px var(--color-primary-glow); }
+.btn:not(:disabled):active { transform: translateY(1px); }
 
-.btn:not(:disabled):hover {
-    filter: brightness(1.1);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px var(--color-primary-glow);
-}
-
-.btn:not(:disabled):active {
-    transform: translateY(1px);
-}
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn:disabled::before { display: none; }
 
 .btn.btn-ghost {
     background-color: transparent;
     color: var(--color-on-background);
     border-color: var(--color-border);
 }
-
 .btn.btn-ghost:not(:disabled):hover {
     border-color: var(--color-primary);
     color: var(--color-primary);
     filter: none;
+    box-shadow: 0 4px 12px -6px var(--color-primary-glow);
 }
 
 .btn.btn-giveup {
@@ -48,7 +52,7 @@
     border-color: var(--color-error);
     color: var(--color-error);
 }
-
 .btn.btn-giveup:not(:disabled):hover {
     background-color: color-mix(in srgb, var(--color-error) 8%, transparent);
+    box-shadow: 0 4px 12px -6px color-mix(in srgb, var(--color-error) 40%, transparent);
 }
