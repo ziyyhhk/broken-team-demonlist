@@ -27,6 +27,16 @@ window.addEventListener('keydown', (event) => {
 
 const app = Vue.createApp({
     data: () => ({ store }),
+    // Wrap router-view in a fade transition so every page change
+    // gets a cinematic crossfade (CSS handles enter/leave classes
+    // via the .app-fade-* selectors in main.css).
+    template: `
+        <router-view v-slot="{ Component, route }">
+            <transition name="app-fade" mode="out-in">
+                <component :is="Component" :key="route.path" />
+            </transition>
+        </router-view>
+    `,
 });
 const router = VueRouter.createRouter({
     history: VueRouter.createWebHashHistory(),
