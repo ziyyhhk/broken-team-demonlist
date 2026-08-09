@@ -1,16 +1,8 @@
-/* =========================================================
-   pages/roulette.css — cinematic motion pass
-   - dramatic current-level glow + breathing
-   - sidebar panel reveal
-   - results reveal + done/missed row animation
-   ========================================================= */
-
 .page-roulette {
     display: grid;
     grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
     height: 100%;
     overflow: hidden;
-    animation: pageEnter 0.55s var(--ease-out) both;
 }
 
 .page-roulette .sidebar {
@@ -23,16 +15,16 @@
     border-right: 1px solid var(--color-border);
     background: color-mix(in srgb, var(--color-surface) 70%, transparent);
 }
-.page-roulette .sidebar > * {
-    animation: fadeUp 0.5s var(--ease-out) both;
-}
-.page-roulette .sidebar > *:nth-child(1) { animation-delay: 0.05s; }
-.page-roulette .sidebar > *:nth-child(2) { animation-delay: 0.12s; }
-.page-roulette .sidebar > *:nth-child(3) { animation-delay: 0.19s; }
-.page-roulette .sidebar > *:nth-child(4) { animation-delay: 0.26s; }
 
-.sidebar-credit { font-size: 0.78rem; color: var(--color-muted); margin: 0; }
-.sidebar-credit a { color: var(--color-primary); }
+.sidebar-credit {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    margin: 0;
+}
+
+.sidebar-credit a {
+    color: var(--color-primary);
+}
 
 .page-roulette .options,
 .page-roulette .save {
@@ -43,10 +35,7 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     background: var(--color-surface);
-    transition: border-color 0.2s var(--ease-in-out);
 }
-.page-roulette .options:hover,
-.page-roulette .save:hover { border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border)); }
 
 .page-roulette .save p {
     margin: 0;
@@ -56,13 +45,41 @@
     text-transform: uppercase;
     color: var(--color-muted);
 }
-.page-roulette .check { display: flex; align-items: center; gap: 0.55rem; }
-.page-roulette .check input { accent-color: var(--color-primary); width: 1rem; height: 1rem; cursor: pointer; }
-.page-roulette .btns { display: flex; gap: 0.5rem; }
-.page-roulette .btns .btn { flex: 1; }
 
-.levels-container { height: 100%; overflow-y: auto; padding: 1.4rem 1.6rem 3rem; }
-.levels { display: flex; flex-direction: column; gap: 0.75rem; max-width: 720px; margin: 0 auto; }
+.page-roulette .check {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.page-roulette .check input {
+    accent-color: var(--color-primary);
+    width: 1rem;
+    height: 1rem;
+}
+
+.page-roulette .btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.page-roulette .btns .btn {
+    flex: 1;
+}
+
+.levels-container {
+    height: 100%;
+    overflow-y: auto;
+    padding: 1.4rem 1.6rem 3rem;
+}
+
+.levels {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 720px;
+    margin: 0 auto;
+}
 
 .levels .level {
     display: grid;
@@ -75,46 +92,61 @@
     border-radius: var(--radius);
     background: var(--color-surface);
     opacity: 0.72;
-    transition: opacity 0.25s var(--ease-in-out), border-color 0.25s var(--ease-in-out), transform 0.25s var(--ease-spring);
-    animation: rowIn 0.45s var(--ease-out) both;
+    transition: opacity 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
 }
-/* stagger completed levels (capped) */
-.levels .level:nth-child(1)  { animation-delay: 40ms; }
-.levels .level:nth-child(2)  { animation-delay: 70ms; }
-.levels .level:nth-child(3)  { animation-delay: 100ms; }
-.levels .level:nth-child(4)  { animation-delay: 130ms; }
-.levels .level:nth-child(5)  { animation-delay: 160ms; }
-.levels .level:nth-child(6)  { animation-delay: 190ms; }
-.levels .level:nth-child(7)  { animation-delay: 220ms; }
-.levels .level:nth-child(8)  { animation-delay: 250ms; }
-.levels .level:nth-child(9)  { animation-delay: 280ms; }
-.levels .level:nth-child(10) { animation-delay: 310ms; }
-.levels .level:nth-child(n+11) { animation-delay: 340ms; }
 
-.levels .level:hover { opacity: 1; transform: translateX(2px); }
+.levels .level:hover {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
 .levels .level.current {
     opacity: 1;
     border-left-color: var(--color-primary);
-    box-shadow: 0 0 0 1px var(--color-primary-glow), 0 0 24px -4px var(--color-primary-glow);
-    animation: rowIn 0.5s var(--ease-out) both, pulseGlow 2.6s var(--ease-in-out) 0.4s infinite;
+    box-shadow: 0 0 0 1px var(--color-primary-glow);
 }
 
-.levels .level .video { display: block; line-height: 0; overflow: hidden; border-radius: var(--radius); }
+.levels .level .video {
+    display: block;
+    line-height: 0;
+}
+
 .levels .level .video img {
     width: 100%;
     aspect-ratio: 16 / 9;
     object-fit: cover;
     border-radius: var(--radius);
     background: var(--color-background-hover);
-    transition: transform 0.5s var(--ease-out);
 }
-.levels .level:hover .video img { transform: scale(1.04); }
 
-.levels .level .meta { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
-.levels .level .meta h2 { margin: 0; font-size: 1.05rem; word-break: break-word; }
+.levels .level .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
 
-.level-rank { margin: 0; font-family: "Chivo Mono", monospace; font-size: 0.7rem; letter-spacing: 0.12em; color: var(--color-muted); }
-.level-pct { margin: 0.15rem 0 0; font-family: "Chivo Mono", monospace; font-size: 0.85rem; font-weight: 700; }
+.levels .level .meta h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    word-break: break-word;
+}
+
+.level-rank {
+    margin: 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--color-muted);
+}
+
+.level-pct {
+    margin: 0.15rem 0 0;
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
 .level-pct.done { color: var(--color-primary); }
 .level-pct.missed { color: var(--color-error); }
 .level-pct.current-pct { color: var(--color-muted); }
@@ -126,6 +158,7 @@
     padding-top: 0.4rem;
     flex-wrap: wrap;
 }
+
 .levels .actions input {
     flex: 1;
     min-width: 100px;
@@ -135,12 +168,13 @@
     color: inherit;
     padding: 0.55rem 0.7rem;
     font-family: "Chivo Mono", monospace;
-    transition: border-color 0.2s var(--ease-in-out), box-shadow 0.2s var(--ease-in-out);
+    transition: border-color .12s ease, box-shadow .12s ease;
 }
+
 .levels .actions input:focus {
     outline: none;
     border-color: var(--color-primary);
-    box-shadow: 0 0 0 4px var(--color-primary-glow);
+    box-shadow: 0 0 0 3px var(--color-primary-glow);
 }
 
 .results {
@@ -148,25 +182,32 @@
     border: 1px solid var(--color-primary);
     border-radius: var(--radius);
     background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
-    animation: pageEnter 0.55s var(--ease-out) both;
 }
-.results h1 { margin: 0 0 0.5rem; }
-.results p { margin: 0.15rem 0; }
+
+.results h1 {
+    margin: 0 0 0.5rem;
+}
+
+.results p {
+    margin: 0.15rem 0;
+}
 
 .empty-state {
     text-align: center;
     padding: 4rem 1rem;
     color: var(--color-muted);
-    animation: fadeIn 0.5s var(--ease-out) both;
 }
+
 .empty-state .empty-icon {
     font-size: 2rem;
     color: var(--color-primary);
     opacity: 0.6;
-    display: inline-block;
-    animation: accentDrift 4s var(--ease-in-out) infinite alternate;
 }
-.empty-state h2 { margin: 0.6rem 0 0.3rem; color: var(--color-on-background); }
+
+.empty-state h2 {
+    margin: 0.6rem 0 0.3rem;
+    color: var(--color-on-background);
+}
 
 .toasts-container {
     position: fixed;
@@ -175,18 +216,45 @@
     z-index: 100;
     pointer-events: none;
 }
-.toasts { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.toasts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .toast {
     background: var(--color-on-background);
     color: var(--color-background);
     padding: 0.6rem 0.9rem;
     border-radius: var(--radius);
-    animation: fadeUp 0.3s var(--ease-out) both;
+    animation: rise 0.2s ease;
+}
+
+.toast p {
+    margin: 0;
+    font-size: 0.85rem;
 }
 
 @media (max-width: 760px) {
-    .page-roulette { display: block; height: 100%; overflow-y: auto; }
-    .page-roulette .sidebar { height: auto; border-right: none; border-bottom: 1px solid var(--color-border); }
-    .levels-container { height: auto; padding: 1rem; }
-    .levels .level { grid-template-columns: 110px 1fr; }
+    .page-roulette {
+        display: block;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .page-roulette .sidebar {
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .levels-container {
+        height: auto;
+        padding: 1rem;
+    }
+
+    .levels .level {
+        grid-template-columns: 110px 1fr;
+    }
 }
