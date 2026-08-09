@@ -92,16 +92,27 @@ main > div { flex: 1; min-height: 0; overflow-y: auto; }
 
 /* -------------------------------------------------------------
    ROUTE TRANSITION (used by <transition name="app-fade"> in main.js)
-   Soft fade + tiny lift on every page change.
+   Soft fade on every page change. The "appear" variant handles
+   the very first mount so the page doesn't blink from
+   opacity:0 to opacity:1.
    ------------------------------------------------------------- */
-.app-fade-enter-active {
-    transition: opacity 0.35s var(--ease-out), transform 0.4s var(--ease-out);
+.app-fade-enter-active,
+.app-fade-leave-active,
+.app-fade-appear-active {
+    transition: opacity 0.22s var(--ease-out), transform 0.3s var(--ease-out);
 }
-.app-fade-leave-active {
-    transition: opacity 0.18s ease;
+.app-fade-enter-from,
+.app-fade-leave-to,
+.app-fade-appear-from {
+    opacity: 0;
+    transform: translateY(6px);
 }
-.app-fade-enter-from { opacity: 0; transform: translateY(8px); }
-.app-fade-leave-to { opacity: 0; }
+.app-fade-enter-to,
+.app-fade-leave-from,
+.app-fade-appear-to {
+    opacity: 1;
+    transform: none;
+}
 
 .editors img { width: 1rem; height: 1rem; object-fit: contain; }
 body.secret-mode { --color-primary: #ff2d55; --color-primary-hover: #ff5c7a; --header-bg: #ff2d55; }
