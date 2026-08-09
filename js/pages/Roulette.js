@@ -38,32 +38,42 @@ export default {
             <section class="levels-container">
                 <div class="levels">
                     <template v-if="levels.length > 0">
-                        <div class="level" v-for="(level, i) in levels.slice(0, progression.length)" :key="'done-' + i">
-                            <a :href="level.video" class="video" target="_blank">
-                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
-                            </a>
-                            <div class="meta">
-                                <p class="level-rank">#{{ level.rank }}</p>
-                                <h2>{{ level.name }}</h2>
-                                <p class="level-pct done">{{ progression[i] }}%</p>
+                        <transition-group name="level-list" tag="div" class="levels" style="display:contents">
+                            <div
+                                class="level"
+                                v-for="(level, i) in levels.slice(0, progression.length)"
+                                :key="'done-' + level.id + '-' + i"
+                            >
+                                <a :href="level.video" class="video" target="_blank">
+                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
+                                </a>
+                                <div class="meta">
+                                    <p class="level-rank">#{{ level.rank }}</p>
+                                    <h2>{{ level.name }}</h2>
+                                    <p class="level-pct done">{{ progression[i] }}%</p>
+                                </div>
                             </div>
-                        </div>
-                        <div class="level current" v-if="!hasCompleted && !givenUp" :key="'current-' + progression.length">
-                            <a :href="currentLevel.video" target="_blank" class="video">
-                                <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
-                            </a>
-                            <div class="meta">
-                                <p class="level-rank">#{{ currentLevel.rank }}</p>
-                                <h2>{{ currentLevel.name }}</h2>
-                                <p class="level-pct current-pct">{{ currentLevel.id }}</p>
+                            <div
+                                class="level current"
+                                v-if="!hasCompleted && !givenUp"
+                                :key="'current-' + (currentLevel && currentLevel.id)"
+                            >
+                                <a :href="currentLevel.video" target="_blank" class="video">
+                                    <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
+                                </a>
+                                <div class="meta">
+                                    <p class="level-rank">#{{ currentLevel.rank }}</p>
+                                    <h2>{{ currentLevel.name }}</h2>
+                                    <p class="level-pct current-pct">{{ currentLevel.id }}</p>
+                                </div>
+                                <form class="actions" v-if="!givenUp">
+                                    <input type="number" v-model.number="percentage" :placeholder="placeholder" :min="currentPercentage + 1" max=100>
+                                    <Btn @click.prevent="onDone">Done</Btn>
+                                    <Btn @click.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
+                                </form>
                             </div>
-                            <form class="actions" v-if="!givenUp">
-                                <input type="number" v-model.number="percentage" :placeholder="placeholder" :min="currentPercentage + 1" max=100>
-                                <Btn @click.prevent="onDone">Done</Btn>
-                                <Btn @click.prevent="onGiveUp" class="btn-giveup">Give Up</Btn>
-                            </form>
-                        </div>
-                        <div v-if="givenUp || hasCompleted" class="results">
+                        </transition-group>
+                        <div v-if="givenUp || hasCompleted" class="results" key="results">
                             <h1>{{ hasCompleted ? 'You cleared it' : 'Results' }}</h1>
                             <p>Number of levels: {{ progression.length }}</p>
                             <p>Highest percent: {{ currentPercentage }}%</p>
@@ -71,7 +81,12 @@ export default {
                             <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                         </div>
                         <template v-if="givenUp && showRemaining">
-                            <div class="level" v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)" :key="'miss-' + i">
+                            <div
+                                class="level"
+                                v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)"
+                                :key="'miss-' + level.id + '-' + i"
+                                style="animation: floatUp 0.45s var(--ease-out) both"
+                            >
                                 <a :href="level.video" target="_blank" class="video">
                                     <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
                                 </a>
@@ -102,6 +117,9 @@ export default {
                     </div>
                 </div>
             </div>
+            <div v-if="eggBurst" class="egg-burst">
+                <span>{{ eggBurstText }}</span>
+            </div>
         </main>
     `,
     data: () => ({
@@ -118,6 +136,8 @@ export default {
         eggClicks: 0,
         eggSpinning: false,
         eggArmed: false,
+        eggBurst: false,
+        eggBurstText: '',
     }),
     mounted() {
         this.fileInput = document.createElement('input');
@@ -209,6 +229,7 @@ export default {
             this.percentage = undefined;
 
             this.loading = false;
+            this.showToast('roulette started. good luck.');
         },
         save() {
             localStorage.setItem(
@@ -239,6 +260,7 @@ export default {
                 this.showToast('nice.');
             }
             if (percentage === 100) {
+                this.triggerBurst('CLEARED');
                 this.showToast('cleared. the list is still broken though.');
             }
         },
@@ -319,18 +341,25 @@ export default {
                 this.toasts.shift();
             }, 3200);
         },
-        /* Easter egg: click the ◆ seven times */
+        triggerBurst(text) {
+            this.eggBurstText = text;
+            this.eggBurst = true;
+            setTimeout(() => {
+                this.eggBurst = false;
+            }, 2200);
+        },
         onEggClick() {
             this.eggClicks += 1;
             this.eggSpinning = true;
             setTimeout(() => {
                 this.eggSpinning = false;
-            }, 900);
+            }, 950);
 
             if (this.eggClicks >= 7 && !this.eggArmed) {
                 this.eggArmed = true;
                 this.eggClicks = 0;
                 document.body.classList.add('roulette-chaos');
+                this.triggerBurst('YOU BROKE IT');
                 this.showToast('you broke the roulette. respect.');
                 console.log(
                     '%c ◆ broken roulette unlocked ',
@@ -339,14 +368,13 @@ export default {
                 setTimeout(() => {
                     document.body.classList.remove('roulette-chaos');
                     this.eggArmed = false;
-                }, 1500);
+                }, 1700);
             } else if (this.eggClicks === 3) {
                 this.showToast('keep going...');
             } else if (this.eggClicks === 5) {
                 this.showToast('almost.');
             }
 
-            // Reset click chain if idle too long
             clearTimeout(this._eggTimer);
             this._eggTimer = setTimeout(() => {
                 this.eggClicks = 0;

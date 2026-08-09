@@ -1,11 +1,10 @@
-/* The whole list page eases in once when it mounts */
 .page-list {
     display: grid;
     grid-template-columns: minmax(250px, 1fr) minmax(480px, 2.25fr) minmax(270px, 1.05fr);
     height: 100%;
     overflow: hidden;
     background: var(--color-background);
-    animation: pageIn 0.5s var(--ease-out) both;
+    animation: pageIn 0.55s var(--ease-out) both;
 }
 .page-list > div {
     height: 100%;
@@ -15,26 +14,27 @@
 .list-container {
     border-right: 1px solid var(--color-border);
     background: var(--color-background);
-    padding: 2.6rem 1rem 2rem 2.1rem;
+    padding: 2.4rem 1rem 2rem 2rem;
 }
 
 .list-search {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
+    animation: rowIn 0.45s var(--ease-out) both;
 }
 .list-search input {
     flex: 1;
     min-width: 0;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
+    border-radius: 999px;
     color: inherit;
-    padding: 0.6rem 0.85rem;
+    padding: 0.6rem 1rem;
     font-family: "Archivo", sans-serif;
     font-size: 0.9rem;
-    transition: border-color 0.15s ease, box-shadow 0.25s var(--ease-out), transform 0.2s var(--ease-out);
+    transition: border-color 0.25s ease, box-shadow 0.3s var(--ease-out);
 }
 .list-search input:focus {
     outline: none;
@@ -51,22 +51,23 @@
 .list {
     width: 100%;
     border-collapse: separate;
-    border-spacing: 0 0.45rem;
+    border-spacing: 0 0.5rem;
 }
 .list tr {
     border: 0;
 }
 
-/* Staggered list rows */
+/* Sidebar list — clear staggered entrance */
 .list .level button {
-    animation: rowIn 0.45s var(--ease-out) both;
+    animation: rowIn 0.55s var(--ease-out) both;
 }
-.list .level:nth-child(1) button { animation-delay: 30ms; }
-.list .level:nth-child(2) button { animation-delay: 70ms; }
-.list .level:nth-child(3) button { animation-delay: 110ms; }
-.list .level:nth-child(4) button { animation-delay: 150ms; }
-.list .level:nth-child(5) button { animation-delay: 190ms; }
-.list .level:nth-child(n+6) button { animation-delay: 220ms; }
+.list .level:nth-child(1) button { animation-delay: 50ms; }
+.list .level:nth-child(2) button { animation-delay: 110ms; }
+.list .level:nth-child(3) button { animation-delay: 170ms; }
+.list .level:nth-child(4) button { animation-delay: 230ms; }
+.list .level:nth-child(5) button { animation-delay: 290ms; }
+.list .level:nth-child(6) button { animation-delay: 340ms; }
+.list .level:nth-child(n+7) button { animation-delay: 380ms; }
 
 .list .rank {
     width: 2.7rem;
@@ -78,7 +79,7 @@
     color: var(--color-muted);
     font-weight: 700;
     font-size: 1rem;
-    transition: color 0.15s ease;
+    transition: color 0.25s ease;
 }
 
 .list .level {
@@ -93,30 +94,29 @@
     cursor: pointer;
     padding: 0.8rem 1.15rem;
     font: inherit;
-    border-radius: 0.7rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition:
-        background-color 0.18s ease,
-        border-color 0.18s ease,
-        transform 0.22s var(--ease-out),
-        box-shadow 0.22s var(--ease-out);
+        background-color 0.28s var(--ease-out),
+        color 0.28s var(--ease-out),
+        border-color 0.28s ease,
+        transform 0.32s var(--ease-out),
+        box-shadow 0.32s var(--ease-out);
 }
 .list .level button:hover {
     background: var(--color-surface-hover);
-    transform: translateX(4px);
-    box-shadow: -4px 0 0 0 var(--color-primary), 0 4px 12px rgba(0, 0, 0, 0.06);
+    transform: translateX(6px);
+    box-shadow: -4px 0 0 0 var(--color-primary), 0 6px 14px rgba(0, 0, 0, 0.08);
 }
 
-/* Active row: strong primary + soft pulse */
 .list .level.active button {
     background: var(--color-primary);
     color: #fff;
     border-color: transparent;
     box-shadow:
-        0 0 0 1px rgba(0, 0, 0, 0.08),
-        0 0 0 5px var(--color-primary-glow),
-        0 6px 16px rgba(61, 187, 69, 0.25);
-    animation: rowIn 0.4s var(--ease-out) both, pulse 2.6s ease-in-out 0.5s infinite;
+        0 0 0 4px var(--color-primary-glow),
+        0 8px 18px rgba(61, 187, 69, 0.28);
+    animation: rowIn 0.5s var(--ease-out) both, pulse 2.6s ease-in-out 0.55s infinite;
 }
 .list .level.active span {
     color: inherit;
@@ -126,7 +126,6 @@
     color: var(--color-error);
 }
 
-/* ----- Level detail panel ----- */
 .level-container {
     border-right: 1px solid var(--color-border);
     background: var(--color-surface);
@@ -136,7 +135,7 @@
     flex-direction: column;
     padding: 2rem 2.2rem 3rem;
     gap: 0.55rem;
-    animation: floatUp 0.4s var(--ease-out) both;
+    animation: floatUp 0.5s var(--ease-out) both;
 }
 .level-container .level-tag {
     order: 0;
@@ -144,7 +143,6 @@
     color: var(--color-muted);
     font-size: 0.95rem;
     font-weight: 700;
-    letter-spacing: 0.02em;
 }
 .level-container h1 {
     order: 1;
@@ -167,7 +165,6 @@
     font-size: 1rem;
 }
 
-/* Video frame */
 .video {
     order: 3;
     width: 100%;
@@ -197,15 +194,13 @@
     list-style: none;
     padding: 0;
     margin: 1rem 0 0.5rem;
-    background: transparent;
-    border: 0;
 }
 .stats li {
     background: var(--color-background);
     padding: 0.65rem 0.8rem;
-    border-radius: 0.55rem;
+    border-radius: 0.85rem;
     border: 1px solid var(--color-border);
-    transition: background-color 0.15s ease, transform 0.22s var(--ease-out), border-color 0.2s ease;
+    transition: background-color 0.2s ease, transform 0.28s var(--ease-out), border-color 0.25s ease;
 }
 .stats li:hover {
     background: var(--color-surface);
@@ -234,7 +229,7 @@
 }
 .records .record {
     border-bottom: 1px solid var(--color-border);
-    transition: background-color 0.15s ease, padding-left 0.22s var(--ease-out);
+    transition: background-color 0.2s ease, padding-left 0.28s var(--ease-out);
 }
 .records .record:hover {
     background: var(--color-background);
@@ -287,7 +282,6 @@
     gap: 0.5rem;
 }
 
-/* ----- Meta / sidebar ----- */
 .meta-container {
     background: var(--color-background);
 }
@@ -299,8 +293,6 @@
 }
 .meta h3 {
     margin: 1.3rem 0 0.5rem;
-    padding: 0;
-    border: 0;
     font-size: 1.4rem;
 }
 .meta h3:first-child {
@@ -308,9 +300,7 @@
 }
 .meta p {
     font-size: 0.95rem;
-    color: inherit;
 }
-
 .meta .errors {
     margin-bottom: 0.75rem;
 }
@@ -321,7 +311,6 @@
     font-size: 0.8rem;
     border-radius: var(--radius);
 }
-
 .meta .og {
     order: -1;
     margin-bottom: 0.5rem;
@@ -347,8 +336,8 @@
     align-items: center;
     gap: 0.55rem;
     padding: 0.4rem 0.35rem;
-    border-radius: 0.4rem;
-    transition: background-color 0.15s ease, padding-left 0.22s var(--ease-out);
+    border-radius: 0.5rem;
+    transition: background-color 0.2s ease, padding-left 0.28s var(--ease-out);
 }
 .editors li:hover {
     background: var(--color-background-hover);
@@ -356,7 +345,7 @@
 }
 .editors a.link {
     text-decoration: none;
-    transition: color 0.15s ease;
+    transition: color 0.2s ease;
 }
 .editors a.link:hover {
     color: var(--color-primary);
@@ -375,7 +364,7 @@
     line-height: 1.5;
     padding-left: 1.45rem;
     position: relative;
-    transition: padding-left 0.22s var(--ease-out);
+    transition: padding-left 0.28s var(--ease-out);
 }
 .rules li::before {
     content: "";
@@ -428,9 +417,5 @@
     }
     .stats {
         grid-template-columns: 1fr;
-        gap: 0.65rem;
-    }
-    .meta-container {
-        border-top: 1px solid var(--color-border);
     }
 }

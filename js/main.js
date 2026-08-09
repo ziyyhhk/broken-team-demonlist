@@ -3,9 +3,15 @@ import routes from './routes.js';
 export const store = Vue.reactive({
     dark: JSON.parse(localStorage.getItem('dark')) || false,
     toggleDark() {
+        // Smooth theme crossfade
+        document.documentElement.classList.add('theme-transitioning');
         this.dark = !this.dark;
         localStorage.setItem('dark', JSON.stringify(this.dark));
         document.body.classList.toggle('dark', this.dark);
+        window.clearTimeout(store._themeTimer);
+        store._themeTimer = window.setTimeout(() => {
+            document.documentElement.classList.remove('theme-transitioning');
+        }, 450);
     },
 });
 
@@ -25,20 +31,6 @@ window.addEventListener('keydown', (event) => {
     }
 });
 
-/*
- * The whole page (header + router-view) is inside the app's
- * template. The header is laid out as a flex child of <body>
- * using CSS, so the visual structure is identical to before.
- *
- * Why this works:
- *  - <router-link> is now inside a registered Vue component,
- *    so clicks actually navigate.
- *  - The header and the <router-view> are siblings under <body>,
- *    both rendered by the same app instance, so they share the
- *    same theme store and never get out of sync.
- *  - The <transition> wraps only <router-view>, so route changes
- *    fade nicely without affecting the header.
- */
 const app = Vue.createApp({
     data: () => ({ store }),
     template: `
@@ -102,6 +94,8 @@ const app = Vue.createApp({
 const router = VueRouter.createRouter({
     history: VueRouter.createWebHashHistory(),
     routes,
+    linkActiveClass: 'nav-active',
+    linkExactActiveClass: 'nav-exact',
 });
 
 app.use(router);
