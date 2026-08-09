@@ -38,7 +38,7 @@ export default {
             <section class="levels-container">
                 <div class="levels">
                     <template v-if="levels.length > 0">
-                        <div class="level" v-for="(level, i) in levels.slice(0, progression.length)">
+                        <div class="level" v-for="(level, i) in levels.slice(0, progression.length)" :key="'done-' + i">
                             <a :href="level.video" class="video" target="_blank">
                                 <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
                             </a>
@@ -48,7 +48,7 @@ export default {
                                 <p class="level-pct done">{{ progression[i] }}%</p>
                             </div>
                         </div>
-                        <div class="level current" v-if="!hasCompleted && !givenUp">
+                        <div class="level current" v-if="!hasCompleted && !givenUp" :key="'current-' + progression.length">
                             <a :href="currentLevel.video" target="_blank" class="video">
                                 <img :src="getThumbnailFromId(getYoutubeIdFromUrl(currentLevel.video))" alt="" @error="onImgError">
                             </a>
@@ -64,13 +64,14 @@ export default {
                             </form>
                         </div>
                         <div v-if="givenUp || hasCompleted" class="results">
-                            <h1>Results</h1>
+                            <h1>{{ hasCompleted ? 'You cleared it' : 'Results' }}</h1>
                             <p>Number of levels: {{ progression.length }}</p>
                             <p>Highest percent: {{ currentPercentage }}%</p>
+                            <p v-if="hasCompleted" style="margin-top:0.5rem;color:var(--color-primary);font-weight:700;">the list is still broken. you are not.</p>
                             <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                         </div>
                         <template v-if="givenUp && showRemaining">
-                            <div class="level" v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)">
+                            <div class="level" v-for="(level, i) in levels.slice(progression.length + 1, levels.length - currentPercentage + progression.length)" :key="'miss-' + i">
                                 <a :href="level.video" target="_blank" class="video">
                                     <img :src="getThumbnailFromId(getYoutubeIdFromUrl(level.video))" alt="" @error="onImgError">
                                 </a>
@@ -83,7 +84,12 @@ export default {
                         </template>
                     </template>
                     <div v-else class="empty-state">
-                        <div class="empty-icon">◆</div>
+                        <div
+                            class="empty-icon"
+                            :class="{ spinning: eggSpinning }"
+                            @click="onEggClick"
+                            title="..."
+                        >◆</div>
                         <h2>No roulette in progress</h2>
                         <p>Pick a list above and hit <strong>Start</strong> to begin a run.</p>
                     </div>
@@ -91,7 +97,7 @@ export default {
             </section>
             <div class="toasts-container">
                 <div class="toasts">
-                    <div v-for="toast in toasts" class="toast">
+                    <div v-for="(toast, ti) in toasts" class="toast" :key="ti">
                         <p>{{ toast }}</p>
                     </div>
                 </div>
@@ -101,7 +107,7 @@ export default {
     data: () => ({
         loading: false,
         levels: [],
-        progression: [], // list of percentages completed
+        progression: [],
         percentage: undefined,
         givenUp: false,
         showRemaining: false,
@@ -109,21 +115,19 @@ export default {
         useExtendedList: true,
         toasts: [],
         fileInput: undefined,
+        eggClicks: 0,
+        eggSpinning: false,
+        eggArmed: false,
     }),
     mounted() {
-        // Create File Input
         this.fileInput = document.createElement('input');
         this.fileInput.type = 'file';
         this.fileInput.multiple = false;
         this.fileInput.accept = '.json';
         this.fileInput.addEventListener('change', this.onImportUpload);
 
-        // Load progress from local storage
         const roulette = JSON.parse(localStorage.getItem('roulette'));
-
-        if (!roulette) {
-            return;
-        }
+        if (!roulette) return;
 
         this.levels = roulette.levels;
         this.progression = roulette.progression;
@@ -181,7 +185,7 @@ export default {
             if (fullList.filter(([_, err]) => err).length > 0) {
                 this.loading = false;
                 this.showToast(
-                    'List is currently broken. Wait until it\'s fixed to start a roulette.',
+                    "List is currently broken. Wait until it's fixed to start a roulette.",
                 );
                 return;
             }
@@ -198,7 +202,6 @@ export default {
                 list.push(...fullListMapped.slice(75, 150));
             }
 
-            // random 100 levels
             this.levels = shuffle(list).slice(0, 100);
             this.showRemaining = false;
             this.givenUp = false;
@@ -223,24 +226,32 @@ export default {
                 return;
             }
 
-            if (
-                percentage <= this.currentPercentage ||
-                percentage > 100
-            ) {
+            if (percentage <= this.currentPercentage || percentage > 100) {
                 this.showToast('Invalid percentage.');
                 return;
             }
 
             this.progression.push(percentage);
             this.percentage = undefined;
-
             this.save();
+
+            if (percentage === 69) {
+                this.showToast('nice.');
+            }
+            if (percentage === 100) {
+                this.showToast('cleared. the list is still broken though.');
+            }
         },
         onGiveUp() {
+            const pct = this.currentPercentage;
             this.givenUp = true;
-
-            // Save progress
             localStorage.removeItem('roulette');
+
+            if (pct === 69) {
+                this.showToast('gave up at 69%. historically accurate.');
+            } else if (pct === 0) {
+                this.showToast('zero percent and already broken. iconic.');
+            }
         },
         onImport() {
             if (
@@ -295,7 +306,7 @@ export default {
             );
             const a = document.createElement('a');
             a.href = URL.createObjectURL(file);
-            a.download = 'tsl_roulette';
+            a.download = 'broken_roulette';
             a.click();
             URL.revokeObjectURL(a.href);
         },
@@ -306,7 +317,40 @@ export default {
             this.toasts.push(msg);
             setTimeout(() => {
                 this.toasts.shift();
-            }, 3000);
+            }, 3200);
+        },
+        /* Easter egg: click the ◆ seven times */
+        onEggClick() {
+            this.eggClicks += 1;
+            this.eggSpinning = true;
+            setTimeout(() => {
+                this.eggSpinning = false;
+            }, 900);
+
+            if (this.eggClicks >= 7 && !this.eggArmed) {
+                this.eggArmed = true;
+                this.eggClicks = 0;
+                document.body.classList.add('roulette-chaos');
+                this.showToast('you broke the roulette. respect.');
+                console.log(
+                    '%c ◆ broken roulette unlocked ',
+                    'background:#3dbb45;color:#0b0c0e;padding:6px 12px;border-radius:2px;font-weight:bold',
+                );
+                setTimeout(() => {
+                    document.body.classList.remove('roulette-chaos');
+                    this.eggArmed = false;
+                }, 1500);
+            } else if (this.eggClicks === 3) {
+                this.showToast('keep going...');
+            } else if (this.eggClicks === 5) {
+                this.showToast('almost.');
+            }
+
+            // Reset click chain if idle too long
+            clearTimeout(this._eggTimer);
+            this._eggTimer = setTimeout(() => {
+                this.eggClicks = 0;
+            }, 2500);
         },
     },
 };
