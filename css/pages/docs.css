@@ -84,9 +84,7 @@
     margin-top: 0.75rem;
     margin-bottom: 0;
 }
-.doc-lead {
-    margin-bottom: 0.85rem;
-}
+.doc-lead { margin-bottom: 0.85rem; }
 
 .doc-two-col {
     display: grid;
@@ -221,7 +219,7 @@
     padding: 0.85rem 0.65rem;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.2rem;
 }
 .rules-toc__title {
     margin: 0 0 0.45rem;
@@ -233,6 +231,9 @@
     color: var(--color-muted);
 }
 .rules-toc__item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
     text-align: left;
     border: none;
     background: transparent;
@@ -240,16 +241,33 @@
     font: inherit;
     font-size: 0.88rem;
     font-weight: 600;
-    padding: 0.55rem 0.7rem;
+    padding: 0.55rem 0.65rem;
     border-radius: 0.65rem;
     cursor: pointer;
     transition: background 0.2s ease, color 0.2s ease;
+}
+.rules-toc__num {
+    flex-shrink: 0;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 0.4rem;
+    background: var(--color-background-hover);
+    color: var(--color-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .rules-toc__item:hover {
     background: var(--color-background-hover);
 }
 .rules-toc__item.active {
     background: var(--color-primary);
+    color: #fff;
+}
+.rules-toc__item.active .rules-toc__num {
+    background: rgba(255, 255, 255, 0.22);
     color: #fff;
 }
 
@@ -274,7 +292,7 @@
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    margin: 0 0 0.75rem;
+    margin: 0 0 0.55rem;
     font-size: 1.15rem;
 }
 .rules-intro {
@@ -289,10 +307,10 @@
     justify-content: center;
     width: 1.7rem;
     height: 1.7rem;
-    border-radius: 50%;
+    border-radius: 0.45rem;
     background: var(--color-primary);
     color: #fff;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 800;
 }
 .rules-numbered {
@@ -318,7 +336,7 @@
     top: 0.05rem;
     width: 1.5rem;
     height: 1.5rem;
-    border-radius: 50%;
+    border-radius: 0.4rem;
     background: var(--color-background-hover);
     color: var(--color-muted);
     font-size: 0.75rem;

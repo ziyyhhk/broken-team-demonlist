@@ -19,14 +19,14 @@ const MAIN_CUTOFF = 2;
 const EXTENDED_CUTOFF = 4;
 
 const rules = [
-    "Achieved the record without using hacks (FPS bypass is allowed, up to 360fps).",
-    "Achieved the record on the level listed on the site — check the level ID before submitting.",
-    "Have either source audio or clicks/taps in the video. Edited audio alone does not count.",
-    "The recording must show a previous attempt and the full death animation before the completion, unless it was a first attempt. Everyplay records are exempt.",
-    "The recording must show the player hitting the endwall, or the completion is invalidated.",
-    "Do not use secret routes or bug routes.",
-    "Do not use easy modes — only a record of the unmodified level qualifies.",
-    "Once a level falls onto the Legacy List we accept records for 24 hours after it falls off, and never after that.",
+    "No hacks. TPS bypass is allowed up to 240 TPS only.",
+    "Record the listed level ID. Wrong copy does not count.",
+    "Video needs click/tap sounds (or clear input audio).",
+    "Show a previous attempt and full death before the clear (first attempts exempt).",
+    "Show attempt count, CPS, and cheat indicator when your menu supports them.",
+    "Run must reach the Level Complete screen.",
+    "No bug routes, secret routes, or easy modes.",
+    "CBF and Click on Steps are allowed. Ask staff if you are unsure about a mod.",
 ];
 
 const viewToggleHtml = `
@@ -55,7 +55,6 @@ export default {
         </main>
         <main v-else class="page-list page-shell" :class="'view-' + viewMode">
             <transition name="view-swap" mode="out-in">
-                <!-- CLASSIC -->
                 <div v-if="viewMode === 'classic'" key="classic" class="classic-grid">
                     <div class="list-container">
                         <div class="list-toolbar">
@@ -78,7 +77,7 @@ export default {
                                 </td>
                                 <td class="level" :class="{ 'active': selected == index, 'error': !level }">
                                     <button @click="selected = index">
-                                        <span class="type-label-lg">{{ level?.name || \`Error (\${err}.json)\` }}</span>
+                                        <span class="type-label-lg">{{ level?.name || ('Error (' + err + ')') }}</span>
                                     </button>
                                 </td>
                             </tr>
@@ -97,21 +96,32 @@ export default {
                             <iframe class="video" :src="video" frameborder="0" allowfullscreen></iframe>
                             <ul class="stats">
                                 <li>
-                                    <div class="type-title-sm">Points when completed</div>
+                                    <div class="type-title-sm">Points</div>
                                     <p>{{ score(selected + 1, 100, level.percentToQualify) }}</p>
                                 </li>
                                 <li>
-                                    <div class="type-title-sm">ID</div>
-                                    <p>{{ level.id }}</p>
+                                    <div class="type-title-sm">Length</div>
+                                    <p>{{ level.length || '—' }}</p>
                                 </li>
                                 <li>
-                                    <div class="type-title-sm">Password</div>
-                                    <p>{{ level.password || 'Free to Copy' }}</p>
+                                    <div class="type-title-sm">Created</div>
+                                    <p>{{ level.creationDate || '—' }}</p>
                                 </li>
                             </ul>
+                            <div class="id-row">
+                                <span class="type-title-sm">Level ID</span>
+                                <button type="button" class="id-copy" @click="copyId(level.id)" :title="copiedId === String(level.id) ? 'Copied' : 'Copy ID'">
+                                    <span>{{ level.id }}</span>
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                                <span class="id-pass">{{ level.password || 'Free to Copy' }}</span>
+                            </div>
                             <h2>Records ({{ level.records.length }})</h2>
-                            <p v-if="selected + 1 <= MAIN_CUTOFF"><strong>{{ level.percentToQualify }}%</strong> or better to qualify</p>
-                            <p v-else-if="selected + 1 <= EXTENDED_CUTOFF"><strong>100%</strong> or better to qualify</p>
+                            <p v-if="selected + 1 <= MAIN_CUTOFF">Progress records from <strong>{{ level.percentToQualify }}%</strong> may count on Main.</p>
+                            <p v-else-if="selected + 1 <= EXTENDED_CUTOFF">Extended wants <strong>100%</strong>.</p>
                             <p v-else>This level does not accept new records.</p>
                             <table class="records" v-if="level.records.length > 0">
                                 <tr v-for="record in level.records" class="record">
@@ -138,7 +148,7 @@ export default {
                                 <h3>List Editors</h3>
                                 <ol class="editors">
                                     <li v-for="editor in editors">
-                                        <img :src="\`./assets/\${roleIconMap[editor.role]}\${store.dark ? '-dark' : ''}.svg\`" :alt="editor.role">
+                                        <img :src="'./assets/' + roleIconMap[editor.role] + (store.dark ? '-dark' : '') + '.svg'" :alt="editor.role">
                                         <a v-if="editor.link" class="type-label-lg link" target="_blank" rel="noopener" :href="editor.link">{{ editor.name }}</a>
                                         <p v-else class="type-label-lg">{{ editor.name }}</p>
                                     </li>
@@ -155,7 +165,6 @@ export default {
                     </div>
                 </div>
 
-                <!-- CARDS -->
                 <div v-else key="cards" class="cards-view">
                     <div class="cards-toolbar">
                         <div class="list-tiers">
@@ -207,18 +216,25 @@ export default {
                                             <div class="card-expand__info">
                                                 <h3 class="card-expand__title">Level Information</h3>
                                                 <dl class="info-list">
-                                                    <div class="info-row"><dt>Level ID</dt><dd>{{ level.id }}</dd></div>
+                                                    <div class="info-row">
+                                                        <dt>Level ID</dt>
+                                                        <dd>
+                                                            <button type="button" class="id-copy id-copy--inline" @click.stop="copyId(level.id)">
+                                                                <span>{{ level.id }}</span>
+                                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                                                </svg>
+                                                            </button>
+                                                        </dd>
+                                                    </div>
                                                     <div class="info-row"><dt>Creators</dt><dd>{{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}</dd></div>
                                                     <div class="info-row"><dt>Verifier</dt><dd>{{ level.verifier }}</dd></div>
                                                     <div class="info-row"><dt>Uploader</dt><dd>{{ level.author }}</dd></div>
+                                                    <div class="info-row"><dt>Length</dt><dd>{{ level.length || '—' }}</dd></div>
+                                                    <div class="info-row"><dt>Creation Date</dt><dd>{{ level.creationDate || '—' }}</dd></div>
                                                     <div class="info-row"><dt>Password</dt><dd>{{ level.password || 'Free to Copy' }}</dd></div>
                                                     <div class="info-row"><dt>Points</dt><dd class="info-pts">{{ score(index + 1, 100, level.percentToQualify) }}</dd></div>
-                                                    <div class="info-row">
-                                                        <dt>Qualify</dt>
-                                                        <dd v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+</dd>
-                                                        <dd v-else-if="index + 1 <= EXTENDED_CUTOFF">100%</dd>
-                                                        <dd v-else>Closed</dd>
-                                                    </div>
                                                 </dl>
                                                 <div class="card-expand__records-head">
                                                     <span>Records</span>
@@ -255,6 +271,7 @@ export default {
         viewMode: localStorage.getItem("listView") || "classic",
         errors: [],
         toggledShowcase: false,
+        copiedId: null,
         roleIconMap,
         rules,
         store,
@@ -331,6 +348,22 @@ export default {
             return "Legacy";
         },
         onThumbError(e) { e.target.style.opacity = "0.25"; },
+        async copyId(id) {
+            const text = String(id);
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (e) {
+                const ta = document.createElement("textarea");
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                ta.remove();
+            }
+            this.copiedId = text;
+            clearTimeout(this._copyTimer);
+            this._copyTimer = setTimeout(() => { this.copiedId = null; }, 1400);
+        },
     },
     async mounted() {
         this.list = (await fetchList()) ?? [];
@@ -342,7 +375,7 @@ export default {
             this.errors.push(
                 ...this.list
                     .filter(([_, err]) => err)
-                    .map(([_, err]) => `Failed to load level. (${err}.json)`)
+                    .map(([_, err]) => "Failed to load level. (" + err + ")")
             );
             if (!this.editors) this.errors.push("Failed to load list editors.");
             const firstValid = this.list.findIndex(([level]) => level);
