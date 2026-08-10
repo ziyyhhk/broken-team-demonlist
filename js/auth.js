@@ -332,12 +332,123 @@ export function staffFromUsers() {
 }
 
 export function getGithubToken() {
-    return localStorage.getItem(GH_TOKEN_KEY) || '';
+    return (localStorage.getItem(GH_TOKEN_KEY) || '').trim();
 }
 
 export function setGithubToken(token) {
     if (!token) localStorage.removeItem(GH_TOKEN_KEY);
-    else localStorage.setItem(GH_TOKEN_KEY, token.trim());
+    else localStorage.setItem(GH_TOKEN_KEY, String(token).trim());
+}
+
+/** Auth header that works for classic (ghp_) and fine-grained (github_pat_). */
+function authHeaders(token) {
+    const t = String(token || '').trim();
+    // Classic PATs prefer "token"; fine-grained prefer "Bearer". Send both styles via Bearer which GitHub accepts for both.
+    return {
+        Authorization: 'Bearer ' + t,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+    };
+}
+
+function formatGithubError(status, body) {
+    const text = String(body || '');
+    if (status === 403 || text.indexOf('Resource not accessible by personal access token') !== -1) {
+        return (
+            '403: this token cannot write to ziyyhhk/broken-team-demonlist. ' +
+            'Classic token: must have the "repo" scope checked when creating it. ' +
+            'Fine-grained: Contents = Read and write. ' +
+            'Token must be created on YOUR GitHub account (the collaborator), not the owner. ' +
+            'Use Test token in Settings to verify.'
+        );
+    }
+    if (status === 401) {
+        return '401: token invalid/expired or wrong. Create a new one and paste it again.';
+    }
+    if (status === 404) {
+        return '404: repo not visible to this token. Accept the collaborator invite on the collaborator account.';
+    }
+    return 'GitHub error ' + status + ': ' + text.slice(0, 180);
+}
+
+/**
+ * Diagnose token against this repo.
+ * Returns { ok, steps: string[] } with what worked / failed.
+ */
+export async function testGithubToken(tokenOverride) {
+    const token = (tokenOverride || getGithubToken() || '').trim();
+    const steps = [];
+    if (!token) {
+        return { ok: false, steps: ['No token pasted.'] };
+    }
+    if (token.startsWith('ghp_')) steps.push('Detected classic token (ghp_).');
+    else if (token.startsWith('github_pat_')) steps.push('Detected fine-grained token (github_pat_).');
+    else steps.push('Token format unusual (expected ghp_ or github_pat_).');
+
+    // 1) Who am I?
+    try {
+        const me = await fetch('https://api.github.com/user', { headers: authHeaders(token) });
+        if (!me.ok) {
+            const t = await me.text();
+            steps.push('Auth failed: ' + formatGithubError(me.status, t));
+            return { ok: false, steps };
+        }
+        const user = await me.json();
+        steps.push('Logged in as GitHub user: ' + user.login);
+    } catch (e) {
+        steps.push('Network error talking to GitHub: ' + e);
+        return { ok: false, steps };
+    }
+
+    // 2) Can we see the repo?
+    try {
+        const repo = await fetch('https://api.github.com/repos/' + GH_REPO, {
+            headers: authHeaders(token),
+        });
+        if (!repo.ok) {
+            const t = await repo.text();
+            steps.push('Cannot access repo: ' + formatGithubError(repo.status, t));
+            return { ok: false, steps };
+        }
+        const info = await repo.json();
+        const perms = info.permissions || {};
+        steps.push(
+            'Repo visible. permissions push=' +
+                !!perms.push +
+                ' admin=' +
+                !!perms.admin +
+                ' pull=' +
+                !!perms.pull,
+        );
+        if (!perms.push) {
+            steps.push(
+                'FAIL: this account cannot push (no write). Owner must give Write access, or token scopes are too weak (classic needs "repo").',
+            );
+            return { ok: false, steps };
+        }
+    } catch (e) {
+        steps.push('Repo check failed: ' + e);
+        return { ok: false, steps };
+    }
+
+    // 3) Can we read a file via Contents API?
+    try {
+        const file = await fetch(
+            'https://api.github.com/repos/' + GH_REPO + '/contents/data/_config.json',
+            { headers: authHeaders(token) },
+        );
+        if (!file.ok) {
+            const t = await file.text();
+            steps.push('Contents API read failed: ' + formatGithubError(file.status, t));
+            return { ok: false, steps };
+        }
+        steps.push('Contents API read OK — token should be able to Save.');
+    } catch (e) {
+        steps.push('Contents read error: ' + e);
+        return { ok: false, steps };
+    }
+
+    return { ok: true, steps };
 }
 
 export async function fetchGithubCollaborators() {
@@ -346,12 +457,7 @@ export async function fetchGithubCollaborators() {
 
     const api = 'https://api.github.com/repos/' + GH_REPO + '/collaborators?per_page=100';
     try {
-        const res = await fetch(api, {
-            headers: {
-                Authorization: 'Bearer ' + token,
-                Accept: 'application/vnd.github+json',
-            },
-        });
+        const res = await fetch(api, { headers: authHeaders(token) });
         if (!res.ok) {
             const t = await res.text();
             return { ok: false, error: formatGithubError(res.status, t), list: [] };
@@ -369,24 +475,6 @@ export async function fetchGithubCollaborators() {
     }
 }
 
-function formatGithubError(status, body) {
-    const text = String(body || '');
-    if (status === 403 || text.indexOf('Resource not accessible by personal access token') !== -1) {
-        return (
-            'Token cannot write to this repo (403). Fix: (1) Owner must set collaborator role to Write (not Read). ' +
-            '(2) Friend recreates fine-grained token with Contents = Read and write. ' +
-            '(3) Or use a classic token with "repo" scope. Then paste the new token in Settings.'
-        );
-    }
-    if (status === 401) {
-        return 'Token invalid or expired (401). Create a new token and paste it in Settings.';
-    }
-    if (status === 404) {
-        return 'Repo not found with this token (404). Check collaborator access was accepted.';
-    }
-    return 'GitHub error ' + status + ': ' + text.slice(0, 180);
-}
-
 export async function githubPutFile(path, content, message) {
     const token = getGithubToken();
     if (!token) return { ok: false, error: 'No GitHub token set. Add one in Admin → Settings.' };
@@ -394,18 +482,13 @@ export async function githubPutFile(path, content, message) {
     const api = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + path;
     let sha;
     try {
-        const cur = await fetch(api, {
-            headers: {
-                Authorization: 'Bearer ' + token,
-                Accept: 'application/vnd.github+json',
-            },
-        });
+        const cur = await fetch(api, { headers: authHeaders(token) });
         if (cur.ok) {
             const j = await cur.json();
             sha = j.sha;
-        } else if (cur.status === 403) {
+        } else if (cur.status === 403 || cur.status === 401) {
             const err = await cur.text();
-            return { ok: false, error: formatGithubError(403, err) };
+            return { ok: false, error: formatGithubError(cur.status, err) };
         }
     } catch (e) {
         /* new file */
@@ -421,8 +504,7 @@ export async function githubPutFile(path, content, message) {
     const res = await fetch(api, {
         method: 'PUT',
         headers: {
-            Authorization: 'Bearer ' + token,
-            Accept: 'application/vnd.github+json',
+            ...authHeaders(token),
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
