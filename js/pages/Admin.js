@@ -14,6 +14,13 @@ import {
 import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '../content.js';
 import Spinner from '../components/Spinner.js';
 
+function slugify(name) {
+    return String(name || '')
+        .trim()
+        .replace(/[^a-zA-Z0-9]+/g, '')
+        .replace(/^\d+/, '') || 'NewLevel';
+}
+
 export default {
     components: { Spinner },
     data: () => ({
@@ -50,6 +57,16 @@ export default {
         levelSearch: '',
         syncPhase: '',
         syncSeconds: 60,
+        showAddLevel: false,
+        newLevel: {
+            name: '',
+            id: '',
+            author: '',
+            verifier: '',
+            verification: '',
+            length: '',
+            percentToQualify: 100,
+        },
         _syncTimer: null,
         _syncTick: null,
     }),
@@ -111,7 +128,7 @@ export default {
 
                 <div v-if="tab === 'tiers' && canList" class="admin-panel">
                     <h2>Tiers & order</h2>
-                    <p class="admin-hint">Main = 1 → Main cutoff · Extended = next → Extended cutoff · rest = Legacy</p>
+                    <p class="admin-hint">Main = ranks 1 → Main cutoff · Extended after that · rest Legacy</p>
                     <div class="admin-row">
                         <label>Main cutoff <input class="admin-input" type="number" min="1" v-model.number="mainCutoff" /></label>
                         <label>Extended cutoff <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" /></label>
@@ -132,20 +149,39 @@ export default {
                 </div>
 
                 <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
-                    <h2>Levels & records</h2>
+                    <h2>Levels & people</h2>
+
                     <div class="admin-howto">
-                        <strong>How to add a VERIFIER (verified level credit)</strong>
+                        <strong>Three different things:</strong>
                         <ol>
-                            <li>Pick a level on the left</li>
-                            <li>Fill <em>Verifier</em> with the player’s name (exact spelling)</li>
-                            <li>Paste verification video URL in <em>Verification</em></li>
-                            <li>Click <strong>Save level</strong></li>
+                            <li><b>Add a level to the list</b> → button “+ New level” below</li>
+                            <li><b>Who verified it</b> → field “Player who verified” (real name, e.g. <code>Nyx</code> — not the word “Verifier”)</li>
+                            <li><b>Who beat it later (victors)</b> → table “Victors / people who beat it”</li>
                         </ol>
-                        <p>Leaderboard “Verified” comes from the Verifier field — <strong>not</strong> the records table.</p>
-                        <p>Records table = victors who beat it after verification.</p>
                     </div>
+
+                    <div class="admin-actions">
+                        <button type="button" class="auth-btn" @click="showAddLevel = !showAddLevel">{{ showAddLevel ? 'Hide new level' : '+ New level' }}</button>
+                    </div>
+
+                    <div class="admin-edit-card" v-if="showAddLevel">
+                        <h3>Add a new level to the list</h3>
+                        <div class="admin-grid">
+                            <label>Level name * <input class="admin-input" v-model="newLevel.name" placeholder="Ash Circuit" /></label>
+                            <label>In-game ID <input class="admin-input" v-model="newLevel.id" type="number" placeholder="900003" /></label>
+                            <label>Author / uploader <input class="admin-input" v-model="newLevel.author" placeholder="EmberLab" /></label>
+                            <label>Player who verified * <input class="admin-input" v-model="newLevel.verifier" placeholder="Nyx" /></label>
+                            <label class="admin-grid--full">Verification video URL * <input class="admin-input" v-model="newLevel.verification" placeholder="https://youtu.be/…" /></label>
+                            <label>Length <input class="admin-input" v-model="newLevel.length" placeholder="42s" /></label>
+                            <label>Qualify % <input class="admin-input" v-model.number="newLevel.percentToQualify" type="number" /></label>
+                        </div>
+                        <div class="admin-actions">
+                            <button type="button" class="auth-btn" :disabled="saving" @click="createLevel">Create level on list</button>
+                        </div>
+                    </div>
+
                     <div class="level-picker">
-                        <input class="admin-input" type="search" v-model="levelSearch" placeholder="Search…" />
+                        <input class="admin-input" type="search" v-model="levelSearch" placeholder="Search level…" />
                         <div class="level-picker__list">
                             <button type="button" class="level-picker__item" v-for="p in filteredLevels" :key="p" :class="{ active: selectedPath === p }" @click="selectLevel(p)">
                                 <span class="level-picker__rank">#{{ listOrder.indexOf(p) + 1 }}</span>
@@ -153,15 +189,16 @@ export default {
                             </button>
                         </div>
                     </div>
+
                     <template v-if="draft">
                         <div class="admin-edit-card">
-                            <h3>{{ draft.name || selectedPath }}</h3>
+                            <h3>Edit: {{ draft.name || selectedPath }}</h3>
                             <div class="admin-grid">
                                 <label>Name <input class="admin-input" v-model="draft.name" /></label>
                                 <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
                                 <label>Author <input class="admin-input" v-model="draft.author" /></label>
-                                <label class="admin-label-highlight">Verifier (leaderboard Verified)
-                                    <input class="admin-input" v-model="draft.verifier" placeholder="Player name" />
+                                <label>Player who verified
+                                    <input class="admin-input" v-model="draft.verifier" placeholder="Real player name (e.g. Nyx)" />
                                 </label>
                                 <label class="admin-grid--full">Verification video URL
                                     <input class="admin-input" v-model="draft.verification" placeholder="https://youtu.be/…" />
@@ -169,32 +206,34 @@ export default {
                                 <label>Length <input class="admin-input" v-model="draft.length" /></label>
                                 <label>Qualify % <input class="admin-input" v-model.number="draft.percentToQualify" type="number" /></label>
                             </div>
-                            <h3>Victors / records (not verifier)</h3>
+
+                            <h3>Victors — people who beat it</h3>
+                            <p class="admin-hint">Add players here for COMPLETED on the leaderboard. Do <strong>not</strong> put the verifier here unless they also have a separate victor record.</p>
                             <div class="rec-table">
                                 <div class="rec-table__row" v-for="(r, ri) in draftRecords" :key="ri">
-                                    <input class="admin-input" v-model="r.user" placeholder="Player" />
-                                    <input class="admin-input" v-model.number="r.percent" type="number" />
-                                    <input class="admin-input" v-model.number="r.hz" type="number" />
-                                    <input class="admin-input" v-model="r.link" placeholder="Video" />
+                                    <input class="admin-input" v-model="r.user" placeholder="Player name" />
+                                    <input class="admin-input" v-model.number="r.percent" type="number" title="%" />
+                                    <input class="admin-input" v-model.number="r.hz" type="number" title="Hz" />
+                                    <input class="admin-input" v-model="r.link" placeholder="Video URL" />
                                     <button type="button" class="rec-del" @click="draftRecords.splice(ri,1)">✕</button>
                                 </div>
                                 <div class="rec-table__row">
-                                    <input class="admin-input" v-model="newRec.user" placeholder="Player" />
+                                    <input class="admin-input" v-model="newRec.user" placeholder="Player name" />
                                     <input class="admin-input" v-model.number="newRec.percent" type="number" />
                                     <input class="admin-input" v-model.number="newRec.hz" type="number" />
-                                    <input class="admin-input" v-model="newRec.link" placeholder="Video" />
+                                    <input class="admin-input" v-model="newRec.link" placeholder="Video URL" />
                                     <button type="button" class="auth-btn auth-btn--ghost rec-add" @click="addRecord">Add</button>
                                 </div>
                             </div>
                             <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveLevel()">Save level</button></div>
                         </div>
                     </template>
-                    <p v-else class="admin-hint">Pick a level to edit.</p>
+                    <p v-else class="admin-hint">Pick a level on the left, or create a new one.</p>
                 </div>
 
                 <div v-if="tab === 'board' && canLevels" class="admin-panel admin-panel--wide">
-                    <h2>Edit leaderboard (victors)</h2>
-                    <p class="admin-hint">This edits <strong>records</strong> (victors). To set a verifier, use Levels → Verifier field.</p>
+                    <h2>Edit victors (records)</h2>
+                    <p class="admin-hint">Only edits who <strong>beat</strong> levels. To change who <strong>verified</strong>, open Levels → “Player who verified”.</p>
                     <div class="admin-actions"><button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button></div>
                     <div class="board-layout">
                         <div class="board-players">
@@ -217,7 +256,7 @@ export default {
                                 </div>
                             </div>
                             <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveBoardPlayer">Save this player</button></div>
-                            <h3>Add level beaten</h3>
+                            <h3>Add level they beat</h3>
                             <div class="admin-row">
                                 <select class="admin-input" v-model="addBeat.path">
                                     <option value="" disabled>Level…</option>
@@ -272,11 +311,7 @@ export default {
 
                 <div v-if="tab === 'settings' && canToken" class="admin-panel">
                     <h2>GitHub token</h2>
-                    <p class="admin-hint">Both <code>ghp_</code> (classic) and <code>github_pat_</code> (fine-grained) work. Token must be from the account that has Write on the repo.</p>
-                    <p class="admin-hint">
-                        <strong>Classic:</strong> settings/tokens → classic → check <strong>repo</strong> → copy ghp_…<br/>
-                        <strong>Fine-grained:</strong> Contents = Read and write → copy github_pat_…
-                    </p>
+                    <p class="admin-hint">Works with <code>ghp_</code> and <code>github_pat_</code>. Save → Test token.</p>
                     <label>Token
                         <input class="admin-input" type="password" v-model="ghToken" placeholder="ghp_… or github_pat_…" autocomplete="off" />
                     </label>
@@ -320,7 +355,7 @@ export default {
         },
         async pushFile(path, text, message) {
             if (!getGithubToken()) {
-                this.flash('No token — Settings → paste ghp_ or github_pat_ → Test token.', true);
+                this.flash('No token — Settings → paste token → Test.', true);
                 return false;
             }
             this.saving = true;
@@ -490,15 +525,79 @@ export default {
             });
             this.newRec = { user: '', percent: 100, hz: 240, link: '' };
         },
+        async createLevel() {
+            var n = this.newLevel;
+            if (!(n.name || '').trim()) {
+                this.flash('Level name required.', true);
+                return;
+            }
+            if (!(n.verifier || '').trim()) {
+                this.flash('Player who verified is required (real name).', true);
+                return;
+            }
+            if (!(n.verification || '').trim()) {
+                this.flash('Verification video URL required.', true);
+                return;
+            }
+            var path = slugify(n.name);
+            if (this.listOrder.indexOf(path) !== -1) {
+                path = path + Date.now().toString().slice(-4);
+            }
+            var payload = {
+                id: Number(n.id) || 0,
+                name: n.name.trim(),
+                author: (n.author || n.verifier).trim(),
+                creators: [(n.author || n.verifier).trim()],
+                verifier: n.verifier.trim(),
+                verification: n.verification.trim(),
+                percentToQualify: Number(n.percentToQualify) || 100,
+                password: 'Free to Copy',
+                length: n.length || '',
+                creationDate: new Date().toLocaleDateString('en-US'),
+                tags: [],
+                records: [],
+            };
+            var ok = await this.pushFile(
+                'data/' + path + '.json',
+                JSON.stringify(payload, null, 4),
+                'Admin: add level ' + path,
+            );
+            if (!ok) return;
+            var order = this.listOrder.slice();
+            order.unshift(path);
+            var ok2 = await this.pushFile(
+                'data/_list.json',
+                JSON.stringify(order, null, 4),
+                'Admin: list add ' + path,
+            );
+            if (!ok2) return;
+            this.listOrder = order;
+            this.list.unshift([Object.assign({}, payload, { path: path }), null]);
+            this.showAddLevel = false;
+            this.newLevel = {
+                name: '',
+                id: '',
+                author: '',
+                verifier: '',
+                verification: '',
+                length: '',
+                percentToQualify: 100,
+            };
+            this.selectLevel(path);
+            this.flash('Level added at #1. Move it in Tiers & order if needed.');
+        },
         async saveLevel() {
             if (!this.draft || !this.selectedPath) return;
-            if (!(this.draft.verifier || '').trim()) {
-                this.flash('Tip: set Verifier if someone verified this level (leaderboard Verified). Saving anyway…');
-            }
             var payload = Object.assign({}, this.draft, { records: this.draftRecords || [] });
-            var ok = await this.pushFile('data/' + this.selectedPath + '.json', JSON.stringify(payload, null, 4), 'Admin: update ' + this.selectedPath);
+            var ok = await this.pushFile(
+                'data/' + this.selectedPath + '.json',
+                JSON.stringify(payload, null, 4),
+                'Admin: update ' + this.selectedPath,
+            );
             if (ok) {
-                var pair = this.list.find(function (p) { return p[0] && p[0].path === this.selectedPath; }.bind(this));
+                var pair = this.list.find(function (p) {
+                    return p[0] && p[0].path === this.selectedPath;
+                }.bind(this));
                 if (pair) pair[0] = Object.assign({}, payload, { path: this.selectedPath });
             }
         },
@@ -537,7 +636,7 @@ export default {
         },
         saveToken() {
             setGithubToken(this.ghToken);
-            this.flash(getGithubToken() ? 'Token saved on this browser.' : 'Token cleared.');
+            this.flash(getGithubToken() ? 'Token saved.' : 'Token cleared.');
         },
         clearToken() {
             this.ghToken = '';
@@ -552,8 +651,8 @@ export default {
             var res = await testGithubToken(this.ghToken || getGithubToken());
             this.tokenTesting = false;
             this.tokenTestLines = res.steps || [];
-            if (res.ok) this.flash('Token OK — ghp_ / github_pat_ can Save.');
-            else this.flash('Token failed — see steps below.', true);
+            if (res.ok) this.flash('Token OK.');
+            else this.flash('Token failed — see steps.', true);
         },
     },
     beforeUnmount() {
