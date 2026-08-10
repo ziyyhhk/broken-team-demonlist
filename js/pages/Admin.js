@@ -13,6 +13,7 @@ import {
     downloadJson,
     staffFromUsers,
     fetchGithubCollaborators,
+    testGithubToken,
 } from '../auth.js';
 import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '../content.js';
 import Spinner from '../components/Spinner.js';
@@ -31,7 +32,6 @@ export default {
         collabErr: '',
         board: [],
         boardPlayer: null,
-        // editable rows for selected player: { path, levelName, rank, percent, hz, link, kind }
         boardRows: [],
         addBeat: { path: '', percent: 100, hz: 240, link: '' },
         selectedPath: null,
@@ -43,6 +43,8 @@ export default {
         rolePick: 'helper',
         ghToken: '',
         tokenLocked: false,
+        tokenTestLines: [],
+        tokenTesting: false,
         saving: false,
         editorsTextRaw: '',
         newUser: '',
@@ -110,16 +112,13 @@ export default {
                 <p class="admin-banner admin-banner--err" v-if="err">{{ err }}</p>
 
                 <div class="sync-toast" v-if="syncPhase" :class="'sync-toast--' + syncPhase">
-                    <template v-if="syncPhase === 'waiting'">
-                        <strong>Sync in progress…</strong> ~{{ syncSeconds }}s
-                    </template>
+                    <template v-if="syncPhase === 'waiting'"><strong>Sync…</strong> ~{{ syncSeconds }}s</template>
                     <template v-else>
                         <strong>Sync done.</strong> Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>
                         <button type="button" class="sync-toast__x" @click="syncPhase = ''">Dismiss</button>
                     </template>
                 </div>
 
-                <!-- TIERS -->
                 <div v-if="tab === 'tiers' && canList" class="admin-panel">
                     <h2>Tiers & order</h2>
                     <div class="admin-row">
@@ -141,7 +140,6 @@ export default {
                     <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveList()">Save order</button></div>
                 </div>
 
-                <!-- LEVELS -->
                 <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
                     <h2>Levels & records</h2>
                     <div class="level-picker">
@@ -187,65 +185,41 @@ export default {
                     </template>
                 </div>
 
-                <!-- LEADERBOARD EDITOR -->
                 <div v-if="tab === 'board' && canLevels" class="admin-panel admin-panel--wide">
                     <h2>Edit leaderboard</h2>
-                    <p class="admin-hint">
-                        Points are calculated from records (rank + %). Edit a player’s clears below, or add a new beat.
-                        After Save, the public Leaderboard page updates.
-                    </p>
-                    <div class="admin-actions">
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button>
-                    </div>
-
+                    <div class="admin-actions"><button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button></div>
                     <div class="board-layout">
                         <div class="board-players">
-                            <button
-                                type="button"
-                                class="level-picker__item"
-                                v-for="(e, i) in board"
-                                :key="e.user"
-                                :class="{ active: boardPlayer === e.user }"
-                                @click="selectBoardPlayer(e)"
-                            >
+                            <button type="button" class="level-picker__item" v-for="(e, i) in board" :key="e.user" :class="{ active: boardPlayer === e.user }" @click="selectBoardPlayer(e)">
                                 <span class="level-picker__rank">#{{ i + 1 }}</span>
                                 <span>{{ e.user }}</span>
                                 <span class="admin-muted">{{ e.total }} pts</span>
                             </button>
-                            <p v-if="!board.length" class="admin-hint">No players yet — add records first.</p>
                         </div>
-
                         <div class="board-detail" v-if="boardPlayer">
                             <h3>{{ boardPlayer }}</h3>
-                            <p class="admin-hint">Edit % / Hz / video, remove a clear, or add another level they beat.</p>
-
                             <div class="rec-table">
-                                <div class="rec-table__head"><span>Level</span><span>%</span><span>Hz</span><span>Video</span><span></span></div>
                                 <div class="rec-table__row" v-for="(row, ri) in boardRows" :key="row.path + '-' + ri">
                                     <span class="board-lvl">#{{ row.rank }} {{ row.levelName }}</span>
-                                    <input class="admin-input" type="number" v-model.number="row.percent" min="1" max="100" />
+                                    <input class="admin-input" type="number" v-model.number="row.percent" />
                                     <input class="admin-input" type="number" v-model.number="row.hz" />
-                                    <input class="admin-input" v-model="row.link" placeholder="Video URL" />
+                                    <input class="admin-input" v-model="row.link" />
                                     <button type="button" class="rec-del" @click="removeBoardRow(ri)">✕</button>
                                 </div>
                             </div>
-                            <div class="admin-actions">
-                                <button type="button" class="auth-btn" :disabled="saving" @click="saveBoardPlayer">Save this player’s records</button>
-                            </div>
-
-                            <h3>Add a level they beat</h3>
+                            <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveBoardPlayer">Save this player</button></div>
+                            <h3>Add level beaten</h3>
                             <div class="admin-row">
                                 <select class="admin-input" v-model="addBeat.path">
-                                    <option value="" disabled>Select level…</option>
+                                    <option value="" disabled>Level…</option>
                                     <option v-for="p in listOrder" :key="p" :value="p">{{ p }}</option>
                                 </select>
                                 <input class="admin-input" type="number" v-model.number="addBeat.percent" placeholder="%" style="width:5rem" />
                                 <input class="admin-input" type="number" v-model.number="addBeat.hz" placeholder="Hz" style="width:5rem" />
-                                <input class="admin-input" v-model="addBeat.link" placeholder="Video URL" />
+                                <input class="admin-input" v-model="addBeat.link" placeholder="Video" />
                                 <button type="button" class="auth-btn auth-btn--ghost" @click="addBeatToPlayer">Add</button>
                             </div>
                         </div>
-                        <p v-else class="admin-hint">Pick a player on the left.</p>
                     </div>
                 </div>
 
@@ -263,40 +237,14 @@ export default {
 
                 <div v-if="tab === 'editors' && canEditors" class="admin-panel">
                     <h2>Editors</h2>
-                    <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
                     <textarea class="admin-ta" v-model="editorsTextRaw" rows="12"></textarea>
                     <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveEditors()">Save</button></div>
                 </div>
 
-                <!-- USERS + COLLABS -->
                 <div v-if="tab === 'users' && canUsers" class="admin-panel">
-                    <h2>Users & GitHub collaborators</h2>
-
-                    <h3>GitHub collaborators</h3>
-                    <p class="admin-hint">Pulled from your repo. Create a site login for them (they still need the password you set).</p>
-                    <div class="admin-actions">
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="loadCollabs">Refresh collaborators</button>
-                    </div>
-                    <p class="admin-banner admin-banner--err" v-if="collabErr">{{ collabErr }}</p>
-                    <ul class="admin-userlist">
-                        <li v-for="c in collabs" :key="c.login">
-                            <strong>{{ c.login }}</strong>
-                            <span class="admin-role-tag" v-if="c.admin">repo admin</span>
-                            <span class="admin-role-tag" v-if="siteUsernames.indexOf(c.login.toLowerCase()) !== -1">has site account</span>
-                            <template v-if="siteUsernames.indexOf(c.login.toLowerCase()) === -1">
-                                <input class="admin-input" style="width:8rem" type="password" v-model="collabPass" placeholder="Set password" />
-                                <button type="button" class="auth-btn auth-btn--ghost" @click="createFromCollab(c.login)">Create site admin</button>
-                            </template>
-                        </li>
-                        <li v-if="!collabs.length" class="admin-hint">No collaborators loaded — check token / click refresh.</li>
-                    </ul>
-
-                    <h3>Site accounts</h3>
-                    <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="syncAccounts">Sync accounts to GitHub</button>
-                    </div>
+                    <h2>Users</h2>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="syncAccounts">Sync accounts</button></div>
                     <div class="admin-create">
-                        <h3>Create account</h3>
                         <label>Username <input class="admin-input" v-model="newUser" /></label>
                         <label>Password <input class="admin-input" v-model="newPass" type="password" /></label>
                         <label>Role
@@ -309,34 +257,35 @@ export default {
                         <button type="button" class="auth-btn" :disabled="creating" @click="createUser">Create + sync</button>
                     </div>
                     <ul class="admin-userlist">
-                        <li v-for="u in users" :key="u.username">
-                            <strong>{{ u.username }}</strong>
-                            <span class="admin-role-tag">{{ u.role }}</span>
-                        </li>
+                        <li v-for="u in users" :key="u.username"><strong>{{ u.username }}</strong> <span class="admin-role-tag">{{ u.role }}</span></li>
                     </ul>
-                    <div class="admin-row">
-                        <input class="admin-input" v-model="roleUser" placeholder="Username" />
-                        <select class="admin-input" v-model="rolePick">
-                            <option value="helper">Helper</option>
-                            <option value="admin">Admin</option>
-                            <option value="member">Member</option>
-                        </select>
-                        <button type="button" class="auth-btn" @click="assignRole">Apply role</button>
-                    </div>
                 </div>
 
                 <div v-if="tab === 'settings' && canToken" class="admin-panel">
                     <h2>GitHub token</h2>
-                    <p class="admin-hint">“All repositories” is fine. Contents: Read and write. Also needs permission to list collaborators if you use that button.</p>
-                    <label v-if="!tokenLocked || !hasToken">Token
-                        <input class="admin-input" type="password" v-model="ghToken" placeholder="github_pat_…" />
+                    <p class="admin-hint">
+                        Being able to edit on github.com is <strong>not the same</strong> as an API token.
+                        The token must be created on <strong>the same GitHub account that is the collaborator</strong>.
+                    </p>
+                    <p class="admin-hint">
+                        <strong>Classic token (recommended for collaborators)</strong><br/>
+                        1. Open <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github.com/settings/tokens</a><br/>
+                        2. Generate new token <strong>(classic)</strong><br/>
+                        3. Check the <strong>repo</strong> scope (full control)<br/>
+                        4. Generate → copy (starts with <code>ghp_</code>)<br/>
+                        5. Paste below → Save → <strong>Test token</strong>
+                    </p>
+                    <label>Token
+                        <input class="admin-input" type="password" v-model="ghToken" placeholder="ghp_… or github_pat_…" autocomplete="off" />
                     </label>
-                    <p class="admin-hint" v-else>Token locked on this browser.</p>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" v-if="!tokenLocked || !hasToken" @click="saveToken">Save</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && tokenLocked" @click="tokenLocked = false">Unlock</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && !tokenLocked" @click="clearToken">Clear</button>
+                        <button type="button" class="auth-btn" @click="saveToken">Save token</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" :disabled="tokenTesting" @click="runTokenTest">{{ tokenTesting ? 'Testing…' : 'Test token' }}</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" @click="clearToken">Clear</button>
                     </div>
+                    <ul class="admin-userlist" v-if="tokenTestLines.length" style="margin-top:0.75rem">
+                        <li v-for="(line, i) in tokenTestLines" :key="i">{{ line }}</li>
+                    </ul>
                 </div>
             </section>
         </main>
@@ -347,7 +296,7 @@ export default {
             this.err = isErr ? msg : '';
             var self = this;
             clearTimeout(this._flashTimer);
-            this._flashTimer = setTimeout(function () { self.msg = ''; self.err = ''; }, 8000);
+            this._flashTimer = setTimeout(function () { self.msg = ''; self.err = ''; }, 10000);
         },
         startSyncNotify() {
             var self = this;
@@ -365,7 +314,7 @@ export default {
         },
         async pushFile(path, text, message) {
             if (!getGithubToken()) {
-                this.flash('No token — open Settings and paste your github_pat_.', true);
+                this.flash('No token — Settings → paste ghp_ token → Test token.', true);
                 return false;
             }
             this.saving = true;
@@ -384,17 +333,6 @@ export default {
         async openUsers() {
             this.tab = 'users';
             await this.refreshUsers();
-            await this.loadCollabs();
-        },
-        async loadCollabs() {
-            this.collabErr = '';
-            var res = await fetchGithubCollaborators();
-            if (!res.ok) {
-                this.collabErr = res.error || 'Could not load collaborators.';
-                this.collabs = [];
-                return;
-            }
-            this.collabs = res.list || [];
         },
         async openBoard() {
             this.tab = 'board';
@@ -403,22 +341,17 @@ export default {
             if (this.boardPlayer) {
                 var found = this.board.find(function (e) { return e.user === this.boardPlayer; }.bind(this));
                 if (found) this.selectBoardPlayer(found);
-                else {
-                    this.boardPlayer = null;
-                    this.boardRows = [];
-                }
+                else { this.boardPlayer = null; this.boardRows = []; }
             }
         },
         selectBoardPlayer(entry) {
             this.boardPlayer = entry.user;
             var rows = [];
             var name = entry.user;
-            // rebuild from raw list data so we can edit accurately
             this.list.forEach(function (pair, idx) {
                 var level = pair[0];
                 if (!level) return;
                 var rank = idx + 1;
-                // verifier counts as verified on leaderboard but stored on level, not records
                 (level.records || []).forEach(function (r) {
                     if (r.user && r.user.toLowerCase() === name.toLowerCase()) {
                         rows.push({
@@ -435,9 +368,7 @@ export default {
             this.boardRows = rows;
             this.addBeat = { path: '', percent: 100, hz: 240, link: '' };
         },
-        removeBoardRow(ri) {
-            this.boardRows.splice(ri, 1);
-        },
+        removeBoardRow(ri) { this.boardRows.splice(ri, 1); },
         addBeatToPlayer() {
             if (!this.boardPlayer || !this.addBeat.path) {
                 this.flash('Pick a level first.', true);
@@ -445,13 +376,9 @@ export default {
             }
             var path = this.addBeat.path;
             var pair = this.list.find(function (p) { return p[0] && p[0].path === path; });
-            if (!pair || !pair[0]) {
-                this.flash('Level not found.', true);
-                return;
-            }
+            if (!pair || !pair[0]) return;
             var level = pair[0];
             var rank = this.listOrder.indexOf(path) + 1;
-            // replace existing row for same level
             this.boardRows = this.boardRows.filter(function (r) { return r.path !== path; });
             this.boardRows.push({
                 path: path,
@@ -466,18 +393,11 @@ export default {
         async saveBoardPlayer() {
             if (!this.boardPlayer) return;
             var player = this.boardPlayer;
-            var rows = this.boardRows;
-            // group by path
             var byPath = {};
-            rows.forEach(function (r) {
+            this.boardRows.forEach(function (r) {
                 byPath[r.path] = byPath[r.path] || [];
                 byPath[r.path].push(r);
             });
-
-            // every level: update this player's records
-            var pathsTouched = {};
-            this.listOrder.forEach(function (p) { pathsTouched[p] = true; });
-
             this.saving = true;
             var errors = [];
             for (var i = 0; i < this.listOrder.length; i++) {
@@ -488,8 +408,7 @@ export default {
                 var recs = (level.records || []).filter(function (r) {
                     return !(r.user && r.user.toLowerCase() === player.toLowerCase());
                 });
-                var mine = byPath[path] || [];
-                mine.forEach(function (r) {
+                (byPath[path] || []).forEach(function (r) {
                     recs.push({
                         user: player,
                         percent: Number(r.percent) || 100,
@@ -499,33 +418,21 @@ export default {
                 });
                 level.records = recs;
                 delete level.path;
-                var text = JSON.stringify(level, null, 4);
-                var res = await githubPutFile('data/' + path + '.json', text, 'Admin: leaderboard ' + player + ' on ' + path);
-                if (!res.ok) errors.push(path + ': ' + res.error);
-                else {
-                    // update local list cache
-                    pair[0].records = recs;
-                }
+                var res = await githubPutFile('data/' + path + '.json', JSON.stringify(level, null, 4), 'Admin: board ' + player);
+                if (!res.ok) errors.push(res.error);
+                else pair[0].records = recs;
             }
             this.saving = false;
-            if (errors.length) {
-                this.flash(errors[0], true);
-                return;
-            }
-            this.flash('Saved records for ' + player + '. Points will update on the public leaderboard.');
+            if (errors.length) { this.flash(errors[0], true); return; }
+            this.flash('Saved records for ' + player);
             this.startSyncNotify();
             await this.openBoard();
         },
         async refreshUsers() {
             var list = await getUsersAsync();
-            this.users = list.map(function (u) {
-                return { username: u.username, role: u.role };
-            });
+            this.users = list.map(function (u) { return { username: u.username, role: u.role }; });
         },
-        selectLevel(p) {
-            this.selectedPath = p;
-            this.loadDraft();
-        },
+        selectLevel(p) { this.selectedPath = p; this.loadDraft(); },
         moveUp(i) {
             if (i <= 0) return;
             var a = this.listOrder.slice();
@@ -543,24 +450,10 @@ export default {
             var res = await createAccount(this.newUser, this.newPass, this.newRole);
             this.creating = false;
             if (!res.ok) { this.flash(res.error, true); return; }
-            this.flash(res.synced
-                ? ('Created + synced ' + this.newUser)
-                : 'Created locally — sync needs a token.');
+            this.flash('Created ' + this.newUser);
             if (res.synced) this.startSyncNotify();
             this.newUser = '';
             this.newPass = '';
-            await this.refreshUsers();
-        },
-        async createFromCollab(login) {
-            if (!this.collabPass || this.collabPass.length < 4) {
-                this.flash('Set a password (min 4 chars) in the password box first.', true);
-                return;
-            }
-            var res = await createAccount(login, this.collabPass, 'admin');
-            if (!res.ok) { this.flash(res.error, true); return; }
-            this.flash('Created site admin for ' + login + '. Tell them the password.');
-            this.collabPass = '';
-            if (res.synced) this.startSyncNotify();
             await this.refreshUsers();
         },
         async syncAccounts() {
@@ -574,14 +467,8 @@ export default {
         },
         loadDraft() {
             var path = this.selectedPath;
-            var found = this.list.find(function (pair) {
-                return pair[0] && pair[0].path === path;
-            });
-            if (!found || !found[0]) {
-                this.draft = null;
-                this.draftRecords = [];
-                return;
-            }
+            var found = this.list.find(function (pair) { return pair[0] && pair[0].path === path; });
+            if (!found || !found[0]) { this.draft = null; this.draftRecords = []; return; }
             this.draft = JSON.parse(JSON.stringify(found[0]));
             this.draftRecords = JSON.parse(JSON.stringify(this.draft.records || []));
             delete this.draft.path;
@@ -607,7 +494,7 @@ export default {
             }
         },
         async saveList() {
-            await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: update list order');
+            await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: list order');
         },
         async saveConfig() {
             var cfg = {
@@ -615,56 +502,51 @@ export default {
                 extendedCutoff: Number(this.extendedCutoff) || 1,
             };
             if (cfg.extendedCutoff < cfg.mainCutoff) {
-                this.flash('Extended cutoff must be ≥ Main cutoff.', true);
+                this.flash('Extended must be ≥ Main.', true);
                 return;
             }
-            await this.pushFile('data/_config.json', JSON.stringify(cfg, null, 4), 'Admin: update tier cutoffs');
+            await this.pushFile('data/_config.json', JSON.stringify(cfg, null, 4), 'Admin: cutoffs');
         },
         async saveInfo() {
             var data;
             try { data = JSON.parse(this.infoText); }
-            catch (e) { this.flash('Info JSON invalid.', true); return; }
-            await this.pushFile('data/info.json', JSON.stringify(data, null, 4), 'Admin: update info');
+            catch (e) { this.flash('Invalid JSON', true); return; }
+            await this.pushFile('data/info.json', JSON.stringify(data, null, 4), 'Admin: info');
         },
         async saveRules() {
             var data;
             try { data = JSON.parse(this.rulesText); }
-            catch (e) { this.flash('Rules JSON invalid.', true); return; }
-            await this.pushFile('data/rules.json', JSON.stringify(data, null, 4), 'Admin: update rules');
-        },
-        buildEditorsFromUsers() {
-            var fromUsers = staffFromUsers();
-            if (fromUsers.length) {
-                this.editors = fromUsers;
-                this.editorsTextRaw = JSON.stringify(fromUsers, null, 4);
-            } else this.flash('No staff users yet.', true);
+            catch (e) { this.flash('Invalid JSON', true); return; }
+            await this.pushFile('data/rules.json', JSON.stringify(data, null, 4), 'Admin: rules');
         },
         async saveEditors() {
             var data;
             try { data = JSON.parse(this.editorsTextRaw); }
-            catch (e) { this.flash('Editors JSON invalid.', true); return; }
+            catch (e) { this.flash('Invalid JSON', true); return; }
             this.editors = data;
-            await this.pushFile('data/_editors.json', JSON.stringify(data, null, 4), 'Admin: update editors');
-        },
-        async assignRole() {
-            var res = await setUserRole(this.roleUser, this.rolePick);
-            if (!res.ok) this.flash(res.error, true);
-            else {
-                this.flash(res.warning || ('Updated ' + this.roleUser));
-                if (!res.warning) this.startSyncNotify();
-                await this.refreshUsers();
-            }
+            await this.pushFile('data/_editors.json', JSON.stringify(data, null, 4), 'Admin: editors');
         },
         saveToken() {
             setGithubToken(this.ghToken);
-            this.tokenLocked = !!this.ghToken;
-            this.flash(this.ghToken ? 'Token saved.' : 'Token cleared.');
+            this.tokenLocked = !!getGithubToken();
+            this.flash(getGithubToken() ? 'Token saved on this browser.' : 'Token cleared.');
         },
         clearToken() {
             this.ghToken = '';
             setGithubToken('');
             this.tokenLocked = false;
+            this.tokenTestLines = [];
             this.flash('Token cleared.');
+        },
+        async runTokenTest() {
+            if (this.ghToken) setGithubToken(this.ghToken);
+            this.tokenTesting = true;
+            this.tokenTestLines = ['Testing…'];
+            var res = await testGithubToken(this.ghToken || getGithubToken());
+            this.tokenTesting = false;
+            this.tokenTestLines = res.steps || [];
+            if (res.ok) this.flash('Token OK — you can Save to GitHub.');
+            else this.flash('Token failed — see steps below.', true);
         },
     },
     beforeUnmount() {
@@ -678,9 +560,8 @@ export default {
             this.$router.replace('/');
             return;
         }
-        var tok = getGithubToken();
-        this.ghToken = tok;
-        this.tokenLocked = !!tok;
+        this.ghToken = getGithubToken();
+        this.tokenLocked = !!this.ghToken;
         var cfg = await fetchConfig();
         this.mainCutoff = cfg.mainCutoff;
         this.extendedCutoff = cfg.extendedCutoff;
