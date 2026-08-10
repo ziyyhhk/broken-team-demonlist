@@ -340,7 +340,6 @@ export function setGithubToken(token) {
     else localStorage.setItem(GH_TOKEN_KEY, token.trim());
 }
 
-/** List repo collaborators (needs token with metadata/members read). */
 export async function fetchGithubCollaborators() {
     const token = getGithubToken();
     if (!token) return { ok: false, error: 'No token.', list: [] };
@@ -355,7 +354,7 @@ export async function fetchGithubCollaborators() {
         });
         if (!res.ok) {
             const t = await res.text();
-            return { ok: false, error: 'GitHub ' + res.status + ': ' + t.slice(0, 120), list: [] };
+            return { ok: false, error: formatGithubError(res.status, t), list: [] };
         }
         const data = await res.json();
         const list = (data || []).map((c) => ({
@@ -368,6 +367,24 @@ export async function fetchGithubCollaborators() {
     } catch (e) {
         return { ok: false, error: String(e), list: [] };
     }
+}
+
+function formatGithubError(status, body) {
+    const text = String(body || '');
+    if (status === 403 || text.indexOf('Resource not accessible by personal access token') !== -1) {
+        return (
+            'Token cannot write to this repo (403). Fix: (1) Owner must set collaborator role to Write (not Read). ' +
+            '(2) Friend recreates fine-grained token with Contents = Read and write. ' +
+            '(3) Or use a classic token with "repo" scope. Then paste the new token in Settings.'
+        );
+    }
+    if (status === 401) {
+        return 'Token invalid or expired (401). Create a new token and paste it in Settings.';
+    }
+    if (status === 404) {
+        return 'Repo not found with this token (404). Check collaborator access was accepted.';
+    }
+    return 'GitHub error ' + status + ': ' + text.slice(0, 180);
 }
 
 export async function githubPutFile(path, content, message) {
@@ -386,6 +403,9 @@ export async function githubPutFile(path, content, message) {
         if (cur.ok) {
             const j = await cur.json();
             sha = j.sha;
+        } else if (cur.status === 403) {
+            const err = await cur.text();
+            return { ok: false, error: formatGithubError(403, err) };
         }
     } catch (e) {
         /* new file */
@@ -410,7 +430,7 @@ export async function githubPutFile(path, content, message) {
 
     if (!res.ok) {
         const err = await res.text();
-        return { ok: false, error: 'GitHub error: ' + res.status + ' ' + err.slice(0, 200) };
+        return { ok: false, error: formatGithubError(res.status, err) };
     }
     return { ok: true };
 }
