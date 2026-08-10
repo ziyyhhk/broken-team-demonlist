@@ -2,7 +2,6 @@ import {
     auth,
     can,
     isOwner,
-    isStaff,
     logout,
     getUsers,
     setUserRole,
@@ -27,6 +26,7 @@ export default {
         users: [],
         selectedPath: null,
         draft: null,
+        _recordsBackup: [],
         msg: '',
         err: '',
         roleUser: '',
@@ -40,9 +40,11 @@ export default {
             editEditors: true,
             manageUsers: false,
         },
+        listTextRaw: '',
+        editorsTextRaw: '',
     }),
     computed: {
-        isOwner() {
+        owner() {
             return isOwner();
         },
         canLevels() {
@@ -57,6 +59,9 @@ export default {
         canUsers() {
             return can('manageUsers') || isOwner();
         },
+        hasAnyAdmin() {
+            return this.canLevels || this.canList || this.canEditors || this.canUsers || this.owner;
+        },
     },
     template: `
         <main v-if="loading" class="page-shell"><Spinner /></main>
@@ -64,10 +69,10 @@ export default {
             <aside class="admin-side">
                 <p class="admin-user">{{ auth.user && auth.user.username }} · {{ auth.user && auth.user.role }}</p>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'levels' }" @click="tab = 'levels'" v-if="canLevels">Levels</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'list' }" @click="tab = 'list'" v-if="canList">List order</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'editors' }" @click="tab = 'editors'" v-if="canEditors">Editors JSON</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'list' }" @click="openList" v-if="canList">List order</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'editors' }" @click="openEditors" v-if="canEditors">Editors JSON</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'users' }" @click="refreshUsers(); tab = 'users'" v-if="canUsers">Users & roles</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="tab = 'settings'" v-if="isOwner">Settings</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="tab = 'settings'" v-if="owner">Settings</button>
                 <button type="button" class="admin-tab admin-out" @click="onLogout">Log out</button>
             </aside>
 
@@ -88,14 +93,14 @@ export default {
                         <label>Name <input v-model="draft.name" /></label>
                         <label>ID <input v-model.number="draft.id" type="number" /></label>
                         <label>Author / uploader <input v-model="draft.author" /></label>
-                        <label>Creators (comma) <input :value="(draft.creators||[]).join(', ')" @input="draft.creators = $event.target.value.split(',').map(s=>s.trim()).filter(Boolean)" /></label>
+                        <label>Creators (comma) <input :value="(draft.creators||[]).join(', ')" @input="onCreators" /></label>
                         <label>Verifier <input v-model="draft.verifier" /></label>
                         <label>Verification URL <input v-model="draft.verification" /></label>
                         <label>Password <input v-model="draft.password" /></label>
                         <label>Length <input v-model="draft.length" placeholder="1m 12s" /></label>
                         <label>Creation date <input v-model="draft.creationDate" placeholder="3/14/2025" /></label>
                         <label>Percent to qualify <input v-model.number="draft.percentToQualify" type="number" /></label>
-                        <label>Tags (comma) <input :value="(draft.tags||[]).join(', ')" @input="draft.tags = $event.target.value.split(',').map(s=>s.trim()).filter(Boolean)" /></label>
+                        <label>Tags (comma) <input :value="(draft.tags||[]).join(', ')" @input="onTags" /></label>
                         <div class="admin-actions">
                             <button type="button" class="auth-btn" :disabled="saving" @click="saveLevel(true)">Save to GitHub</button>
                             <button type="button" class="auth-btn auth-btn--ghost" @click="saveLevel(false)">Download JSON</button>
@@ -106,7 +111,7 @@ export default {
                 <div v-if="tab === 'list' && canList" class="admin-panel">
                     <h2>List order (_list.json)</h2>
                     <p class="admin-hint">One filename per line (no .json). Top = hardest.</p>
-                    <textarea class="admin-ta" v-model="listText" rows="12"></textarea>
+                    <textarea class="admin-ta" v-model="listTextRaw" rows="12"></textarea>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveList(true)">Save to GitHub</button>
                         <button type="button" class="auth-btn auth-btn--ghost" @click="saveList(false)">Download JSON</button>
@@ -115,11 +120,11 @@ export default {
 
                 <div v-if="tab === 'editors' && canEditors" class="admin-panel">
                     <h2>Editors (_editors.json)</h2>
-                    <p class="admin-hint">Synced from staff roles when you click “Build from users”, or edit JSON manually.</p>
+                    <p class="admin-hint">Use “Build from users” after people register and get roles, or edit JSON manually.</p>
                     <div class="admin-actions" style="margin-bottom:0.75rem">
                         <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
                     </div>
-                    <textarea class="admin-ta" v-model="editorsText" rows="14"></textarea>
+                    <textarea class="admin-ta" v-model="editorsTextRaw" rows="14"></textarea>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveEditors(true)">Save to GitHub</button>
                         <button type="button" class="auth-btn auth-btn--ghost" @click="saveEditors(false)">Download JSON</button>
@@ -129,8 +134,10 @@ export default {
                 <div v-if="tab === 'users' && canUsers" class="admin-panel">
                     <h2>Users & roles</h2>
                     <p class="admin-hint">
-                        Accounts are stored in <strong>this browser</strong> only (GitHub Pages has no server).
-                        Register on this device first, then assign roles here. Owner username is always <code>akirraaw</code>.
+                        Accounts are stored in <strong>this browser</strong> (GitHub Pages has no server).
+                        Someone must register on a browser, then you assign roles here on <em>that same browser</em>,
+                        or you register accounts yourself here.
+                        Owner username is always <code>akirraaw</code>.
                     </p>
                     <ul class="admin-userlist">
                         <li v-for="u in users" :key="u.username">
@@ -150,7 +157,7 @@ export default {
                         <button type="button" class="auth-btn" @click="assignRole">Apply</button>
                     </div>
 
-                    <template v-if="isOwner">
+                    <template v-if="owner">
                         <h3>Admin permissions</h3>
                         <div class="admin-row">
                             <input v-model="permsEditUser" placeholder="Admin username" />
@@ -164,11 +171,12 @@ export default {
                     </template>
                 </div>
 
-                <div v-if="tab === 'settings' && isOwner" class="admin-panel">
+                <div v-if="tab === 'settings' && owner" class="admin-panel">
                     <h2>GitHub save token</h2>
                     <p class="admin-hint">
-                        Create a fine-grained PAT with Contents: Read & write on <code>ziyyhhk/broken-team-demonlist</code>.
-                        Token stays in your browser only — never commit it.
+                        Create a fine-grained PAT with Contents: Read and write on
+                        <code>ziyyhhk/broken-team-demonlist</code>.
+                        Token stays in your browser only — never put it in the repo.
                     </p>
                     <label>Personal access token
                         <input type="password" v-model="ghToken" placeholder="ghp_…" autocomplete="off" />
@@ -181,32 +189,6 @@ export default {
             </section>
         </main>
     `,
-    computed: {
-        listText: {
-            get() {
-                return this.listOrder.join('\n');
-            },
-            set(v) {
-                this.listOrder = String(v)
-                    .split('\n')
-                    .map((s) => s.trim())
-                    .filter(Boolean);
-            },
-        },
-        editorsText: {
-            get() {
-                return JSON.stringify(this.editors, null, 4);
-            },
-            set(v) {
-                try {
-                    this.editors = JSON.parse(v);
-                    this.err = '';
-                } catch (e) {
-                    this.err = 'Editors JSON is invalid.';
-                }
-            },
-        },
-    },
     methods: {
         flash(msg, isErr) {
             this.msg = isErr ? '' : msg;
@@ -215,11 +197,25 @@ export default {
             setTimeout(function () {
                 self.msg = '';
                 self.err = '';
-            }, 4000);
+            }, 4500);
         },
         onLogout() {
             logout();
             this.$router.push('/login');
+        },
+        onCreators(e) {
+            this.draft.creators = e.target.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        },
+        onTags(e) {
+            this.draft.tags = e.target.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+        },
+        openList() {
+            this.listTextRaw = this.listOrder.join('\n');
+            this.tab = 'list';
+        },
+        openEditors() {
+            this.editorsTextRaw = JSON.stringify(this.editors, null, 4);
+            this.tab = 'editors';
         },
         refreshUsers() {
             this.users = getUsers().map(function (u) {
@@ -236,14 +232,13 @@ export default {
                 return;
             }
             this.draft = JSON.parse(JSON.stringify(found[0]));
+            this._recordsBackup = this.draft.records || [];
             delete this.draft.path;
-            delete this.draft.records; // keep records from original on save
-            this._recordsBackup = found[0].records || [];
         },
         async saveLevel(toGithub) {
             if (!this.draft || !this.selectedPath) return;
             var payload = Object.assign({}, this.draft, {
-                records: this._recordsBackup || this.draft.records || [],
+                records: this._recordsBackup || [],
             });
             var text = JSON.stringify(payload, null, 4);
             if (!toGithub) {
@@ -255,12 +250,14 @@ export default {
             var res = await githubPutFile('data/' + this.selectedPath + '.json', text, 'Admin: update ' + this.selectedPath);
             this.saving = false;
             if (!res.ok) this.flash(res.error, true);
-            else this.flash('Pushed data/' + this.selectedPath + '.json — hard refresh the site in a minute.');
+            else this.flash('Pushed data/' + this.selectedPath + '.json — hard refresh in a minute.');
         },
         async saveList(toGithub) {
-            var text = JSON.stringify(this.listOrder, null, 4);
+            var order = this.listTextRaw.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+            this.listOrder = order;
+            var text = JSON.stringify(order, null, 4);
             if (!toGithub) {
-                downloadJson('_list.json', this.listOrder);
+                downloadJson('_list.json', order);
                 this.flash('Downloaded _list.json');
                 return;
             }
@@ -272,13 +269,25 @@ export default {
         },
         buildEditorsFromUsers() {
             var fromUsers = staffFromUsers();
-            if (fromUsers.length) this.editors = fromUsers;
-            else this.flash('No staff users yet. Register akirraaw / assign roles first.', true);
+            if (fromUsers.length) {
+                this.editors = fromUsers;
+                this.editorsTextRaw = JSON.stringify(fromUsers, null, 4);
+            } else {
+                this.flash('No staff users yet. Register akirraaw / assign roles first.', true);
+            }
         },
         async saveEditors(toGithub) {
-            var text = JSON.stringify(this.editors, null, 4);
+            var data;
+            try {
+                data = JSON.parse(this.editorsTextRaw);
+            } catch (e) {
+                this.flash('Editors JSON is invalid.', true);
+                return;
+            }
+            this.editors = data;
+            var text = JSON.stringify(data, null, 4);
             if (!toGithub) {
-                downloadJson('_editors.json', this.editors);
+                downloadJson('_editors.json', data);
                 this.flash('Downloaded _editors.json');
                 return;
             }
@@ -298,9 +307,10 @@ export default {
         },
         loadPerms() {
             var users = getUsers();
-            var found = users.find(
-                (u) => u.username.toLowerCase() === this.permsEditUser.trim().toLowerCase(),
-            );
+            var name = this.permsEditUser.trim().toLowerCase();
+            var found = users.find(function (u) {
+                return u.username.toLowerCase() === name;
+            });
             if (!found) {
                 this.flash('User not found.', true);
                 return;
@@ -331,21 +341,31 @@ export default {
         },
     },
     async mounted() {
-        if (!auth.user || !isStaff() || (auth.user.role === 'helper')) {
-            // helpers can view credits only; admin panel needs admin/owner
-            if (!auth.user || !can('editLevels') && !can('editList') && !can('editEditors') && !can('manageUsers') && !isOwner()) {
-                this.$router.replace('/login');
-                return;
-            }
+        if (!auth.user) {
+            this.$router.replace('/login');
+            return;
+        }
+        // need at least one permission
+        if (!can('editLevels') && !can('editList') && !can('editEditors') && !can('manageUsers') && !isOwner()) {
+            this.$router.replace('/');
+            return;
         }
         this.ghToken = getGithubToken();
-        const list = (await fetchList()) || [];
+        var list = (await fetchList()) || [];
         this.list = list;
-        this.listOrder = list.map(function (pair) {
-            return pair[0] ? pair[0].path : pair[1];
-        }).filter(Boolean);
+        this.listOrder = list
+            .map(function (pair) {
+                return pair[0] ? pair[0].path : pair[1];
+            })
+            .filter(Boolean);
+        this.listTextRaw = this.listOrder.join('\n');
         this.editors = (await fetchEditors()) || [];
+        this.editorsTextRaw = JSON.stringify(this.editors, null, 4);
         this.refreshUsers();
+        if (this.canLevels) this.tab = 'levels';
+        else if (this.canList) this.tab = 'list';
+        else if (this.canUsers) this.tab = 'users';
+        else this.tab = 'settings';
         this.loading = false;
     },
 };

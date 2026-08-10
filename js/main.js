@@ -1,4 +1,5 @@
 import routes from './routes.js';
+import { auth, logout, isOwner, can } from './auth.js';
 
 export const store = Vue.reactive({
     dark: JSON.parse(localStorage.getItem('dark')) || false,
@@ -46,7 +47,19 @@ window.addEventListener('keydown', (event) => {
 });
 
 const app = Vue.createApp({
-    data: () => ({ store }),
+    data: () => ({ store, auth }),
+    computed: {
+        showAdmin() {
+            if (!auth.user) return false;
+            return isOwner() || can('editLevels') || can('editList') || can('editEditors') || can('manageUsers');
+        },
+    },
+    methods: {
+        onLogout() {
+            logout();
+            if (this.$router) this.$router.push('/');
+        },
+    },
     template: `
         <header>
             <div class="logo">
@@ -57,24 +70,13 @@ const app = Vue.createApp({
             </div>
             <nav class="nav">
                 <div class="nav__tabs">
-                    <router-link class="nav__tab" to="/">
-                        <span class="type-label-lg">List</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/leaderboard">
-                        <span class="type-label-lg">Leaderboard</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/roulette">
-                        <span class="type-label-lg">Roulette</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/info">
-                        <span class="type-label-lg">Info</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/rules">
-                        <span class="type-label-lg">Rules</span>
-                    </router-link>
-                    <router-link class="nav__tab" to="/credits">
-                        <span class="type-label-lg">Credits</span>
-                    </router-link>
+                    <router-link class="nav__tab" to="/"><span class="type-label-lg">List</span></router-link>
+                    <router-link class="nav__tab" to="/leaderboard"><span class="type-label-lg">Leaderboard</span></router-link>
+                    <router-link class="nav__tab" to="/roulette"><span class="type-label-lg">Roulette</span></router-link>
+                    <router-link class="nav__tab" to="/info"><span class="type-label-lg">Info</span></router-link>
+                    <router-link class="nav__tab" to="/rules"><span class="type-label-lg">Rules</span></router-link>
+                    <router-link class="nav__tab" to="/credits"><span class="type-label-lg">Credits</span></router-link>
+                    <router-link v-if="showAdmin" class="nav__tab" to="/admin"><span class="type-label-lg">Admin</span></router-link>
                 </div>
                 <div class="nav__actions">
                     <button
@@ -83,20 +85,19 @@ const app = Vue.createApp({
                         aria-label="Toggle theme"
                         @click.prevent="store.toggleDark()"
                     >
-                        <img
-                            :src="store.dark ? './assets/light.svg' : './assets/dark.svg'"
-                            alt=""
-                        />
+                        <img :src="store.dark ? './assets/light.svg' : './assets/dark.svg'" alt="" />
                     </button>
-                    <a
-                        class="nav__icon"
-                        title="Discord"
-                        href="https://discord.gg/swuWBj59yp"
-                        target="_blank"
-                        rel="noopener"
-                    >
+                    <a class="nav__icon" title="Discord" href="https://discord.gg/swuWBj59yp" target="_blank" rel="noopener">
                         <img src="./assets/discord.svg" alt="Discord" />
                     </a>
+                    <template v-if="auth.user">
+                        <span class="nav__user">{{ auth.user.username }}</span>
+                        <button type="button" class="nav__text-btn" @click="onLogout">Log out</button>
+                    </template>
+                    <template v-else>
+                        <router-link class="nav__text-btn" to="/login">Login</router-link>
+                        <router-link class="nav__text-btn" to="/register">Register</router-link>
+                    </template>
                     <a
                         class="nav__cta type-label-lg"
                         href="https://forms.gle/2j7Xy5QLZqG3sijj9"
