@@ -1,8 +1,7 @@
 /**
  * Client-side auth for static GitHub Pages.
  * Users live in localStorage on each browser.
- * Username "akirraaw" is always owner.
- * Optional GitHub token (owner settings) can push data/*.json to the repo.
+ * ONLY username "akirraaw" is owner — no one else can become owner.
  */
 
 const USERS_KEY = 'broken_auth_users';
@@ -11,10 +10,17 @@ const GH_TOKEN_KEY = 'broken_gh_token';
 const GH_REPO = 'ziyyhhk/broken-team-demonlist';
 const OWNER_NAME = 'akirraaw';
 
-const DEFAULT_PERMS = {
+const DEFAULT_ADMIN_PERMS = {
     editLevels: true,
     editList: true,
     editEditors: true,
+    manageUsers: false,
+};
+
+const NO_PERMS = {
+    editLevels: false,
+    editList: false,
+    editEditors: false,
     manageUsers: false,
 };
 
@@ -45,40 +51,20 @@ async function hashPassword(password, salt) {
         .join('');
 }
 
-function roleForUsername(username) {
-    if (username.toLowerCase() === OWNER_NAME) return 'owner';
-    return 'member';
+function normalizeUsername(username) {
+    return String(username || '').trim();
 }
 
-export function getUsers() {
-    return loadUsers();
+function isOwnerName(username) {
+    return normalizeUsername(username).toLowerCase() === OWNER_NAME;
 }
 
-export function isLoggedIn() {
-    return !!auth.user;
-}
-
-export function isOwner() {
-    return auth.user && auth.user.role === 'owner';
-}
-
-export function isStaff() {
-    return auth.user && ['owner', 'admin', 'helper'].includes(auth.user.role);
-}
-
-export function can(perm) {
-    if (!auth.user) return false;
-    if (auth.user.role === 'owner') return true;
-    if (auth.user.role === 'admin') {
-        const p = auth.user.permissions || DEFAULT_PERMS;
-        return !!p[perm];
-    }
-    return false;
-}
-
-export async function register(username, password) {
-    username = String(username || '').trim();
+/** Public register (anyone). Only akirraaw gets owner. Duplicates blocked. */
+export async function register(username, password, options) {
+    options = options || {};
+    username = normalizeUsername(username);
     password = String(password || '');
+
     if (username.length < 3) return { ok: false, error: 'Username must be at least 3 characters.' };
     if (password.length < 4) return { ok: false, error: 'Password must be at least 4 characters.' };
     if (!/^[a-zA-Z0-9_]+$/.test(username)) {
@@ -90,29 +76,66 @@ export async function register(username, password) {
         return { ok: false, error: 'That username is already taken.' };
     }
 
+    // Only the exact name akirraaw is owner. Everyone else starts as member.
+    const role = isOwnerName(username) ? 'owner' : (options.role || 'member');
+    // Never allow registering someone else as owner via options
+    if (role === 'owner' && !isOwnerName(username)) {
+        return { ok: false, error: 'Only akirraaw can be owner.' };
+    }
+    if (role === 'owner' && users.some((u) => u.role === 'owner' || isOwnerName(u.username))) {
+        // second attempt at owner name already caught by taken; extra safety
+        if (!isOwnerName(username)) return { ok: false, error: 'Owner already exists.' };
+    }
+
     const salt = crypto.randomUUID();
     const hash = await hashPassword(password, salt);
-    const role = roleForUsername(username);
+    const permissions =
+        role === 'owner'
+            ? { ...DEFAULT_ADMIN_PERMS, manageUsers: true }
+            : role === 'admin'
+              ? { ...DEFAULT_ADMIN_PERMS }
+              : { ...NO_PERMS };
+
     const user = {
         username,
         salt,
         hash,
         role,
-        permissions: role === 'owner' ? { ...DEFAULT_PERMS, manageUsers: true } : { ...DEFAULT_PERMS },
+        permissions,
         createdAt: new Date().toISOString(),
     };
     users.push(user);
     saveUsers(users);
 
-    // auto login
-    const session = { username: user.username, role: user.role, permissions: user.permissions };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    auth.user = session;
-    return { ok: true, user: session };
+    // auto-login only for normal self-register (not when owner creates staff)
+    if (!options.skipLogin) {
+        const session = {
+            username: user.username,
+            role: user.role,
+            permissions: user.permissions,
+        };
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        auth.user = session;
+        return { ok: true, user: session };
+    }
+    return { ok: true, user: { username: user.username, role: user.role } };
+}
+
+/** Owner creates an account without logging out / switching session. */
+export async function createAccount(username, password, role) {
+    role = role || 'member';
+    if (role === 'owner') return { ok: false, error: 'Cannot create another owner.' };
+    if (!['member', 'helper', 'admin'].includes(role)) {
+        return { ok: false, error: 'Invalid role.' };
+    }
+    if (isOwnerName(username)) {
+        return { ok: false, error: 'That username is reserved for the site owner.' };
+    }
+    return register(username, password, { role: role, skipLogin: true });
 }
 
 export async function login(username, password) {
-    username = String(username || '').trim();
+    username = normalizeUsername(username);
     password = String(password || '');
     const users = loadUsers();
     const found = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
@@ -121,13 +144,22 @@ export async function login(username, password) {
     const hash = await hashPassword(password, found.salt);
     if (hash !== found.hash) return { ok: false, error: 'Wrong username or password.' };
 
-    // keep owner name locked
-    if (found.username.toLowerCase() === OWNER_NAME) found.role = 'owner';
+    // Force owner lock: only akirraaw is ever owner
+    if (isOwnerName(found.username)) {
+        found.role = 'owner';
+        found.permissions = { ...DEFAULT_ADMIN_PERMS, manageUsers: true };
+        saveUsers(users);
+    } else if (found.role === 'owner') {
+        // strip stolen/corrupt owner role
+        found.role = 'member';
+        found.permissions = { ...NO_PERMS };
+        saveUsers(users);
+    }
 
     const session = {
         username: found.username,
         role: found.role,
-        permissions: found.permissions || DEFAULT_PERMS,
+        permissions: found.permissions || NO_PERMS,
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
     auth.user = session;
@@ -148,36 +180,75 @@ export function restoreSession() {
             return;
         }
         const session = JSON.parse(raw);
-        // refresh role from stored users
         const users = loadUsers();
         const found = users.find((u) => u.username === session.username);
         if (found) {
-            if (found.username.toLowerCase() === OWNER_NAME) found.role = 'owner';
+            if (isOwnerName(found.username)) {
+                found.role = 'owner';
+            } else if (found.role === 'owner') {
+                found.role = 'member';
+                found.permissions = { ...NO_PERMS };
+            }
             session.role = found.role;
-            session.permissions = found.permissions || DEFAULT_PERMS;
+            session.permissions = found.permissions || NO_PERMS;
             localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+            auth.user = session;
+        } else {
+            auth.user = null;
+            localStorage.removeItem(SESSION_KEY);
         }
-        auth.user = session;
     } catch (e) {
         auth.user = null;
     }
     auth.ready = true;
 }
 
+export function getUsers() {
+    return loadUsers();
+}
+
+export function isLoggedIn() {
+    return !!auth.user;
+}
+
+export function isOwner() {
+    return !!(auth.user && auth.user.role === 'owner' && isOwnerName(auth.user.username));
+}
+
+export function isStaff() {
+    return !!(auth.user && ['owner', 'admin', 'helper'].includes(auth.user.role));
+}
+
+export function can(perm) {
+    if (!auth.user) return false;
+    if (isOwner()) return true;
+    if (auth.user.role === 'admin') {
+        const p = auth.user.permissions || DEFAULT_ADMIN_PERMS;
+        return !!p[perm];
+    }
+    return false;
+}
+
 export function setUserRole(username, role, permissions) {
+    username = normalizeUsername(username);
+    if (role === 'owner') return { ok: false, error: 'Cannot promote anyone to owner.' };
+    if (!['member', 'helper', 'admin'].includes(role)) {
+        return { ok: false, error: 'Invalid role.' };
+    }
+    if (isOwnerName(username)) {
+        return { ok: false, error: 'Cannot change the owner account.' };
+    }
+
     const users = loadUsers();
     const found = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
-    if (!found) return { ok: false, error: 'User not found. They must register first.' };
-    if (found.username.toLowerCase() === OWNER_NAME) {
-        return { ok: false, error: 'Cannot change the owner account role.' };
-    }
+    if (!found) return { ok: false, error: 'User not found. Create their account first (Admin → Users).' };
+
     found.role = role;
     if (permissions) found.permissions = permissions;
-    else if (role === 'admin') found.permissions = { ...DEFAULT_PERMS };
-    else found.permissions = { editLevels: false, editList: false, editEditors: false, manageUsers: false };
+    else if (role === 'admin') found.permissions = { ...DEFAULT_ADMIN_PERMS };
+    else found.permissions = { ...NO_PERMS };
     saveUsers(users);
 
-    // update live session if same user
     if (auth.user && auth.user.username.toLowerCase() === username.toLowerCase()) {
         auth.user.role = found.role;
         auth.user.permissions = found.permissions;
@@ -205,7 +276,6 @@ export function setGithubToken(token) {
     else localStorage.setItem(GH_TOKEN_KEY, token.trim());
 }
 
-/** Push a file to the repo via GitHub Contents API (needs classic/fine-grained PAT with contents:write). */
 export async function githubPutFile(path, content, message) {
     const token = getGithubToken();
     if (!token) return { ok: false, error: 'No GitHub token set. Add one in Admin → Settings.' };

@@ -5,6 +5,7 @@ import {
     logout,
     getUsers,
     setUserRole,
+    createAccount,
     getGithubToken,
     setGithubToken,
     githubPutFile,
@@ -42,6 +43,11 @@ export default {
         },
         listTextRaw: '',
         editorsTextRaw: '',
+        // create account form
+        newUser: '',
+        newPass: '',
+        newRole: 'admin',
+        creating: false,
     }),
     computed: {
         owner() {
@@ -58,9 +64,6 @@ export default {
         },
         canUsers() {
             return can('manageUsers') || isOwner();
-        },
-        hasAnyAdmin() {
-            return this.canLevels || this.canList || this.canEditors || this.canUsers || this.owner;
         },
     },
     template: `
@@ -82,7 +85,7 @@ export default {
 
                 <div v-if="tab === 'levels' && canLevels" class="admin-panel">
                     <h2>Edit levels</h2>
-                    <p class="admin-hint">Pick a level, edit fields, then Save to GitHub (needs token) or Download JSON.</p>
+                    <p class="admin-hint">Pick a level, edit fields, then Save to GitHub (needs token) or Download JSON. Saves update the live site for everyone after Pages rebuilds.</p>
                     <div class="admin-row">
                         <select v-model="selectedPath" @change="loadDraft">
                             <option :value="null" disabled>Select level…</option>
@@ -120,7 +123,7 @@ export default {
 
                 <div v-if="tab === 'editors' && canEditors" class="admin-panel">
                     <h2>Editors (_editors.json)</h2>
-                    <p class="admin-hint">Use “Build from users” after people register and get roles, or edit JSON manually.</p>
+                    <p class="admin-hint">Use “Build from users” after staff accounts exist, or edit JSON manually.</p>
                     <div class="admin-actions" style="margin-bottom:0.75rem">
                         <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
                     </div>
@@ -133,26 +136,43 @@ export default {
 
                 <div v-if="tab === 'users' && canUsers" class="admin-panel">
                     <h2>Users & roles</h2>
-                    <p class="admin-hint">
-                        Accounts are stored in <strong>this browser</strong> (GitHub Pages has no server).
-                        Someone must register on a browser, then you assign roles here on <em>that same browser</em>,
-                        or you register accounts yourself here.
-                        Owner username is always <code>akirraaw</code>.
-                    </p>
+
+                    <div class="admin-create" v-if="owner">
+                        <h3>Create account for someone</h3>
+                        <p class="admin-hint">
+                            Fill this in yourself — you stay logged in as owner.
+                            Give them the username + password so they can log in.
+                            Duplicate usernames are blocked. Only <code>akirraaw</code> can be owner.
+                        </p>
+                        <label>Username <input v-model="newUser" placeholder="TheirUsername" autocomplete="off" /></label>
+                        <label>Password <input v-model="newPass" type="password" placeholder="temp password" autocomplete="new-password" /></label>
+                        <label>Role
+                            <select v-model="newRole">
+                                <option value="admin">Admin</option>
+                                <option value="helper">Helper</option>
+                                <option value="member">Member</option>
+                            </select>
+                        </label>
+                        <button type="button" class="auth-btn" :disabled="creating" @click="createUser">Create account</button>
+                    </div>
+
+                    <h3>Registered on this browser</h3>
                     <ul class="admin-userlist">
                         <li v-for="u in users" :key="u.username">
                             <strong>{{ u.username }}</strong>
                             <span class="admin-role-tag">{{ u.role }}</span>
                             <span class="admin-muted">{{ u.createdAt && u.createdAt.slice(0,10) }}</span>
                         </li>
+                        <li v-if="!users.length" class="admin-muted">No accounts yet.</li>
                     </ul>
-                    <h3>Assign role</h3>
+
+                    <h3>Change role</h3>
                     <div class="admin-row">
                         <input v-model="roleUser" placeholder="Username" />
                         <select v-model="rolePick">
                             <option value="helper">Helper</option>
                             <option value="admin">Admin</option>
-                            <option value="member">Member (no staff)</option>
+                            <option value="member">Member</option>
                         </select>
                         <button type="button" class="auth-btn" @click="assignRole">Apply</button>
                     </div>
@@ -174,12 +194,11 @@ export default {
                 <div v-if="tab === 'settings' && owner" class="admin-panel">
                     <h2>GitHub save token</h2>
                     <p class="admin-hint">
-                        Create a fine-grained PAT with Contents: Read and write on
-                        <code>ziyyhhk/broken-team-demonlist</code>.
-                        Token stays in your browser only — never put it in the repo.
+                        Fine-grained tokens start with <code>github_pat_</code> — that is normal.
+                        Needs Contents: Read and write on this repo. Stored only in your browser.
                     </p>
                     <label>Personal access token
-                        <input type="password" v-model="ghToken" placeholder="ghp_…" autocomplete="off" />
+                        <input type="password" v-model="ghToken" placeholder="github_pat_… or ghp_…" autocomplete="off" />
                     </label>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" @click="saveToken">Save token</button>
@@ -197,7 +216,7 @@ export default {
             setTimeout(function () {
                 self.msg = '';
                 self.err = '';
-            }, 4500);
+            }, 5000);
         },
         onLogout() {
             logout();
@@ -221,6 +240,19 @@ export default {
             this.users = getUsers().map(function (u) {
                 return { username: u.username, role: u.role, createdAt: u.createdAt };
             });
+        },
+        async createUser() {
+            this.creating = true;
+            var res = await createAccount(this.newUser, this.newPass, this.newRole);
+            this.creating = false;
+            if (!res.ok) {
+                this.flash(res.error, true);
+                return;
+            }
+            this.flash('Created ' + this.newUser + ' as ' + this.newRole + '. Tell them the password.');
+            this.newUser = '';
+            this.newPass = '';
+            this.refreshUsers();
         },
         loadDraft() {
             var path = this.selectedPath;
@@ -250,7 +282,7 @@ export default {
             var res = await githubPutFile('data/' + this.selectedPath + '.json', text, 'Admin: update ' + this.selectedPath);
             this.saving = false;
             if (!res.ok) this.flash(res.error, true);
-            else this.flash('Pushed data/' + this.selectedPath + '.json — hard refresh in a minute.');
+            else this.flash('Saved to GitHub. Live site updates in ~1 min — hard refresh.');
         },
         async saveList(toGithub) {
             var order = this.listTextRaw.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
@@ -265,7 +297,7 @@ export default {
             var res = await githubPutFile('data/_list.json', text, 'Admin: update list order');
             this.saving = false;
             if (!res.ok) this.flash(res.error, true);
-            else this.flash('Pushed data/_list.json');
+            else this.flash('Saved list order to GitHub.');
         },
         buildEditorsFromUsers() {
             var fromUsers = staffFromUsers();
@@ -273,7 +305,7 @@ export default {
                 this.editors = fromUsers;
                 this.editorsTextRaw = JSON.stringify(fromUsers, null, 4);
             } else {
-                this.flash('No staff users yet. Register akirraaw / assign roles first.', true);
+                this.flash('No staff users yet.', true);
             }
         },
         async saveEditors(toGithub) {
@@ -295,7 +327,7 @@ export default {
             var res = await githubPutFile('data/_editors.json', text, 'Admin: update editors');
             this.saving = false;
             if (!res.ok) this.flash(res.error, true);
-            else this.flash('Pushed data/_editors.json');
+            else this.flash('Saved editors to GitHub.');
         },
         assignRole() {
             var res = setUserRole(this.roleUser, this.rolePick);
@@ -316,7 +348,7 @@ export default {
                 return;
             }
             if (found.role !== 'admin') {
-                this.flash('That user is not an admin. Set role to admin first.', true);
+                this.flash('That user is not an admin.', true);
                 return;
             }
             this.permsDraft = Object.assign(
@@ -345,7 +377,6 @@ export default {
             this.$router.replace('/login');
             return;
         }
-        // need at least one permission
         if (!can('editLevels') && !can('editList') && !can('editEditors') && !can('manageUsers') && !isOwner()) {
             this.$router.replace('/');
             return;
