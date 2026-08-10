@@ -1,4 +1,4 @@
 {
-    "mainCutoff": 2,
-    "extendedCutoff": 4
+    "mainCutoff": 75,
+    "extendedCutoff": 150
 }

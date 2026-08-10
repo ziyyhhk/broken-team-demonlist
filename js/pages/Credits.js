@@ -36,13 +36,12 @@ export default {
                 <header class="doc-hero">
                     <p class="doc-kicker">CREDITS</p>
                     <h1>Credits</h1>
-                    <p class="doc-subtitle">Staff, template, and who touched the site</p>
+                    <p class="doc-subtitle">Staff and site credits</p>
                 </header>
 
                 <section class="doc-panel">
                     <h2 class="doc-h2">List staff</h2>
-                    <p class="doc-lead" v-if="!editors.length">No staff listed yet. Edit data/_editors.json.</p>
-                    <ul class="credits-staff" v-else>
+                    <ul class="credits-staff">
                         <li v-for="(editor, i) in editors" :key="i">
                             <img
                                 class="credits-role-icon"
@@ -50,13 +49,7 @@ export default {
                                 :alt="editor.role"
                             />
                             <div class="credits-staff__body">
-                                <a
-                                    v-if="editor.link"
-                                    :href="editor.link"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="credits-name"
-                                >{{ editor.name }}</a>
+                                <a v-if="editor.link" :href="editor.link" target="_blank" rel="noopener" class="credits-name">{{ editor.name }}</a>
                                 <span v-else class="credits-name">{{ editor.name }}</span>
                                 <span class="credits-role">{{ roleLabel[editor.role] || editor.role }}</span>
                             </div>
@@ -75,9 +68,8 @@ export default {
                             Template based on
                             <a href="https://tsl.pages.dev/#/" target="_blank" rel="noopener">TheShittyList</a>
                         </p>
-                        <p>
-                            Website modified by <strong>Kira</strong>
-                        </p>
+                        <p>Website modified by <strong>Kira</strong></p>
+                        <p>Owner: <strong>Kira</strong> · Admin: <strong>Sora</strong></p>
                     </div>
                 </section>
             </div>

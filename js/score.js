@@ -3,12 +3,9 @@
  */
 const scale = 3;
 
-/**
- * Demo cutoffs — must match List.js.
- * For production Pointercrate-style: mainEnd = 75, extendedEnd = 150.
- */
-const mainEnd = 2;
-const extendedEnd = 4;
+/** Pointercrate-style defaults — List.js also loads cutoffs from data/_config.json */
+const mainEnd = 75;
+const extendedEnd = 150;
 
 /**
  * Calculate the score awarded when having a certain percentage on a list level
@@ -21,10 +18,8 @@ export function score(rank, percent, minPercent) {
         return 0;
     }
 
-    // Scale formula so small demo ranks still give readable points
-    const scaledRank = 1 + ((rank - 1) / Math.max(extendedEnd - 1, 1)) * 149;
     let score =
-        (-24.9975 * Math.pow(scaledRank - 1, 0.4) + 200) *
+        (-24.9975 * Math.pow(rank - 1, 0.4) + 200) *
         ((percent - (minPercent - 1)) / (100 - (minPercent - 1)));
 
     score = Math.max(0, score);
