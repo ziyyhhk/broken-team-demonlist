@@ -42,11 +42,11 @@
         "username": "Soraw",
         "salt": "68906028-5ccc-47e4-bb79-c3f21138edfd",
         "hash": "9d6b028e54d57c49c63f2df916650f4795024a20bbc4afe0b0e37d6f5dab053c",
-        "role": "admin",
+        "role": "member",
         "permissions": {
-            "editLevels": true,
-            "editList": true,
-            "editEditors": true,
+            "editLevels": false,
+            "editList": false,
+            "editEditors": false,
             "manageUsers": false
         },
         "createdAt": "2026-08-10T17:12:31.717Z"
