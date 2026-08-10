@@ -82,7 +82,6 @@ export default {
                         <h1>{{ hasCompleted ? 'cleared.' : 'Results' }}</h1>
                         <p>Number of levels: {{ progression.length }}</p>
                         <p>Highest percent: {{ currentPercentage }}%</p>
-                        <p v-if="hasCompleted" class="results-note">ok. now do it on stream without saves.</p>
                         <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                     </div>
 
@@ -104,7 +103,7 @@ export default {
                     </template>
                 </div>
                 <div v-else class="empty-state">
-                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="dont">◆</div>
+                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="?">◆</div>
                     <h2>No roulette in progress</h2>
                     <p>Pick a list above and hit <strong>Start</strong>.</p>
                 </div>
@@ -114,7 +113,6 @@ export default {
                     <div v-for="(toast, ti) in toasts" class="toast" :key="ti"><p>{{ toast }}</p></div>
                 </div>
             </div>
-            <div v-if="eggBurst" class="egg-burst"><span>{{ eggBurstText }}</span></div>
         </main>
     `,
     data: () => ({
@@ -130,9 +128,6 @@ export default {
         fileInput: undefined,
         eggClicks: 0,
         eggSpinning: false,
-        eggArmed: false,
-        eggBurst: false,
-        eggBurstText: '',
     }),
     mounted() {
         this.fileInput = document.createElement('input');
@@ -237,10 +232,7 @@ export default {
             this.percentage = undefined;
             this.save();
             if (percentage === 69) this.showToast('nice.');
-            if (percentage === 100) {
-                this.triggerBurst('100');
-                this.showToast('done.');
-            }
+            if (percentage === 100) this.showToast('done.');
         },
         onGiveUp() {
             var pct = this.currentPercentage;
@@ -293,35 +285,21 @@ export default {
             var self = this;
             setTimeout(function () { self.toasts.shift(); }, 2800);
         },
-        triggerBurst(text) {
-            this.eggBurstText = text;
-            this.eggBurst = true;
-            var self = this;
-            setTimeout(function () { self.eggBurst = false; }, 1800);
-        },
         onEggClick() {
             this.eggClicks += 1;
             this.eggSpinning = true;
             var self = this;
-            setTimeout(function () { self.eggSpinning = false; }, 700);
+            setTimeout(function () { self.eggSpinning = false; }, 500);
 
-            var lines = [null, null, '...', 'stop', 'seriously', 'one more and it glitches'];
-            if (lines[this.eggClicks]) this.showToast(lines[this.eggClicks]);
-
-            if (this.eggClicks >= 7 && !this.eggArmed) {
-                this.eggArmed = true;
+            if (this.eggClicks === 5) this.showToast('…');
+            if (this.eggClicks === 8) this.showToast('ok');
+            if (this.eggClicks >= 12) {
                 this.eggClicks = 0;
-                document.body.classList.add('roulette-chaos');
-                this.triggerBurst('ok.');
-                this.showToast('happy?');
-                setTimeout(function () {
-                    document.body.classList.remove('roulette-chaos');
-                    self.eggArmed = false;
-                }, 1400);
+                this.showToast('nothing here');
             }
 
             clearTimeout(this._eggTimer);
-            this._eggTimer = setTimeout(function () { self.eggClicks = 0; }, 2200);
+            this._eggTimer = setTimeout(function () { self.eggClicks = 0; }, 2500);
         },
     },
 };

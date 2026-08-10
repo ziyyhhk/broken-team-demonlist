@@ -3,6 +3,7 @@ export default {
         <main class="page-doc page-shell">
             <div class="doc-wrap">
                 <header class="doc-hero">
+                    <p class="doc-kicker">INFO</p>
                     <h1>About the Broken List</h1>
                     <p class="doc-subtitle">What this list is, who it is for, and how placements work</p>
                 </header>
@@ -83,15 +84,15 @@ export default {
                         <h3>Records and the leaderboard</h3>
                         <p>
                             Points come from verified completions on ranked levels. Higher ranks are worth more.
-                            Progress records may count on some Main levels depending on the qualify percent shown
-                            on the level page. Extended usually wants 100%. Legacy is mostly closed after the grace window.
+                            Progress records may count on some Main levels depending on the page. Extended usually wants 100%.
+                            Legacy is mostly closed after the grace window.
                         </p>
                         <p>
-                            If the board looks wrong, it is usually a missing or pending submission — not the site
-                            inventing numbers. Ping staff on Discord with the video link instead of guessing.
+                            If the board looks wrong, it is usually a missing or pending submission.
+                            Ping staff on Discord with the video link instead of guessing.
                         </p>
                         <p>
-                            Full recording requirements (clicks, attempts, CPS, cheat indicator, TPS cap, CBF, etc.)
+                            Full recording requirements (clicks, attempts, CPS, cheat indicator, <strong>exactly 240 TPS</strong>, CBF, etc.)
                             live on the <strong>Rules</strong> page. Read that before you grind a submission you care about.
                         </p>
                     </div>

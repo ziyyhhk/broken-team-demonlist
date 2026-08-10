@@ -36,7 +36,7 @@ export default {
                             type="button"
                             class="rules-toc__item"
                             :class="{ active: active === s.id }"
-                            @click="scrollTo(s.id)"
+                            @click.prevent="scrollTo(s.id)"
                         >
                             <span class="rules-toc__num">{{ s.num }}</span>
                             <span>{{ s.label }}</span>
@@ -64,7 +64,7 @@ export default {
                             <p class="rules-intro">Your video has to prove the run is real. Missing any of this usually means a deny.</p>
                             <ol class="rules-numbered">
                                 <li><strong>No hacks.</strong> Noclip, speedhacks, and illegal physics mods are out.</li>
-                                <li><strong>TPS bypass is allowed, but only up to 240 TPS.</strong> Anything above 240 is invalid.</li>
+                                <li><strong>Only 240 TPS is allowed.</strong> Below 240 or above 240 is invalid. TPS bypass must land on exactly 240.</li>
                                 <li>Play the <strong>exact listed level</strong> (correct ID / version).</li>
                                 <li>Audio needs <strong>click or tap sounds</strong>, or clear input audio. Music with no clicks is not enough by itself.</li>
                                 <li>Show a <strong>previous attempt and the full death</strong> before the completion (skip this only on a true first attempt).</li>
@@ -84,9 +84,9 @@ export default {
                             <ol class="rules-numbered">
                                 <li><strong>CBF</strong> (Click Between Frames) — allowed.</li>
                                 <li><strong>Click on Steps</strong> — allowed.</li>
-                                <li><strong>TPS / FPS bypass</strong> — allowed up to <strong>240 TPS</strong> only.</li>
+                                <li><strong>TPS / FPS bypass</strong> — allowed at <strong>exactly 240 TPS</strong> only. Under or over 240 is not accepted.</li>
                                 <li>Mod menus for CPS, attempts, indicators, or recording helpers — allowed.</li>
-                                <li>Anything that changes physics beyond CBF / Click on Steps / the 240 TPS cap — not allowed.</li>
+                                <li>Anything that changes physics beyond CBF / Click on Steps / locked 240 TPS — not allowed.</li>
                             </ol>
                         </section>
 
@@ -137,7 +137,7 @@ export default {
                                 <li>Attempt count / CPS / cheat indicator missing when the menu clearly supports them.</li>
                                 <li>Video ends before the complete screen.</li>
                                 <li>Wrong level ID or a different version.</li>
-                                <li>TPS over 240.</li>
+                                <li>TPS is not exactly 240 (under or over both fail).</li>
                                 <li>Bug route or secret route that is not the listed path.</li>
                                 <li>Private or deleted video link on the form.</li>
                             </ol>
@@ -151,20 +151,41 @@ export default {
         </main>
     `,
     methods: {
+        getScroller() {
+            var el = this.$el;
+            if (!el) return null;
+            // Prefer the page-doc itself if it scrolls
+            if (el.scrollHeight > el.clientHeight + 2) return el;
+            // Otherwise walk up for a scrollable parent
+            var node = el.parentElement;
+            while (node && node !== document.body) {
+                if (node.scrollHeight > node.clientHeight + 2) return node;
+                node = node.parentElement;
+            }
+            return document.scrollingElement || document.documentElement;
+        },
         scrollTo(id) {
             this.active = id;
             var el = document.getElementById(id);
-            var scroller = this.$el;
-            if (!el || !scroller) return;
+            if (!el) return;
+
+            var scroller = this.getScroller();
+            if (!scroller) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
 
             var start = scroller.scrollTop;
-            var rect = el.getBoundingClientRect();
-            var sRect = scroller.getBoundingClientRect();
-            var target = start + (rect.top - sRect.top) - 16;
+            var elRect = el.getBoundingClientRect();
+            var scRect = scroller.getBoundingClientRect
+                ? scroller.getBoundingClientRect()
+                : { top: 0 };
+            var target = start + (elRect.top - scRect.top) - 20;
+            if (target < 0) target = 0;
             var dist = target - start;
             if (Math.abs(dist) < 2) return;
 
-            var duration = Math.min(700, Math.max(320, Math.abs(dist) * 0.45));
+            var duration = Math.min(720, Math.max(360, Math.abs(dist) * 0.5));
             var t0 = null;
             function ease(t) {
                 return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -178,23 +199,32 @@ export default {
             requestAnimationFrame(step);
         },
         onScroll() {
-            var sections = this.sections.map(function (s) {
-                return document.getElementById(s.id);
-            }).filter(Boolean);
+            var sections = this.sections
+                .map(function (s) {
+                    return document.getElementById(s.id);
+                })
+                .filter(Boolean);
             var current = this.sections[0] && this.sections[0].id;
             for (var i = 0; i < sections.length; i++) {
-                if (sections[i].getBoundingClientRect().top <= 140) current = sections[i].id;
+                if (sections[i].getBoundingClientRect().top <= 160) current = sections[i].id;
             }
             this.active = current;
         },
     },
     mounted() {
         var self = this;
-        this._onScroll = function () { self.onScroll(); };
-        this.$el.addEventListener('scroll', this._onScroll, { passive: true });
+        this._onScroll = function () {
+            self.onScroll();
+        };
+        // Listen on both the page and window so active chapter stays correct
+        if (this.$el) this.$el.addEventListener('scroll', this._onScroll, { passive: true });
+        window.addEventListener('scroll', this._onScroll, { passive: true });
         this.onScroll();
     },
     beforeUnmount() {
-        if (this._onScroll && this.$el) this.$el.removeEventListener('scroll', this._onScroll);
+        if (this._onScroll) {
+            if (this.$el) this.$el.removeEventListener('scroll', this._onScroll);
+            window.removeEventListener('scroll', this._onScroll);
+        }
     },
 };
