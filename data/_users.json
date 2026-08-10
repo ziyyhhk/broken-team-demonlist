@@ -1,1 +1,41 @@
-[]
+[
+    {
+        "username": "akirraaw",
+        "salt": "9eab6ad8-2e2b-4ffc-93c3-0e33b73fd590",
+        "hash": "2bf7b5699c5d7c5d43fe970546b2be394f6ea8b6fd4e03c426c0df591c52d779",
+        "role": "owner",
+        "permissions": {
+            "editLevels": true,
+            "editList": true,
+            "editEditors": true,
+            "manageUsers": true
+        },
+        "createdAt": "2026-08-10T09:48:32.526Z"
+    },
+    {
+        "username": "Sora",
+        "salt": "51ffca18-cc63-493c-bc6e-ed3a1e923db2",
+        "hash": "ed19dabdb5cfd439e66453da3a62dcaafa7c203171ccc89d737c28401c311fbb",
+        "role": "admin",
+        "permissions": {
+            "editLevels": true,
+            "editList": true,
+            "editEditors": true,
+            "manageUsers": false
+        },
+        "createdAt": "2026-08-10T11:35:04.996Z"
+    },
+    {
+        "username": "Solarp",
+        "salt": "251f7f7b-bc03-4e4d-91bb-eb0d96a9d775",
+        "hash": "8059376a7f1ac52d615df115d7d9cc31c4ae69960431d91ba29226eca703c44a",
+        "role": "member",
+        "permissions": {
+            "editLevels": false,
+            "editList": false,
+            "editEditors": false,
+            "manageUsers": false
+        },
+        "createdAt": "2026-08-10T11:52:46.195Z"
+    }
+]
