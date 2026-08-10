@@ -20,7 +20,6 @@
     overflow-y: auto;
 }
 
-/* Classic ↔ Cards fade/slide */
 .view-swap-enter-active {
     transition: opacity 0.35s var(--ease-out), transform 0.4s var(--ease-out);
 }
@@ -280,6 +279,46 @@
     font-weight: 700;
     font-size: 1.05rem;
 }
+
+.id-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 0.85rem;
+    margin: 0.25rem 0 0.5rem;
+}
+.id-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-background);
+    color: inherit;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 0.55rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+.id-copy:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+.id-copy svg {
+    opacity: 0.75;
+    flex-shrink: 0;
+}
+.id-copy--inline {
+    padding: 0.15rem 0.4rem;
+    font-size: 0.85rem;
+}
+.id-pass {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+}
+
 .level-container h2 { margin: 1.4rem 0 0.25rem; }
 
 .records {
