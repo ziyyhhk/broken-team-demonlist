@@ -1,7 +1,7 @@
 import { store } from "../main.js";
 import { embed, getThumbnailFromId, getYoutubeIdFromUrl } from "../util.js";
 import { score } from "../score.js";
-import { fetchEditors, fetchList } from "../content.js";
+import { fetchEditors, fetchList, fetchConfig } from "../content.js";
 
 import Spinner from "../components/Spinner.js";
 import LevelAuthors from "../components/List/LevelAuthors.js";
@@ -13,10 +13,6 @@ const roleIconMap = {
     dev: "code",
     trial: "user-lock",
 };
-
-/** Demo cutoffs — production: 75 / 150 */
-const MAIN_CUTOFF = 2;
-const EXTENDED_CUTOFF = 4;
 
 const rules = [
     "No hacks. Only exactly 240 TPS is allowed (under or over is invalid).",
@@ -275,20 +271,22 @@ export default {
         roleIconMap,
         rules,
         store,
-        MAIN_CUTOFF,
-        EXTENDED_CUTOFF,
+        MAIN_CUTOFF: 75,
+        EXTENDED_CUTOFF: 150,
     }),
     computed: {
         filtered() {
             const query = this.query.trim().toLowerCase();
+            const MAIN = this.MAIN_CUTOFF;
+            const EXT = this.EXTENDED_CUTOFF;
             return this.list
                 .map(([level, err], index) => ({ level, err, index }))
                 .filter(({ level, err, index }) => {
                     const rank = index + 1;
                     let inTier = true;
-                    if (this.tier === "main") inTier = rank <= MAIN_CUTOFF;
-                    else if (this.tier === "extended") inTier = rank > MAIN_CUTOFF && rank <= EXTENDED_CUTOFF;
-                    else if (this.tier === "legacy") inTier = rank > EXTENDED_CUTOFF;
+                    if (this.tier === "main") inTier = rank <= MAIN;
+                    else if (this.tier === "extended") inTier = rank > MAIN && rank <= EXT;
+                    else if (this.tier === "legacy") inTier = rank > EXT;
                     if (!inTier) return false;
                     if (query === "") return true;
                     return (level?.name ?? err ?? "").toLowerCase().includes(query);
@@ -299,8 +297,8 @@ export default {
         },
         rankLabel() {
             const r = this.selected + 1;
-            if (r <= MAIN_CUTOFF) return "Main · Rank #" + r;
-            if (r <= EXTENDED_CUTOFF) return "Extended · Rank #" + r;
+            if (r <= this.MAIN_CUTOFF) return "Main · Rank #" + r;
+            if (r <= this.EXTENDED_CUTOFF) return "Extended · Rank #" + r;
             return "Legacy";
         },
         video() {
@@ -343,8 +341,8 @@ export default {
         },
         tierName(index) {
             const r = index + 1;
-            if (r <= MAIN_CUTOFF) return "Main";
-            if (r <= EXTENDED_CUTOFF) return "Extended";
+            if (r <= this.MAIN_CUTOFF) return "Main";
+            if (r <= this.EXTENDED_CUTOFF) return "Extended";
             return "Legacy";
         },
         onThumbError(e) { e.target.style.opacity = "0.25"; },
@@ -366,6 +364,10 @@ export default {
         },
     },
     async mounted() {
+        const cfg = await fetchConfig();
+        this.MAIN_CUTOFF = cfg.mainCutoff;
+        this.EXTENDED_CUTOFF = cfg.extendedCutoff;
+
         this.list = (await fetchList()) ?? [];
         this.editors = await fetchEditors();
 
@@ -381,8 +383,8 @@ export default {
             const firstValid = this.list.findIndex(([level]) => level);
             this.selected = firstValid === -1 ? 0 : firstValid;
             const r = this.selected + 1;
-            if (r > EXTENDED_CUTOFF) this.tier = "legacy";
-            else if (r > MAIN_CUTOFF) this.tier = "extended";
+            if (r > this.EXTENDED_CUTOFF) this.tier = "legacy";
+            else if (r > this.MAIN_CUTOFF) this.tier = "extended";
             else this.tier = "main";
         }
         this.loading = false;
