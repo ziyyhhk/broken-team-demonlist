@@ -33,14 +33,8 @@ export default {
         roleUser: '',
         rolePick: 'helper',
         ghToken: '',
+        tokenLocked: false,
         saving: false,
-        permsEditUser: '',
-        permsDraft: {
-            editLevels: true,
-            editList: true,
-            editEditors: true,
-            manageUsers: false,
-        },
         editorsTextRaw: '',
         newUser: '',
         newPass: '',
@@ -52,6 +46,11 @@ export default {
         rulesText: '',
         newRec: { user: '', percent: 100, hz: 240, link: '' },
         levelSearch: '',
+        // sync toast
+        syncPhase: '', // '', 'waiting', 'done'
+        syncSeconds: 60,
+        _syncTimer: null,
+        _syncTick: null,
     }),
     computed: {
         owner() {
@@ -68,6 +67,9 @@ export default {
         },
         canUsers() {
             return can('manageUsers') || isOwner();
+        },
+        hasToken() {
+            return !!getGithubToken();
         },
         tierPreview() {
             var main = Number(this.mainCutoff) || 0;
@@ -105,6 +107,18 @@ export default {
                 <p class="admin-banner" v-if="msg">{{ msg }}</p>
                 <p class="admin-banner admin-banner--err" v-if="err">{{ err }}</p>
 
+                <div class="sync-toast" v-if="syncPhase" :class="'sync-toast--' + syncPhase">
+                    <template v-if="syncPhase === 'waiting'">
+                        <strong>Sync in progress…</strong>
+                        <span>GitHub Pages is rebuilding. Please wait ~{{ syncSeconds }}s.</span>
+                    </template>
+                    <template v-else>
+                        <strong>Sync done.</strong>
+                        <span>Now press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (Mac: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>) to see changes.</span>
+                        <button type="button" class="sync-toast__x" @click="syncPhase = ''">Dismiss</button>
+                    </template>
+                </div>
+
                 <div v-if="tab === 'tiers' && canList" class="admin-panel">
                     <h2>Main / Extended / Legacy</h2>
                     <p class="admin-hint">
@@ -120,7 +134,7 @@ export default {
                         </label>
                     </div>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveConfig(true)">Save cutoffs to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveConfig()">Save cutoffs to GitHub</button>
                     </div>
                     <h3>List order</h3>
                     <ul class="admin-order">
@@ -135,26 +149,21 @@ export default {
                         </li>
                     </ul>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveList(true)">Save order to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveList()">Save order to GitHub</button>
                     </div>
                 </div>
 
                 <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
                     <h2>Levels & records</h2>
-                    <p class="admin-hint">Records feed the <strong>leaderboard</strong>. Save to GitHub to sync for everyone.</p>
+                    <p class="admin-hint">Records feed the leaderboard. Token is saved once — you do not need to paste it every save.</p>
 
                     <div class="level-picker">
-                        <input
-                            class="admin-input level-picker__search"
-                            type="search"
-                            v-model="levelSearch"
-                            placeholder="Search levels…"
-                        />
+                        <input class="admin-input level-picker__search" type="search" v-model="levelSearch" placeholder="Search levels…" />
                         <div class="level-picker__list">
                             <button
                                 type="button"
                                 class="level-picker__item"
-                                v-for="(p, i) in filteredLevels"
+                                v-for="p in filteredLevels"
                                 :key="p"
                                 :class="{ active: selectedPath === p }"
                                 @click="selectLevel(p)"
@@ -186,18 +195,14 @@ export default {
                             <h3>Records</h3>
                             <div class="rec-table">
                                 <div class="rec-table__head">
-                                    <span>Player</span>
-                                    <span>%</span>
-                                    <span>Hz</span>
-                                    <span>Video link</span>
-                                    <span></span>
+                                    <span>Player</span><span>%</span><span>Hz</span><span>Video link</span><span></span>
                                 </div>
                                 <div class="rec-table__row" v-for="(r, ri) in draftRecords" :key="ri">
                                     <input class="admin-input" v-model="r.user" placeholder="Player" />
                                     <input class="admin-input" v-model.number="r.percent" type="number" placeholder="100" />
                                     <input class="admin-input" v-model.number="r.hz" type="number" placeholder="240" />
                                     <input class="admin-input" v-model="r.link" placeholder="https://youtu.be/…" />
-                                    <button type="button" class="rec-del" @click="draftRecords.splice(ri,1)" title="Remove">✕</button>
+                                    <button type="button" class="rec-del" @click="draftRecords.splice(ri,1)">✕</button>
                                 </div>
                                 <div class="rec-table__row rec-table__row--new">
                                     <input class="admin-input" v-model="newRec.user" placeholder="Player" />
@@ -209,19 +214,19 @@ export default {
                             </div>
 
                             <div class="admin-actions">
-                                <button type="button" class="auth-btn" :disabled="saving" @click="saveLevel(true)">Save to GitHub</button>
-                                <button type="button" class="auth-btn auth-btn--ghost" @click="saveLevel(false)">Download JSON</button>
+                                <button type="button" class="auth-btn" :disabled="saving" @click="saveLevel()">Save to GitHub</button>
+                                <button type="button" class="auth-btn auth-btn--ghost" @click="downloadLevel()">Download JSON</button>
                             </div>
                         </div>
                     </template>
-                    <p v-else class="admin-hint">Pick a level on the left to edit.</p>
+                    <p v-else class="admin-hint">Pick a level above to edit.</p>
                 </div>
 
                 <div v-if="tab === 'info' && canLevels" class="admin-panel">
                     <h2>Info page</h2>
                     <textarea class="admin-ta" v-model="infoText" rows="18"></textarea>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveInfo(true)">Save to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveInfo()">Save to GitHub</button>
                     </div>
                 </div>
 
@@ -229,7 +234,7 @@ export default {
                     <h2>Rules page</h2>
                     <textarea class="admin-ta" v-model="rulesText" rows="18"></textarea>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveRules(true)">Save to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveRules()">Save to GitHub</button>
                     </div>
                 </div>
 
@@ -238,7 +243,7 @@ export default {
                     <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
                     <textarea class="admin-ta" v-model="editorsTextRaw" rows="14"></textarea>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveEditors(true)">Save to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveEditors()">Save to GitHub</button>
                     </div>
                 </div>
 
@@ -275,12 +280,21 @@ export default {
                 </div>
 
                 <div v-if="tab === 'settings' && owner" class="admin-panel">
-                    <h2>GitHub token</h2>
-                    <p class="admin-hint"><code>github_pat_…</code> is fine. Contents: Read and write.</p>
-                    <label>Token <input class="admin-input" type="password" v-model="ghToken" autocomplete="off" /></label>
+                    <h2>GitHub token (owner only)</h2>
+                    <p class="admin-hint">
+                        Paste once. It stays in <strong>this browser</strong> — you do <strong>not</strong> need to paste it again for every save.<br/>
+                        Only the owner can view or change this. Admins on other PCs need their own token, or ask you to push.
+                    </p>
+                    <p class="admin-hint" v-if="hasToken && tokenLocked">
+                        Token is saved. Status: <strong>locked</strong> (hidden). Unlock only if you need to replace it.
+                    </p>
+                    <label v-if="!tokenLocked || !hasToken">Token
+                        <input class="admin-input" type="password" v-model="ghToken" autocomplete="off" placeholder="github_pat_…" />
+                    </label>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" @click="saveToken">Save token</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="clearToken">Clear</button>
+                        <button type="button" class="auth-btn" v-if="!tokenLocked || !hasToken" @click="saveToken">Save token</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && tokenLocked" @click="tokenLocked = false">Unlock to change</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && !tokenLocked" @click="clearToken">Clear token</button>
                     </div>
                 </div>
             </section>
@@ -291,7 +305,41 @@ export default {
             this.msg = isErr ? '' : msg;
             this.err = isErr ? msg : '';
             var self = this;
-            setTimeout(function () { self.msg = ''; self.err = ''; }, 5000);
+            clearTimeout(this._flashTimer);
+            this._flashTimer = setTimeout(function () {
+                self.msg = '';
+                self.err = '';
+            }, 6000);
+        },
+        startSyncNotify() {
+            var self = this;
+            clearTimeout(this._syncTimer);
+            clearInterval(this._syncTick);
+            this.syncPhase = 'waiting';
+            this.syncSeconds = 60;
+            this._syncTick = setInterval(function () {
+                if (self.syncSeconds > 0) self.syncSeconds -= 1;
+            }, 1000);
+            this._syncTimer = setTimeout(function () {
+                clearInterval(self._syncTick);
+                self.syncPhase = 'done';
+            }, 60000);
+        },
+        async pushFile(path, text, message) {
+            if (!getGithubToken()) {
+                this.flash('No GitHub token on this browser. Owner: Admin → Settings. Admins: ask owner to push, or add your own PAT here if you have repo access.', true);
+                return false;
+            }
+            this.saving = true;
+            var res = await githubPutFile(path, text, message);
+            this.saving = false;
+            if (!res.ok) {
+                this.flash(res.error, true);
+                return false;
+            }
+            this.flash('Saved to GitHub.');
+            this.startSyncNotify();
+            return true;
         },
         onLogout() {
             logout();
@@ -367,38 +415,20 @@ export default {
             });
             this.newRec = { user: '', percent: 100, hz: 240, link: '' };
         },
-        async saveLevel(toGithub) {
+        downloadLevel() {
             if (!this.draft || !this.selectedPath) return;
-            var payload = Object.assign({}, this.draft, {
-                records: this.draftRecords || [],
-            });
-            var text = JSON.stringify(payload, null, 4);
-            if (!toGithub) {
-                downloadJson(this.selectedPath + '.json', payload);
-                this.flash('Downloaded');
-                return;
-            }
-            this.saving = true;
-            var res = await githubPutFile('data/' + this.selectedPath + '.json', text, 'Admin: update ' + this.selectedPath);
-            this.saving = false;
-            if (!res.ok) this.flash(res.error, true);
-            else this.flash('Level + records saved. Leaderboard updates after rebuild.');
+            downloadJson(this.selectedPath + '.json', Object.assign({}, this.draft, { records: this.draftRecords || [] }));
+            this.flash('Downloaded');
         },
-        async saveList(toGithub) {
-            var order = this.listOrder.slice();
-            var text = JSON.stringify(order, null, 4);
-            if (!toGithub) {
-                downloadJson('_list.json', order);
-                this.flash('Downloaded _list.json');
-                return;
-            }
-            this.saving = true;
-            var res = await githubPutFile('data/_list.json', text, 'Admin: update list order');
-            this.saving = false;
-            if (!res.ok) this.flash(res.error, true);
-            else this.flash('List order saved.');
+        async saveLevel() {
+            if (!this.draft || !this.selectedPath) return;
+            var payload = Object.assign({}, this.draft, { records: this.draftRecords || [] });
+            await this.pushFile('data/' + this.selectedPath + '.json', JSON.stringify(payload, null, 4), 'Admin: update ' + this.selectedPath);
         },
-        async saveConfig(toGithub) {
+        async saveList() {
+            await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: update list order');
+        },
+        async saveConfig() {
             var cfg = {
                 mainCutoff: Number(this.mainCutoff) || 1,
                 extendedCutoff: Number(this.extendedCutoff) || 1,
@@ -407,34 +437,19 @@ export default {
                 this.flash('Extended cutoff must be ≥ Main cutoff.', true);
                 return;
             }
-            var text = JSON.stringify(cfg, null, 4);
-            this.saving = true;
-            var res = await githubPutFile('data/_config.json', text, 'Admin: update tier cutoffs');
-            this.saving = false;
-            if (!res.ok) this.flash(res.error, true);
-            else this.flash('Cutoffs saved. Main ends at #' + cfg.mainCutoff + ', Extended at #' + cfg.extendedCutoff);
+            await this.pushFile('data/_config.json', JSON.stringify(cfg, null, 4), 'Admin: update tier cutoffs');
         },
-        async saveInfo(toGithub) {
+        async saveInfo() {
             var data;
             try { data = JSON.parse(this.infoText); }
             catch (e) { this.flash('Info JSON invalid.', true); return; }
-            var text = JSON.stringify(data, null, 4);
-            this.saving = true;
-            var res = await githubPutFile('data/info.json', text, 'Admin: update info');
-            this.saving = false;
-            if (!res.ok) this.flash(res.error, true);
-            else this.flash('Info page saved.');
+            await this.pushFile('data/info.json', JSON.stringify(data, null, 4), 'Admin: update info');
         },
-        async saveRules(toGithub) {
+        async saveRules() {
             var data;
             try { data = JSON.parse(this.rulesText); }
             catch (e) { this.flash('Rules JSON invalid.', true); return; }
-            var text = JSON.stringify(data, null, 4);
-            this.saving = true;
-            var res = await githubPutFile('data/rules.json', text, 'Admin: update rules');
-            this.saving = false;
-            if (!res.ok) this.flash(res.error, true);
-            else this.flash('Rules page saved.');
+            await this.pushFile('data/rules.json', JSON.stringify(data, null, 4), 'Admin: update rules');
         },
         buildEditorsFromUsers() {
             var fromUsers = staffFromUsers();
@@ -443,17 +458,12 @@ export default {
                 this.editorsTextRaw = JSON.stringify(fromUsers, null, 4);
             } else this.flash('No staff users yet.', true);
         },
-        async saveEditors(toGithub) {
+        async saveEditors() {
             var data;
             try { data = JSON.parse(this.editorsTextRaw); }
             catch (e) { this.flash('Editors JSON invalid.', true); return; }
             this.editors = data;
-            var text = JSON.stringify(data, null, 4);
-            this.saving = true;
-            var res = await githubPutFile('data/_editors.json', text, 'Admin: update editors');
-            this.saving = false;
-            if (!res.ok) this.flash(res.error, true);
-            else this.flash('Editors saved.');
+            await this.pushFile('data/_editors.json', JSON.stringify(data, null, 4), 'Admin: update editors');
         },
         assignRole() {
             var res = setUserRole(this.roleUser, this.rolePick);
@@ -461,14 +471,26 @@ export default {
             else { this.flash('Updated ' + this.roleUser); this.refreshUsers(); }
         },
         saveToken() {
+            if (!isOwner()) {
+                this.flash('Only the owner can change the token.', true);
+                return;
+            }
             setGithubToken(this.ghToken);
-            this.flash(this.ghToken ? 'Token saved.' : 'Token cleared.');
+            this.tokenLocked = !!this.ghToken;
+            this.flash(this.ghToken ? 'Token saved. You will not need to paste it again on this browser.' : 'Token cleared.');
         },
         clearToken() {
+            if (!isOwner()) return;
             this.ghToken = '';
             setGithubToken('');
+            this.tokenLocked = false;
             this.flash('Token cleared.');
         },
+    },
+    beforeUnmount() {
+        clearTimeout(this._syncTimer);
+        clearInterval(this._syncTick);
+        clearTimeout(this._flashTimer);
     },
     async mounted() {
         if (!auth.user) {
@@ -479,7 +501,9 @@ export default {
             this.$router.replace('/');
             return;
         }
-        this.ghToken = getGithubToken();
+        var tok = getGithubToken();
+        this.ghToken = tok;
+        this.tokenLocked = !!tok;
         var cfg = await fetchConfig();
         this.mainCutoff = cfg.mainCutoff;
         this.extendedCutoff = cfg.extendedCutoff;
