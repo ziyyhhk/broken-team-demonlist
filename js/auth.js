@@ -43,18 +43,6 @@ function saveLocalUsers(users) {
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
-/** Merge by username (case-insensitive). Later list wins on conflict. */
-function mergeUsers(a, b) {
-    const map = new Map();
-    (a || []).forEach((u) => {
-        if (u && u.username) map.set(u.username.toLowerCase(), u);
-    });
-    (b || []).forEach((u) => {
-        if (u && u.username) map.set(u.username.toLowerCase(), u);
-    });
-    return Array.from(map.values());
-}
-
 async function fetchRemoteUsers() {
     try {
         const url = './data/_users.json?t=' + Date.now();
@@ -63,32 +51,20 @@ async function fetchRemoteUsers() {
         const data = await res.json();
         return Array.isArray(data) ? data : [];
     } catch (e) {
-        console.warn('Could not load remote users', e);
         return [];
     }
 }
 
-/** Full user list: remote (shared) + local cache. */
 export async function loadUsers() {
     const remote = await fetchRemoteUsers();
     const local = loadLocalUsers();
-    const merged = mergeUsers(local, remote);
-    // Prefer remote roles when both exist
-    const byName = new Map();
-    remote.forEach((u) => byName.set(u.username.toLowerCase(), u));
-    local.forEach((u) => {
-        const k = u.username.toLowerCase();
-        if (!byName.has(k)) byName.set(k, u);
-        else {
-            // keep remote as base, but if local is newer? prefer remote for shared truth
-            byName.set(k, byName.get(k));
-        }
-    });
-    const users = Array.from(byName.values());
-    // remote overrides local for same username
     const finalMap = new Map();
-    local.forEach((u) => finalMap.set(u.username.toLowerCase(), u));
-    remote.forEach((u) => finalMap.set(u.username.toLowerCase(), u));
+    local.forEach((u) => {
+        if (u && u.username) finalMap.set(u.username.toLowerCase(), u);
+    });
+    remote.forEach((u) => {
+        if (u && u.username) finalMap.set(u.username.toLowerCase(), u);
+    });
     const finalUsers = Array.from(finalMap.values());
     saveLocalUsers(finalUsers);
     return finalUsers;
@@ -116,8 +92,6 @@ function isOwnerName(username) {
 }
 
 function publicUserPayload(users) {
-    // Store hashes in repo so any browser can verify login.
-    // Passwords themselves are never stored.
     return users.map((u) => ({
         username: u.username,
         salt: u.salt,
@@ -128,13 +102,12 @@ function publicUserPayload(users) {
     }));
 }
 
-/** Push users file if owner/admin has a GitHub token. */
 export async function syncUsersToGithub(users) {
     const token = getGithubToken();
     if (!token) {
         return {
             ok: false,
-            error: 'Account saved on this browser only. Set a GitHub token (owner Settings) then click “Sync accounts to GitHub” so friends can log in.',
+            error: 'No GitHub token. Settings → paste token, then sync again.',
         };
     }
     const text = JSON.stringify(publicUserPayload(users), null, 4);
@@ -154,7 +127,7 @@ export async function register(username, password, options) {
 
     const users = await loadUsers();
     if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
-        return { ok: false, error: 'That username is already taken.' };
+        return { ok: false, error: 'That username is already taken. Pick another.' };
     }
 
     const role = isOwnerName(username) ? 'owner' : options.role || 'member';
@@ -182,12 +155,8 @@ export async function register(username, password, options) {
     users.push(user);
     saveLocalUsers(users);
 
-    // Try to publish so other browsers can log in
     if (options.sync !== false) {
-        const sync = await syncUsersToGithub(users);
-        if (!sync.ok && options.requireSync) {
-            return { ok: false, error: sync.error, needsSync: true };
-        }
+        await syncUsersToGithub(users);
     }
 
     if (!options.skipLogin) {
@@ -198,9 +167,9 @@ export async function register(username, password, options) {
         };
         localStorage.setItem(SESSION_KEY, JSON.stringify(session));
         auth.user = session;
-        return { ok: true, user: session, synced: !!(getGithubToken()) };
+        return { ok: true, user: session, synced: !!getGithubToken() };
     }
-    return { ok: true, user: { username: user.username, role: user.role }, synced: !!(getGithubToken()) };
+    return { ok: true, user: { username: user.username, role: user.role }, synced: !!getGithubToken() };
 }
 
 export async function createAccount(username, password, role) {
@@ -212,20 +181,19 @@ export async function createAccount(username, password, role) {
     if (isOwnerName(username)) {
         return { ok: false, error: 'That username is reserved for the site owner.' };
     }
-    return register(username, password, { role, skipLogin: true, requireSync: false, sync: true });
+    return register(username, password, { role, skipLogin: true, sync: true });
 }
 
 export async function login(username, password) {
     username = normalizeUsername(username);
     password = String(password || '');
 
-    // Always refresh from shared _users.json first
     const users = await loadUsers();
     const found = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
     if (!found) {
         return {
             ok: false,
-            error: 'Wrong username or password. If the owner just created this account, they must click “Sync accounts to GitHub” and wait ~1 minute.',
+            error: 'Wrong username or password. Staff accounts must be created + synced by the owner first.',
         };
     }
 
@@ -268,7 +236,6 @@ export function restoreSession() {
             return;
         }
         const session = JSON.parse(raw);
-        // soft restore; roles refreshed on next loadUsers/login
         if (session && session.username) {
             if (isOwnerName(session.username)) session.role = 'owner';
             auth.user = session;
@@ -280,7 +247,6 @@ export function restoreSession() {
     }
     auth.ready = true;
 
-    // Background refresh roles from remote
     loadUsers().then((users) => {
         if (!auth.user) return;
         const found = users.find(
@@ -351,9 +317,7 @@ export async function setUserRole(username, role, permissions) {
     }
 
     const sync = await syncUsersToGithub(users);
-    if (!sync.ok) {
-        return { ok: true, warning: sync.error };
-    }
+    if (!sync.ok) return { ok: true, warning: sync.error };
     return { ok: true };
 }
 
@@ -374,6 +338,36 @@ export function getGithubToken() {
 export function setGithubToken(token) {
     if (!token) localStorage.removeItem(GH_TOKEN_KEY);
     else localStorage.setItem(GH_TOKEN_KEY, token.trim());
+}
+
+/** List repo collaborators (needs token with metadata/members read). */
+export async function fetchGithubCollaborators() {
+    const token = getGithubToken();
+    if (!token) return { ok: false, error: 'No token.', list: [] };
+
+    const api = 'https://api.github.com/repos/' + GH_REPO + '/collaborators?per_page=100';
+    try {
+        const res = await fetch(api, {
+            headers: {
+                Authorization: 'Bearer ' + token,
+                Accept: 'application/vnd.github+json',
+            },
+        });
+        if (!res.ok) {
+            const t = await res.text();
+            return { ok: false, error: 'GitHub ' + res.status + ': ' + t.slice(0, 120), list: [] };
+        }
+        const data = await res.json();
+        const list = (data || []).map((c) => ({
+            login: c.login,
+            avatar: c.avatar_url,
+            admin: !!c.permissions && c.permissions.admin,
+            html_url: c.html_url,
+        }));
+        return { ok: true, list };
+    } catch (e) {
+        return { ok: false, error: String(e), list: [] };
+    }
 }
 
 export async function githubPutFile(path, content, message) {
