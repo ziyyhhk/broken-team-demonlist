@@ -1,0 +1,117 @@
+{
+    "title": "The Broken List",
+    "subtitle": "Read this before you submit a level or a record",
+    "chapters": [
+        {
+            "id": "placement",
+            "num": "1",
+            "label": "Level placement",
+            "intro": "What a level needs before staff will put it on the list.",
+            "rules": [
+                "Minimum difficulty is Hard. Below that does not get considered.",
+                "Minimum length is 30 seconds. There is no max length.",
+                "Someone must have beaten it on video. No theory-only placements.",
+                "Staff rank by how hard it is to finish, not by fame or deco alone.",
+                "Two-player levels are judged as solo unless staff say otherwise.",
+                "If the intended path is a secret route or a major bug, the level can be rejected or removed later.",
+                "Staff can move or drop a level later if new proof shows up.",
+                "Suggesting a level does not mean it gets in. Staff decide when they have time."
+            ]
+        },
+        {
+            "id": "records",
+            "num": "2",
+            "label": "Record videos",
+            "intro": "Your video has to prove the run is real. Missing any of this usually means a deny.",
+            "rules": [
+                "No hacks. Noclip, speedhacks, and illegal physics mods are out.",
+                "Only 240 TPS is allowed. Below 240 or above 240 is invalid. TPS bypass must land on exactly 240.",
+                "Play the exact listed level (correct ID / version).",
+                "Audio needs click or tap sounds, or clear input audio.",
+                "Show a previous attempt and the full death before the completion (skip only on a true first attempt).",
+                "Show your total attempt count on screen so it is readable.",
+                "Show CPS and a cheat indicator if your mod menu can display them.",
+                "The run must reach the Level Complete screen.",
+                "No bug routes or secret routes unless that path is the listed one.",
+                "No easy modes, start-pos completions, or editor playtests as records.",
+                "One continuous take is better. Heavy cuts around death to clear will get questioned.",
+                "Mobile is fine if the video still shows the required info."
+            ]
+        },
+        {
+            "id": "allowed",
+            "num": "3",
+            "label": "Allowed tools",
+            "intro": "These are fine. If something is not listed here, ask before you grind.",
+            "rules": [
+                "CBF (Click Between Frames) — allowed.",
+                "Click on Steps — allowed.",
+                "TPS / FPS bypass — allowed at exactly 240 TPS only. Under or over 240 is not accepted.",
+                "Mod menus for CPS, attempts, indicators, or recording helpers — allowed.",
+                "Anything that changes physics beyond CBF / Click on Steps / locked 240 TPS — not allowed."
+            ]
+        },
+        {
+            "id": "quality",
+            "num": "4",
+            "label": "Quality bar",
+            "intro": "",
+            "rules": [
+                "Levels should actually be playable, not deco with no real gameplay.",
+                "Staff can reject levels that only exist to inflate difficulty with impossible spam.",
+                "Staff may ask for another video, raw footage, or a cleaner recording.",
+                "Staff have final say. Discord fights do not change the video."
+            ]
+        },
+        {
+            "id": "legacy",
+            "num": "5",
+            "label": "Legacy",
+            "intro": "",
+            "rules": [
+                "When a level falls off Extended, it goes to Legacy.",
+                "New records are accepted for about 24 hours after it falls, then the level is closed.",
+                "Legacy stays on the site so old completions do not disappear."
+            ]
+        },
+        {
+            "id": "roulette",
+            "num": "6",
+            "label": "Roulette",
+            "intro": "",
+            "rules": [
+                "Roulette is just a local challenge. It does not submit list records.",
+                "Progress saves in your browser. Export if you switch devices.",
+                "You can give up any time. Results stay on your machine unless you share them."
+            ]
+        },
+        {
+            "id": "conduct",
+            "num": "7",
+            "label": "Conduct",
+            "intro": "",
+            "rules": [
+                "Do not harass staff, verifiers, creators, or other players.",
+                "Faked records, stolen footage, or edited completions can get you banned from submitting.",
+                "Talk rulings out on Discord calmly. Spam and threats get ignored or muted.",
+                "Rules can change when the list needs it. Check back if you submit rarely."
+            ]
+        },
+        {
+            "id": "faq",
+            "num": "8",
+            "label": "Common denies",
+            "intro": "If you got denied, it is usually one of these.",
+            "rules": [
+                "No clicks on the audio.",
+                "No death before the completion (and it was not a first attempt).",
+                "Attempt count / CPS / cheat indicator missing when the menu supports them.",
+                "Video ends before the complete screen.",
+                "Wrong level ID or a different version.",
+                "TPS is not exactly 240 (under or over both fail).",
+                "Bug route or secret route that is not the listed path.",
+                "Private or deleted video link on the form."
+            ]
+        }
+    ]
+}

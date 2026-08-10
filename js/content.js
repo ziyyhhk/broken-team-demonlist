@@ -1,8 +1,5 @@
 import { round, score } from './score.js';
 
-/**
- * Path to directory containing `_list.json` and all levels
- */
 const dir = './data';
 
 async function fetchJson(path) {
@@ -11,6 +8,19 @@ async function fetchJson(path) {
         throw new Error(`${path} responded with ${res.status}`);
     }
     return res.json();
+}
+
+export async function fetchConfig() {
+    try {
+        const cfg = await fetchJson(`${dir}/_config.json`);
+        return {
+            mainCutoff: Number(cfg.mainCutoff) || 75,
+            extendedCutoff: Number(cfg.extendedCutoff) || 150,
+        };
+    } catch (e) {
+        console.error('Failed to load config.', e);
+        return { mainCutoff: 75, extendedCutoff: 150 };
+    }
 }
 
 export async function fetchList() {
@@ -58,6 +68,24 @@ export async function fetchEditors() {
     }
 }
 
+export async function fetchInfo() {
+    try {
+        return await fetchJson(`${dir}/info.json`);
+    } catch (e) {
+        console.error('Failed to load info.', e);
+        return null;
+    }
+}
+
+export async function fetchRules() {
+    try {
+        return await fetchJson(`${dir}/rules.json`);
+    } catch (e) {
+        console.error('Failed to load rules.', e);
+        return null;
+    }
+}
+
 export async function fetchLeaderboard() {
     const list = await fetchList();
 
@@ -73,7 +101,6 @@ export async function fetchLeaderboard() {
             return;
         }
 
-        // Verification
         const verifier =
             Object.keys(scoreMap).find(
                 (u) => u.toLowerCase() === level.verifier.toLowerCase(),
@@ -91,7 +118,6 @@ export async function fetchLeaderboard() {
             link: level.verification,
         });
 
-        // Records
         (level.records ?? []).forEach((record) => {
             const user =
                 Object.keys(scoreMap).find(
@@ -123,7 +149,6 @@ export async function fetchLeaderboard() {
         });
     });
 
-    // Wrap in extra Object containing the user and total score
     const res = Object.entries(scoreMap).map(([user, scores]) => {
         const { verified, completed, progressed } = scores;
         const total = [verified, completed, progressed]
@@ -137,6 +162,5 @@ export async function fetchLeaderboard() {
         };
     });
 
-    // Sort by total score
     return [res.sort((a, b) => b.total - a.total), errs];
 }

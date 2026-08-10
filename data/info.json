@@ -1,0 +1,30 @@
+{
+    "title": "About the Broken List",
+    "subtitle": "What this list is, who it is for, and how placements work",
+    "sections": [
+        {
+            "heading": "What is this?",
+            "body": "The Broken List is Broken Team's public ranking of hard Geometry Dash levels. It is not limited to extreme demons only. If a level is at least Hard difficulty, long enough, and someone has beaten it with clean proof, it can be considered for the list.\n\nRankings are based on how hard the level is to finish, not on how popular the creator is or how expensive the decoration looks. Higher on the list means harder. Completing a higher-ranked level gives more leaderboard points.\n\nThe site has three tiers: Main for the hardest stuff currently ranked, Extended for everything still on the active board below Main, and Legacy for levels that got pushed off Extended when harder ones landed."
+        },
+        {
+            "heading": "How ranks move",
+            "body": "Staff place levels by difficulty, then the order is the list. New hard levels can shove older ones down. When something drops past Extended, it goes Legacy. Legacy stays visible so history does not vanish overnight.\n\nThere is a short window after a level hits Legacy where records may still be accepted. After that, the level is closed for new submissions. Details are on the Rules page."
+        },
+        {
+            "heading": "Getting a level on the list",
+            "body": "Nothing auto-adds. Staff have to actually look at it.\n1. Someone verifies or fully completes the level on a clear video\n2. The level gets suggested to staff (Discord is the usual place)\n3. Staff check length, difficulty floor, quality, and that the clear is real\n4. If it fits, it lands on Main or Extended based on how hard it is\n5. Later, if harder levels push it far enough, it can fall to Legacy"
+        },
+        {
+            "heading": "Bare minimum before staff will even look",
+            "body": "• At least Hard difficulty (nothing below that)\n• At least 30 seconds long (no upper limit)\n• Actually completable — someone has beaten it\n• Public video staff can review\n• No intended path that is only a secret route or a major bug\n• Staff sign-off before it goes live"
+        },
+        {
+            "heading": "Records and the leaderboard",
+            "body": "Points come from verified completions on ranked levels. Higher ranks are worth more. Progress records may count on some Main levels depending on the page. Extended usually wants 100%. Legacy is mostly closed after the grace window.\n\nFull recording requirements live on the Rules page. Read that before you grind a submission you care about."
+        },
+        {
+            "heading": "Who runs this",
+            "body": "Broken Team maintains the list, reviews submissions, and decides placements. Rulings are final. Being clear in Discord usually gets a faster answer than a vague complaint."
+        }
+    ]
+}
