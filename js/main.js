@@ -72,6 +72,9 @@ const app = Vue.createApp({
                     <router-link class="nav__tab" to="/rules">
                         <span class="type-label-lg">Rules</span>
                     </router-link>
+                    <router-link class="nav__tab" to="/credits">
+                        <span class="type-label-lg">Credits</span>
+                    </router-link>
                 </div>
                 <div class="nav__actions">
                     <button

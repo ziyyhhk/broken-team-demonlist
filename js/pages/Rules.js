@@ -14,7 +14,7 @@ export default {
     }),
     template: `
         <main class="page-doc page-shell">
-            <div class="doc-wrap doc-wrap--rules">
+            <div class="doc-wrap doc-wrap--rules" ref="scroller">
                 <header class="doc-hero">
                     <p class="doc-kicker">RULES</p>
                     <h1>The Broken List</h1>
@@ -151,44 +151,31 @@ export default {
         </main>
     `,
     methods: {
-        getScroller() {
-            var el = this.$el;
-            if (!el) return null;
-            // Prefer the page-doc itself if it scrolls
-            if (el.scrollHeight > el.clientHeight + 2) return el;
-            // Otherwise walk up for a scrollable parent
-            var node = el.parentElement;
-            while (node && node !== document.body) {
-                if (node.scrollHeight > node.clientHeight + 2) return node;
-                node = node.parentElement;
-            }
-            return document.scrollingElement || document.documentElement;
-        },
         scrollTo(id) {
             this.active = id;
             var el = document.getElementById(id);
             if (!el) return;
 
-            var scroller = this.getScroller();
+            // The real scroller is .doc-wrap (main > div gets overflow-y: auto)
+            var scroller = this.$refs.scroller;
             if (!scroller) {
                 el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return;
             }
 
             var start = scroller.scrollTop;
-            var elRect = el.getBoundingClientRect();
-            var scRect = scroller.getBoundingClientRect
-                ? scroller.getBoundingClientRect()
-                : { top: 0 };
-            var target = start + (elRect.top - scRect.top) - 20;
+            var elTop = el.getBoundingClientRect().top;
+            var scTop = scroller.getBoundingClientRect().top;
+            var target = start + (elTop - scTop) - 12;
             if (target < 0) target = 0;
-            var dist = target - start;
-            if (Math.abs(dist) < 2) return;
 
-            var duration = Math.min(720, Math.max(360, Math.abs(dist) * 0.5));
+            var dist = target - start;
+            if (Math.abs(dist) < 1) return;
+
+            var duration = Math.min(650, Math.max(280, Math.abs(dist) * 0.4));
             var t0 = null;
             function ease(t) {
-                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+                return 1 - Math.pow(1 - t, 3);
             }
             function step(now) {
                 if (t0 === null) t0 = now;
@@ -199,14 +186,19 @@ export default {
             requestAnimationFrame(step);
         },
         onScroll() {
+            var scroller = this.$refs.scroller;
+            if (!scroller) return;
             var sections = this.sections
                 .map(function (s) {
                     return document.getElementById(s.id);
                 })
                 .filter(Boolean);
             var current = this.sections[0] && this.sections[0].id;
+            var scTop = scroller.getBoundingClientRect().top;
             for (var i = 0; i < sections.length; i++) {
-                if (sections[i].getBoundingClientRect().top <= 160) current = sections[i].id;
+                if (sections[i].getBoundingClientRect().top - scTop <= 80) {
+                    current = sections[i].id;
+                }
             }
             this.active = current;
         },
@@ -216,15 +208,16 @@ export default {
         this._onScroll = function () {
             self.onScroll();
         };
-        // Listen on both the page and window so active chapter stays correct
-        if (this.$el) this.$el.addEventListener('scroll', this._onScroll, { passive: true });
-        window.addEventListener('scroll', this._onScroll, { passive: true });
-        this.onScroll();
+        this.$nextTick(function () {
+            if (self.$refs.scroller) {
+                self.$refs.scroller.addEventListener('scroll', self._onScroll, { passive: true });
+                self.onScroll();
+            }
+        });
     },
     beforeUnmount() {
-        if (this._onScroll) {
-            if (this.$el) this.$el.removeEventListener('scroll', this._onScroll);
-            window.removeEventListener('scroll', this._onScroll);
+        if (this._onScroll && this.$refs.scroller) {
+            this.$refs.scroller.removeEventListener('scroll', this._onScroll);
         }
     },
 };

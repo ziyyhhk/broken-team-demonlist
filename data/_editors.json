@@ -1,17 +1,17 @@
 [
     {
         "role": "owner",
-        "name": "Your Name",
-        "link": "https://youtube.com/@yourchannel"
+        "name": "Kira",
+        "link": ""
     },
     {
         "role": "admin",
-        "name": "Someone Else",
-        "link": "https://youtube.com/@them"
+        "name": "Broken Team",
+        "link": ""
     },
     {
         "role": "helper",
-        "name": "Another Person",
+        "name": "Helper",
         "link": ""
     }
 ]
