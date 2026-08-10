@@ -104,7 +104,7 @@ export default {
                     </template>
                 </div>
                 <div v-else class="empty-state">
-                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="don't">◆</div>
+                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="dont">◆</div>
                     <h2>No roulette in progress</h2>
                     <p>Pick a list above and hit <strong>Start</strong>.</p>
                 </div>
@@ -143,11 +143,11 @@ export default {
 
         try {
             const roulette = JSON.parse(localStorage.getItem('roulette'));
-            if (roulette?.levels && Array.isArray(roulette.progression)) {
+            if (roulette && roulette.levels && Array.isArray(roulette.progression)) {
                 this.levels = roulette.levels;
                 this.progression = roulette.progression;
             }
-        } catch {
+        } catch (e) {
             localStorage.removeItem('roulette');
         }
     },
@@ -159,7 +159,7 @@ export default {
             return this.progression[this.progression.length - 1] || 0;
         },
         placeholder() {
-            return `At least ${this.currentPercentage + 1}%`;
+            return 'At least ' + (this.currentPercentage + 1) + '%';
         },
         hasCompleted() {
             if (this.levels.length === 0) return false;
@@ -191,23 +191,26 @@ export default {
             const fullList = await fetchList();
             if (!fullList) {
                 this.loading = false;
-                this.showToast('Couldn't load the list.');
+                this.showToast('Could not load the list.');
                 return;
             }
-            if (fullList.filter(([_, err]) => err).length > 0) {
+            if (fullList.filter(function (pair) { return pair[1]; }).length > 0) {
                 this.loading = false;
                 this.showToast('List is broken right now. Try later.');
                 return;
             }
-            const fullListMapped = fullList.map(([lvl, _], i) => ({
-                rank: i + 1,
-                id: lvl.id,
-                name: lvl.name,
-                video: lvl.verification,
-            }));
-            const list = [];
-            if (this.useMainList) list.push(...fullListMapped.slice(0, 2));
-            if (this.useExtendedList) list.push(...fullListMapped.slice(2, 4));
+            const fullListMapped = fullList.map(function (pair, i) {
+                var lvl = pair[0];
+                return {
+                    rank: i + 1,
+                    id: lvl.id,
+                    name: lvl.name,
+                    video: lvl.verification,
+                };
+            });
+            var list = [];
+            if (this.useMainList) list = list.concat(fullListMapped.slice(0, 2));
+            if (this.useExtendedList) list = list.concat(fullListMapped.slice(2, 4));
             this.levels = shuffle(list).slice(0, 100);
             this.showRemaining = false;
             this.givenUp = false;
@@ -224,7 +227,7 @@ export default {
             );
         },
         onDone() {
-            const percentage = Number(this.percentage);
+            var percentage = Number(this.percentage);
             if (!percentage || Number.isNaN(percentage)) return;
             if (percentage <= this.currentPercentage || percentage > 100) {
                 this.showToast('Invalid percent.');
@@ -240,7 +243,7 @@ export default {
             }
         },
         onGiveUp() {
-            const pct = this.currentPercentage;
+            var pct = this.currentPercentage;
             this.givenUp = true;
             localStorage.removeItem('roulette');
             if (pct === 69) this.showToast('69% and quit. classic.');
@@ -254,9 +257,9 @@ export default {
         },
         async onImportUpload() {
             if (this.fileInput.files.length === 0) return;
-            const file = this.fileInput.files[0];
+            var file = this.fileInput.files[0];
             try {
-                const roulette = JSON.parse(await file.text());
+                var roulette = JSON.parse(await file.text());
                 if (!roulette.levels || !roulette.progression) {
                     this.showToast('Bad file.');
                     return;
@@ -267,16 +270,16 @@ export default {
                 this.givenUp = false;
                 this.showRemaining = false;
                 this.percentage = undefined;
-            } catch {
+            } catch (e) {
                 this.showToast('Bad file.');
             }
         },
         onExport() {
-            const file = new Blob(
+            var file = new Blob(
                 [JSON.stringify({ levels: this.levels, progression: this.progression })],
                 { type: 'application/json' },
             );
-            const a = document.createElement('a');
+            var a = document.createElement('a');
             a.href = URL.createObjectURL(file);
             a.download = 'broken_roulette';
             a.click();
@@ -287,26 +290,22 @@ export default {
         },
         showToast(msg) {
             this.toasts.push(msg);
-            setTimeout(() => this.toasts.shift(), 2800);
+            var self = this;
+            setTimeout(function () { self.toasts.shift(); }, 2800);
         },
         triggerBurst(text) {
             this.eggBurstText = text;
             this.eggBurst = true;
-            setTimeout(() => { this.eggBurst = false; }, 1800);
+            var self = this;
+            setTimeout(function () { self.eggBurst = false; }, 1800);
         },
         onEggClick() {
             this.eggClicks += 1;
             this.eggSpinning = true;
-            setTimeout(() => { this.eggSpinning = false; }, 700);
+            var self = this;
+            setTimeout(function () { self.eggSpinning = false; }, 700);
 
-            const lines = [
-                null,
-                null,
-                '…',
-                'stop',
-                'seriously',
-                'one more and it glitches',
-            ];
+            var lines = [null, null, '...', 'stop', 'seriously', 'one more and it glitches'];
             if (lines[this.eggClicks]) this.showToast(lines[this.eggClicks]);
 
             if (this.eggClicks >= 7 && !this.eggArmed) {
@@ -315,14 +314,14 @@ export default {
                 document.body.classList.add('roulette-chaos');
                 this.triggerBurst('ok.');
                 this.showToast('happy?');
-                setTimeout(() => {
+                setTimeout(function () {
                     document.body.classList.remove('roulette-chaos');
-                    this.eggArmed = false;
+                    self.eggArmed = false;
                 }, 1400);
             }
 
             clearTimeout(this._eggTimer);
-            this._eggTimer = setTimeout(() => { this.eggClicks = 0; }, 2200);
+            this._eggTimer = setTimeout(function () { self.eggClicks = 0; }, 2200);
         },
     },
 };
