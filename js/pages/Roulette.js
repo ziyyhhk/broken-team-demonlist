@@ -79,10 +79,10 @@ export default {
                     </div>
 
                     <div v-if="givenUp || hasCompleted" class="results">
-                        <h1>{{ hasCompleted ? 'You cleared it' : 'Results' }}</h1>
+                        <h1>{{ hasCompleted ? 'cleared.' : 'Results' }}</h1>
                         <p>Number of levels: {{ progression.length }}</p>
                         <p>Highest percent: {{ currentPercentage }}%</p>
-                        <p v-if="hasCompleted" class="results-note">the list is still broken. you are not.</p>
+                        <p v-if="hasCompleted" class="results-note">ok. now do it on stream without saves.</p>
                         <Btn v-if="currentPercentage < 99 && !hasCompleted" @click.prevent="showRemaining = true">Show remaining levels</Btn>
                     </div>
 
@@ -104,9 +104,9 @@ export default {
                     </template>
                 </div>
                 <div v-else class="empty-state">
-                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="...">◆</div>
+                    <div class="empty-icon" :class="{ spinning: eggSpinning }" @click="onEggClick" title="don't">◆</div>
                     <h2>No roulette in progress</h2>
-                    <p>Pick a list above and hit <strong>Start</strong> to begin a run.</p>
+                    <p>Pick a list above and hit <strong>Start</strong>.</p>
                 </div>
             </section>
             <div class="toasts-container">
@@ -171,7 +171,6 @@ export default {
             return this.progression.length > 0 && !this.givenUp && !this.hasCompleted;
         },
         remainingLevels() {
-            // levels after the one you gave up on
             return this.levels.slice(this.progression.length + 1);
         },
     },
@@ -181,23 +180,23 @@ export default {
         getYoutubeIdFromUrl,
         async onStart() {
             if (this.isActive) {
-                this.showToast('Give up before starting a new roulette.');
+                this.showToast('Give up first.');
                 return;
             }
             if (!this.useMainList && !this.useExtendedList) {
-                this.showToast('Select at least one list.');
+                this.showToast('Pick at least one list.');
                 return;
             }
             this.loading = true;
             const fullList = await fetchList();
             if (!fullList) {
                 this.loading = false;
-                this.showToast('Failed to load list. Try again in a moment.');
+                this.showToast('Couldn't load the list.');
                 return;
             }
             if (fullList.filter(([_, err]) => err).length > 0) {
                 this.loading = false;
-                this.showToast("List is currently broken. Wait until it's fixed.");
+                this.showToast('List is broken right now. Try later.');
                 return;
             }
             const fullListMapped = fullList.map(([lvl, _], i) => ({
@@ -207,7 +206,6 @@ export default {
                 video: lvl.verification,
             }));
             const list = [];
-            // Demo cutoffs: main 1-2, extended 3-4
             if (this.useMainList) list.push(...fullListMapped.slice(0, 2));
             if (this.useExtendedList) list.push(...fullListMapped.slice(2, 4));
             this.levels = shuffle(list).slice(0, 100);
@@ -217,7 +215,7 @@ export default {
             this.percentage = undefined;
             this.loading = false;
             this.save();
-            this.showToast('roulette started. good luck.');
+            this.showToast('good luck.');
         },
         save() {
             localStorage.setItem(
@@ -229,7 +227,7 @@ export default {
             const percentage = Number(this.percentage);
             if (!percentage || Number.isNaN(percentage)) return;
             if (percentage <= this.currentPercentage || percentage > 100) {
-                this.showToast('Invalid percentage.');
+                this.showToast('Invalid percent.');
                 return;
             }
             this.progression.push(percentage);
@@ -237,19 +235,20 @@ export default {
             this.save();
             if (percentage === 69) this.showToast('nice.');
             if (percentage === 100) {
-                this.triggerBurst('CLEARED');
-                this.showToast('cleared. the list is still broken though.');
+                this.triggerBurst('100');
+                this.showToast('done.');
             }
         },
         onGiveUp() {
             const pct = this.currentPercentage;
             this.givenUp = true;
             localStorage.removeItem('roulette');
-            if (pct === 69) this.showToast('gave up at 69%. historically accurate.');
-            else if (pct === 0) this.showToast('zero percent and already broken. iconic.');
+            if (pct === 69) this.showToast('69% and quit. classic.');
+            else if (pct === 0) this.showToast('zero. impressive.');
+            else this.showToast('gg.');
         },
         onImport() {
-            if (this.isActive && !window.confirm('This will overwrite the currently running roulette. Continue?')) return;
+            if (this.isActive && !window.confirm('Overwrite current roulette?')) return;
             if (typeof this.fileInput.showPicker === 'function') this.fileInput.showPicker();
             else this.fileInput.click();
         },
@@ -259,7 +258,7 @@ export default {
             try {
                 const roulette = JSON.parse(await file.text());
                 if (!roulette.levels || !roulette.progression) {
-                    this.showToast('Invalid file.');
+                    this.showToast('Bad file.');
                     return;
                 }
                 this.levels = roulette.levels;
@@ -269,7 +268,7 @@ export default {
                 this.showRemaining = false;
                 this.percentage = undefined;
             } catch {
-                this.showToast('Invalid file.');
+                this.showToast('Bad file.');
             }
         },
         onExport() {
@@ -288,31 +287,42 @@ export default {
         },
         showToast(msg) {
             this.toasts.push(msg);
-            setTimeout(() => this.toasts.shift(), 3200);
+            setTimeout(() => this.toasts.shift(), 2800);
         },
         triggerBurst(text) {
             this.eggBurstText = text;
             this.eggBurst = true;
-            setTimeout(() => { this.eggBurst = false; }, 2200);
+            setTimeout(() => { this.eggBurst = false; }, 1800);
         },
         onEggClick() {
             this.eggClicks += 1;
             this.eggSpinning = true;
-            setTimeout(() => { this.eggSpinning = false; }, 950);
+            setTimeout(() => { this.eggSpinning = false; }, 700);
+
+            const lines = [
+                null,
+                null,
+                '…',
+                'stop',
+                'seriously',
+                'one more and it glitches',
+            ];
+            if (lines[this.eggClicks]) this.showToast(lines[this.eggClicks]);
+
             if (this.eggClicks >= 7 && !this.eggArmed) {
                 this.eggArmed = true;
                 this.eggClicks = 0;
                 document.body.classList.add('roulette-chaos');
-                this.triggerBurst('YOU BROKE IT');
-                this.showToast('you broke the roulette. respect.');
+                this.triggerBurst('ok.');
+                this.showToast('happy?');
                 setTimeout(() => {
                     document.body.classList.remove('roulette-chaos');
                     this.eggArmed = false;
-                }, 1700);
-            } else if (this.eggClicks === 3) this.showToast('keep going...');
-            else if (this.eggClicks === 5) this.showToast('almost.');
+                }, 1400);
+            }
+
             clearTimeout(this._eggTimer);
-            this._eggTimer = setTimeout(() => { this.eggClicks = 0; }, 2500);
+            this._eggTimer = setTimeout(() => { this.eggClicks = 0; }, 2200);
         },
     },
 };
