@@ -11,20 +11,11 @@ export default {
         <main class="page-auth page-shell">
             <form class="auth-card" @submit.prevent="onSubmit">
                 <h1>Login</h1>
-                <input
-                    type="text"
-                    v-model="username"
-                    placeholder="Username"
-                    autocomplete="username"
-                    required
-                />
-                <input
-                    type="password"
-                    v-model="password"
-                    placeholder="Password"
-                    autocomplete="current-password"
-                    required
-                />
+                <p class="auth-note">
+                    Staff accounts must be <strong>synced to GitHub</strong> by the owner first. After that, hard refresh and log in.
+                </p>
+                <input type="text" v-model="username" placeholder="Username" autocomplete="username" required />
+                <input type="password" v-model="password" placeholder="Password" autocomplete="current-password" required />
                 <p class="auth-error" v-if="error">{{ error }}</p>
                 <button type="submit" class="auth-btn" :disabled="loading">
                     {{ loading ? '…' : 'Login' }}
