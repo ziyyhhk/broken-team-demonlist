@@ -29,6 +29,24 @@ const rules = [
     "Once a level falls onto the Legacy List we accept records for 24 hours after it falls off, and never after that.",
 ];
 
+const viewToggleHtml = `
+    <div class="view-toggle" title="Switch list layout">
+        <button type="button" class="view-btn" :class="{ active: viewMode === 'classic' }" @click="setView('classic')" aria-label="Classic view">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                <path d="M5 7h14M5 12h14M5 17h10"/>
+            </svg>
+        </button>
+        <button type="button" class="view-btn" :class="{ active: viewMode === 'cards' }" @click="setView('cards')" aria-label="Cards view">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <rect x="4" y="4" width="7" height="7" rx="1.5"/>
+                <rect x="13" y="4" width="7" height="7" rx="1.5"/>
+                <rect x="4" y="13" width="7" height="7" rx="1.5"/>
+                <rect x="13" y="13" width="7" height="7" rx="1.5"/>
+            </svg>
+        </button>
+    </div>
+`;
+
 export default {
     components: { Spinner, LevelAuthors },
     template: `
@@ -36,7 +54,6 @@ export default {
             <Spinner></Spinner>
         </main>
         <main v-else class="page-list page-shell" :class="'view-' + viewMode">
-            <!-- CLASSIC -->
             <div class="list-container" v-if="viewMode === 'classic'">
                 <div class="list-toolbar">
                     <div class="list-tiers">
@@ -44,10 +61,7 @@ export default {
                         <button type="button" class="list-tier" :class="{ active: tier === 'extended' }" @click="setTier('extended')">Extended</button>
                         <button type="button" class="list-tier" :class="{ active: tier === 'legacy' }" @click="setTier('legacy')">Legacy</button>
                     </div>
-                    <div class="view-toggle" title="Switch list layout">
-                        <button type="button" :class="{ active: viewMode === 'classic' }" @click="setView('classic')" aria-label="Classic view">☰</button>
-                        <button type="button" :class="{ active: viewMode === 'cards' }" @click="setView('cards')" aria-label="Cards view">▦</button>
-                    </div>
+                    ${viewToggleHtml}
                 </div>
                 <div class="list-search">
                     <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />
@@ -112,7 +126,6 @@ export default {
                 </div>
             </div>
 
-            <!-- CARDS VIEW -->
             <div class="cards-view" v-if="viewMode === 'cards'">
                 <div class="cards-toolbar">
                     <div class="list-tiers">
@@ -123,24 +136,13 @@ export default {
                     <div class="list-search cards-search">
                         <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />
                     </div>
-                    <div class="view-toggle" title="Switch list layout">
-                        <button type="button" :class="{ active: viewMode === 'classic' }" @click="setView('classic')" aria-label="Classic view">☰</button>
-                        <button type="button" :class="{ active: viewMode === 'cards' }" @click="setView('cards')" aria-label="Cards view">▦</button>
-                    </div>
+                    ${viewToggleHtml}
                 </div>
 
                 <div class="card-stack" v-if="filtered.length > 0">
                     <transition-group name="tier-cards" tag="div" class="card-stack-inner">
-                        <div
-                            class="level-card-wrap"
-                            v-for="{ level, err, index } in filtered"
-                            :key="index"
-                        >
-                            <article
-                                class="level-card"
-                                :class="{ selected: expanded === index }"
-                                @click="toggleExpand(index)"
-                            >
+                        <div class="level-card-wrap" v-for="{ level, err, index } in filtered" :key="index">
+                            <article class="level-card" :class="{ selected: expanded === index }" @click="toggleExpand(index)">
                                 <div class="level-card__thumb">
                                     <img v-if="level" :src="thumb(level)" alt="" @error="onThumbError" />
                                     <div v-else class="level-card__thumb-fallback">?</div>
@@ -152,11 +154,8 @@ export default {
                                         by {{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}
                                     </p>
                                     <div class="level-card__tags" v-if="level">
-                                        <span class="tag">{{ tierName(index) }}</span>
-                                        <span class="tag">ID {{ level.id }}</span>
-                                        <span class="tag" v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+ to qualify</span>
-                                        <span class="tag" v-else-if="index + 1 <= EXTENDED_CUTOFF">100% only</span>
-                                        <span class="tag tag-muted" v-else>No new records</span>
+                                        <span class="tag tag-tier">{{ tierName(index) }}</span>
+                                        <span class="tag" v-for="(t, ti) in (level.tags || [])" :key="ti">{{ t }}</span>
                                     </div>
                                 </div>
                                 <div class="level-card__side" v-if="level">
@@ -169,49 +168,21 @@ export default {
                                 </div>
                             </article>
 
-                            <!-- Expanded panel under this card -->
                             <transition name="expand">
-                                <div
-                                    class="card-expand"
-                                    v-if="expanded === index && level"
-                                    :key="'exp-' + index"
-                                >
+                                <div class="card-expand" v-if="expanded === index && level" :key="'exp-' + index">
                                     <div class="card-expand__grid">
                                         <div class="card-expand__media">
-                                            <iframe
-                                                class="card-expand__video"
-                                                :src="embed(level.verification)"
-                                                frameborder="0"
-                                                allowfullscreen
-                                            ></iframe>
+                                            <iframe class="card-expand__video" :src="embed(level.verification)" frameborder="0" allowfullscreen></iframe>
                                         </div>
                                         <div class="card-expand__info">
                                             <h3 class="card-expand__title">Level Information</h3>
                                             <dl class="info-list">
-                                                <div class="info-row">
-                                                    <dt>Level ID</dt>
-                                                    <dd>{{ level.id }}</dd>
-                                                </div>
-                                                <div class="info-row">
-                                                    <dt>Creators</dt>
-                                                    <dd>{{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}</dd>
-                                                </div>
-                                                <div class="info-row">
-                                                    <dt>Verifier</dt>
-                                                    <dd>{{ level.verifier }}</dd>
-                                                </div>
-                                                <div class="info-row">
-                                                    <dt>Uploader</dt>
-                                                    <dd>{{ level.author }}</dd>
-                                                </div>
-                                                <div class="info-row">
-                                                    <dt>Password</dt>
-                                                    <dd>{{ level.password || 'Free to Copy' }}</dd>
-                                                </div>
-                                                <div class="info-row">
-                                                    <dt>Points</dt>
-                                                    <dd class="info-pts">{{ score(index + 1, 100, level.percentToQualify) }}</dd>
-                                                </div>
+                                                <div class="info-row"><dt>Level ID</dt><dd>{{ level.id }}</dd></div>
+                                                <div class="info-row"><dt>Creators</dt><dd>{{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}</dd></div>
+                                                <div class="info-row"><dt>Verifier</dt><dd>{{ level.verifier }}</dd></div>
+                                                <div class="info-row"><dt>Uploader</dt><dd>{{ level.author }}</dd></div>
+                                                <div class="info-row"><dt>Password</dt><dd>{{ level.password || 'Free to Copy' }}</dd></div>
+                                                <div class="info-row"><dt>Points</dt><dd class="info-pts">{{ score(index + 1, 100, level.percentToQualify) }}</dd></div>
                                                 <div class="info-row">
                                                     <dt>Qualify</dt>
                                                     <dd v-if="index + 1 <= MAIN_CUTOFF">{{ level.percentToQualify }}%+</dd>
@@ -272,7 +243,7 @@ export default {
         editors: [],
         loading: true,
         selected: 0,
-        expanded: null, // cards view: which index is expanded
+        expanded: null,
         query: "",
         tier: "main",
         viewMode: localStorage.getItem("listView") || "classic",
@@ -316,9 +287,7 @@ export default {
         },
     },
     watch: {
-        selected() {
-            this.toggledShowcase = false;
-        },
+        selected() { this.toggledShowcase = false; },
         tier() {
             this.expanded = null;
             if (this.filtered.length > 0) this.selected = this.filtered[0].index;
@@ -354,9 +323,7 @@ export default {
             if (r <= EXTENDED_CUTOFF) return "Extended";
             return "Legacy";
         },
-        onThumbError(e) {
-            e.target.style.opacity = "0.25";
-        },
+        onThumbError(e) { e.target.style.opacity = "0.25"; },
     },
     async mounted() {
         this.list = (await fetchList()) ?? [];
