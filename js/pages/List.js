@@ -19,7 +19,7 @@ const MAIN_CUTOFF = 2;
 const EXTENDED_CUTOFF = 4;
 
 const rules = [
-    "No hacks. TPS bypass is allowed up to 240 TPS only.",
+    "No hacks. Only exactly 240 TPS is allowed (under or over is invalid).",
     "Record the listed level ID. Wrong copy does not count.",
     "Video needs click/tap sounds (or clear input audio).",
     "Show a previous attempt and full death before the clear (first attempts exempt).",
@@ -93,7 +93,7 @@ export default {
                             <p class="level-tag">{{ rankLabel }}</p>
                             <h1>{{ level.name }}</h1>
                             <LevelAuthors :author="level.author" :creators="level.creators || []" :verifier="level.verifier"></LevelAuthors>
-                            <iframe class="video" :src="video" frameborder="0" allowfullscreen></iframe>
+                            <iframe class="video" :src="video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
                             <ul class="stats">
                                 <li>
                                     <div class="type-title-sm">Points</div>
@@ -211,7 +211,7 @@ export default {
                                     <div class="card-expand" v-if="expanded === index && level" :key="'exp-' + index">
                                         <div class="card-expand__grid">
                                             <div class="card-expand__media">
-                                                <iframe class="card-expand__video" :src="embed(level.verification)" frameborder="0" allowfullscreen></iframe>
+                                                <iframe class="card-expand__video" :src="embed(level.verification)" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
                                             </div>
                                             <div class="card-expand__info">
                                                 <h3 class="card-expand__title">Level Information</h3>
