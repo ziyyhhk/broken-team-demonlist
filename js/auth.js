@@ -1,7 +1,7 @@
 /**
- * Client-side auth for static GitHub Pages.
- * Users live in localStorage on each browser.
- * ONLY username "akirraaw" is owner — no one else can become owner.
+ * Auth for static GitHub Pages.
+ * Accounts sync through data/_users.json so staff can log in from any PC.
+ * ONLY username "akirraaw" is owner.
  */
 
 const USERS_KEY = 'broken_auth_users';
@@ -9,6 +9,7 @@ const SESSION_KEY = 'broken_auth_session';
 const GH_TOKEN_KEY = 'broken_gh_token';
 const GH_REPO = 'ziyyhhk/broken-team-demonlist';
 const OWNER_NAME = 'akirraaw';
+const USERS_PATH = 'data/_users.json';
 
 const DEFAULT_ADMIN_PERMS = {
     editLevels: true,
@@ -29,7 +30,7 @@ export const auth = Vue.reactive({
     ready: false,
 });
 
-function loadUsers() {
+function loadLocalUsers() {
     try {
         const raw = localStorage.getItem(USERS_KEY);
         return raw ? JSON.parse(raw) : [];
@@ -38,8 +39,63 @@ function loadUsers() {
     }
 }
 
-function saveUsers(users) {
+function saveLocalUsers(users) {
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+/** Merge by username (case-insensitive). Later list wins on conflict. */
+function mergeUsers(a, b) {
+    const map = new Map();
+    (a || []).forEach((u) => {
+        if (u && u.username) map.set(u.username.toLowerCase(), u);
+    });
+    (b || []).forEach((u) => {
+        if (u && u.username) map.set(u.username.toLowerCase(), u);
+    });
+    return Array.from(map.values());
+}
+
+async function fetchRemoteUsers() {
+    try {
+        const url = './data/_users.json?t=' + Date.now();
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return Array.isArray(data) ? data : [];
+    } catch (e) {
+        console.warn('Could not load remote users', e);
+        return [];
+    }
+}
+
+/** Full user list: remote (shared) + local cache. */
+export async function loadUsers() {
+    const remote = await fetchRemoteUsers();
+    const local = loadLocalUsers();
+    const merged = mergeUsers(local, remote);
+    // Prefer remote roles when both exist
+    const byName = new Map();
+    remote.forEach((u) => byName.set(u.username.toLowerCase(), u));
+    local.forEach((u) => {
+        const k = u.username.toLowerCase();
+        if (!byName.has(k)) byName.set(k, u);
+        else {
+            // keep remote as base, but if local is newer? prefer remote for shared truth
+            byName.set(k, byName.get(k));
+        }
+    });
+    const users = Array.from(byName.values());
+    // remote overrides local for same username
+    const finalMap = new Map();
+    local.forEach((u) => finalMap.set(u.username.toLowerCase(), u));
+    remote.forEach((u) => finalMap.set(u.username.toLowerCase(), u));
+    const finalUsers = Array.from(finalMap.values());
+    saveLocalUsers(finalUsers);
+    return finalUsers;
+}
+
+function loadUsersSync() {
+    return loadLocalUsers();
 }
 
 async function hashPassword(password, salt) {
@@ -59,7 +115,32 @@ function isOwnerName(username) {
     return normalizeUsername(username).toLowerCase() === OWNER_NAME;
 }
 
-/** Public register (anyone). Only akirraaw gets owner. Duplicates blocked. */
+function publicUserPayload(users) {
+    // Store hashes in repo so any browser can verify login.
+    // Passwords themselves are never stored.
+    return users.map((u) => ({
+        username: u.username,
+        salt: u.salt,
+        hash: u.hash,
+        role: u.role,
+        permissions: u.permissions || NO_PERMS,
+        createdAt: u.createdAt || new Date().toISOString(),
+    }));
+}
+
+/** Push users file if owner/admin has a GitHub token. */
+export async function syncUsersToGithub(users) {
+    const token = getGithubToken();
+    if (!token) {
+        return {
+            ok: false,
+            error: 'Account saved on this browser only. Set a GitHub token (owner Settings) then click “Sync accounts to GitHub” so friends can log in.',
+        };
+    }
+    const text = JSON.stringify(publicUserPayload(users), null, 4);
+    return githubPutFile(USERS_PATH, text, 'Admin: sync staff accounts');
+}
+
 export async function register(username, password, options) {
     options = options || {};
     username = normalizeUsername(username);
@@ -71,20 +152,14 @@ export async function register(username, password, options) {
         return { ok: false, error: 'Username: letters, numbers, underscore only.' };
     }
 
-    const users = loadUsers();
+    const users = await loadUsers();
     if (users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
         return { ok: false, error: 'That username is already taken.' };
     }
 
-    // Only the exact name akirraaw is owner. Everyone else starts as member.
-    const role = isOwnerName(username) ? 'owner' : (options.role || 'member');
-    // Never allow registering someone else as owner via options
+    const role = isOwnerName(username) ? 'owner' : options.role || 'member';
     if (role === 'owner' && !isOwnerName(username)) {
         return { ok: false, error: 'Only akirraaw can be owner.' };
-    }
-    if (role === 'owner' && users.some((u) => u.role === 'owner' || isOwnerName(u.username))) {
-        // second attempt at owner name already caught by taken; extra safety
-        if (!isOwnerName(username)) return { ok: false, error: 'Owner already exists.' };
     }
 
     const salt = crypto.randomUUID();
@@ -105,9 +180,16 @@ export async function register(username, password, options) {
         createdAt: new Date().toISOString(),
     };
     users.push(user);
-    saveUsers(users);
+    saveLocalUsers(users);
 
-    // auto-login only for normal self-register (not when owner creates staff)
+    // Try to publish so other browsers can log in
+    if (options.sync !== false) {
+        const sync = await syncUsersToGithub(users);
+        if (!sync.ok && options.requireSync) {
+            return { ok: false, error: sync.error, needsSync: true };
+        }
+    }
+
     if (!options.skipLogin) {
         const session = {
             username: user.username,
@@ -116,12 +198,11 @@ export async function register(username, password, options) {
         };
         localStorage.setItem(SESSION_KEY, JSON.stringify(session));
         auth.user = session;
-        return { ok: true, user: session };
+        return { ok: true, user: session, synced: !!(getGithubToken()) };
     }
-    return { ok: true, user: { username: user.username, role: user.role } };
+    return { ok: true, user: { username: user.username, role: user.role }, synced: !!(getGithubToken()) };
 }
 
-/** Owner creates an account without logging out / switching session. */
 export async function createAccount(username, password, role) {
     role = role || 'member';
     if (role === 'owner') return { ok: false, error: 'Cannot create another owner.' };
@@ -131,29 +212,36 @@ export async function createAccount(username, password, role) {
     if (isOwnerName(username)) {
         return { ok: false, error: 'That username is reserved for the site owner.' };
     }
-    return register(username, password, { role: role, skipLogin: true });
+    return register(username, password, { role, skipLogin: true, requireSync: false, sync: true });
 }
 
 export async function login(username, password) {
     username = normalizeUsername(username);
     password = String(password || '');
-    const users = loadUsers();
+
+    // Always refresh from shared _users.json first
+    const users = await loadUsers();
     const found = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
-    if (!found) return { ok: false, error: 'Wrong username or password.' };
+    if (!found) {
+        return {
+            ok: false,
+            error: 'Wrong username or password. If the owner just created this account, they must click “Sync accounts to GitHub” and wait ~1 minute.',
+        };
+    }
 
     const hash = await hashPassword(password, found.salt);
-    if (hash !== found.hash) return { ok: false, error: 'Wrong username or password.' };
+    if (hash !== found.hash) {
+        return { ok: false, error: 'Wrong username or password.' };
+    }
 
-    // Force owner lock: only akirraaw is ever owner
     if (isOwnerName(found.username)) {
         found.role = 'owner';
         found.permissions = { ...DEFAULT_ADMIN_PERMS, manageUsers: true };
-        saveUsers(users);
+        saveLocalUsers(users);
     } else if (found.role === 'owner') {
-        // strip stolen/corrupt owner role
         found.role = 'member';
         found.permissions = { ...NO_PERMS };
-        saveUsers(users);
+        saveLocalUsers(users);
     }
 
     const session = {
@@ -180,30 +268,37 @@ export function restoreSession() {
             return;
         }
         const session = JSON.parse(raw);
-        const users = loadUsers();
-        const found = users.find((u) => u.username === session.username);
-        if (found) {
-            if (isOwnerName(found.username)) {
-                found.role = 'owner';
-            } else if (found.role === 'owner') {
-                found.role = 'member';
-                found.permissions = { ...NO_PERMS };
-            }
-            session.role = found.role;
-            session.permissions = found.permissions || NO_PERMS;
-            localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        // soft restore; roles refreshed on next loadUsers/login
+        if (session && session.username) {
+            if (isOwnerName(session.username)) session.role = 'owner';
             auth.user = session;
         } else {
             auth.user = null;
-            localStorage.removeItem(SESSION_KEY);
         }
     } catch (e) {
         auth.user = null;
     }
     auth.ready = true;
+
+    // Background refresh roles from remote
+    loadUsers().then((users) => {
+        if (!auth.user) return;
+        const found = users.find(
+            (u) => u.username.toLowerCase() === auth.user.username.toLowerCase(),
+        );
+        if (!found) return;
+        if (isOwnerName(found.username)) found.role = 'owner';
+        auth.user.role = found.role;
+        auth.user.permissions = found.permissions || NO_PERMS;
+        localStorage.setItem(SESSION_KEY, JSON.stringify(auth.user));
+    });
 }
 
 export function getUsers() {
+    return loadUsersSync();
+}
+
+export async function getUsersAsync() {
     return loadUsers();
 }
 
@@ -229,7 +324,7 @@ export function can(perm) {
     return false;
 }
 
-export function setUserRole(username, role, permissions) {
+export async function setUserRole(username, role, permissions) {
     username = normalizeUsername(username);
     if (role === 'owner') return { ok: false, error: 'Cannot promote anyone to owner.' };
     if (!['member', 'helper', 'admin'].includes(role)) {
@@ -239,26 +334,31 @@ export function setUserRole(username, role, permissions) {
         return { ok: false, error: 'Cannot change the owner account.' };
     }
 
-    const users = loadUsers();
+    const users = await loadUsers();
     const found = users.find((u) => u.username.toLowerCase() === username.toLowerCase());
-    if (!found) return { ok: false, error: 'User not found. Create their account first (Admin → Users).' };
+    if (!found) return { ok: false, error: 'User not found. Create their account first.' };
 
     found.role = role;
     if (permissions) found.permissions = permissions;
     else if (role === 'admin') found.permissions = { ...DEFAULT_ADMIN_PERMS };
     else found.permissions = { ...NO_PERMS };
-    saveUsers(users);
+    saveLocalUsers(users);
 
     if (auth.user && auth.user.username.toLowerCase() === username.toLowerCase()) {
         auth.user.role = found.role;
         auth.user.permissions = found.permissions;
         localStorage.setItem(SESSION_KEY, JSON.stringify(auth.user));
     }
+
+    const sync = await syncUsersToGithub(users);
+    if (!sync.ok) {
+        return { ok: true, warning: sync.error };
+    }
     return { ok: true };
 }
 
 export function staffFromUsers() {
-    return loadUsers()
+    return loadUsersSync()
         .filter((u) => ['owner', 'admin', 'helper'].includes(u.role))
         .map((u) => ({
             role: u.role,
