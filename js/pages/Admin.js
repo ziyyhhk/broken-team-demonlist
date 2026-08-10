@@ -3,7 +3,6 @@ import {
     can,
     isOwner,
     logout,
-    getUsers,
     getUsersAsync,
     setUserRole,
     createAccount,
@@ -14,7 +13,7 @@ import {
     downloadJson,
     staffFromUsers,
 } from '../auth.js';
-import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules } from '../content.js';
+import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '../content.js';
 import Spinner from '../components/Spinner.js';
 
 export default {
@@ -27,6 +26,7 @@ export default {
         listOrder: [],
         editors: [],
         users: [],
+        board: [],
         selectedPath: null,
         draft: null,
         draftRecords: [],
@@ -59,6 +59,8 @@ export default {
         canList() { return can('editList'); },
         canEditors() { return can('editEditors'); },
         canUsers() { return can('manageUsers') || isOwner(); },
+        // any staff who can push content may store their own PAT
+        canToken() { return isOwner() || can('editLevels') || can('editList'); },
         hasToken() { return !!getGithubToken(); },
         tierPreview() {
             var main = Number(this.mainCutoff) || 0;
@@ -84,11 +86,12 @@ export default {
                 <p class="admin-user">{{ auth.user && auth.user.username }} · {{ auth.user && auth.user.role }}</p>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'tiers' }" @click="tab = 'tiers'" v-if="canList">Tiers & order</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'levels' }" @click="tab = 'levels'" v-if="canLevels">Levels & records</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'board' }" @click="openBoard" v-if="canLevels">Leaderboard</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'info' }" @click="tab = 'info'" v-if="canLevels">Info page</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'rules' }" @click="tab = 'rules'" v-if="canLevels">Rules page</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'editors' }" @click="openEditors" v-if="canEditors">Editors</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'users' }" @click="openUsers" v-if="canUsers">Users</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="tab = 'settings'" v-if="owner">Settings</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="tab = 'settings'" v-if="canToken">Settings</button>
                 <button type="button" class="admin-tab admin-out" @click="onLogout">Log out</button>
             </aside>
 
@@ -99,24 +102,24 @@ export default {
                 <div class="sync-toast" v-if="syncPhase" :class="'sync-toast--' + syncPhase">
                     <template v-if="syncPhase === 'waiting'">
                         <strong>Sync in progress…</strong>
-                        <span>GitHub Pages is rebuilding. Please wait ~{{ syncSeconds }}s.</span>
+                        <span>Wait ~{{ syncSeconds }}s for GitHub Pages.</span>
                     </template>
                     <template v-else>
                         <strong>Sync done.</strong>
-                        <span>Now press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> (Mac: <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>).</span>
+                        <span>Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> to refresh.</span>
                         <button type="button" class="sync-toast__x" @click="syncPhase = ''">Dismiss</button>
                     </template>
                 </div>
 
                 <div v-if="tab === 'tiers' && canList" class="admin-panel">
                     <h2>Main / Extended / Legacy</h2>
-                    <p class="admin-hint">Order decides rank. #1 is hardest.</p>
+                    <p class="admin-hint">Order = rank. #1 hardest. Cutoffs control which ranks are Main / Extended / Legacy.</p>
                     <div class="admin-row">
                         <label>Main cutoff <input class="admin-input" type="number" min="1" v-model.number="mainCutoff" /></label>
                         <label>Extended cutoff <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" /></label>
                     </div>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveConfig()">Save cutoffs to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveConfig()">Save cutoffs</button>
                     </div>
                     <h3>List order</h3>
                     <ul class="admin-order">
@@ -131,12 +134,13 @@ export default {
                         </li>
                     </ul>
                     <div class="admin-actions">
-                        <button type="button" class="auth-btn" :disabled="saving" @click="saveList()">Save order to GitHub</button>
+                        <button type="button" class="auth-btn" :disabled="saving" @click="saveList()">Save order</button>
                     </div>
                 </div>
 
                 <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
                     <h2>Levels & records</h2>
+                    <p class="admin-hint">Records on each level build the public leaderboard. Add a player’s clear here, then Save.</p>
                     <div class="level-picker">
                         <input class="admin-input level-picker__search" type="search" v-model="levelSearch" placeholder="Search levels…" />
                         <div class="level-picker__list">
@@ -154,64 +158,87 @@ export default {
                                 <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
                                 <label>Author <input class="admin-input" v-model="draft.author" /></label>
                                 <label>Verifier <input class="admin-input" v-model="draft.verifier" /></label>
-                                <label class="admin-grid--full">Creators (comma) <input class="admin-input" :value="(draft.creators||[]).join(', ')" @input="onCreators" /></label>
+                                <label class="admin-grid--full">Creators <input class="admin-input" :value="(draft.creators||[]).join(', ')" @input="onCreators" /></label>
                                 <label class="admin-grid--full">Verification URL <input class="admin-input" v-model="draft.verification" /></label>
                                 <label>Password <input class="admin-input" v-model="draft.password" /></label>
                                 <label>Length <input class="admin-input" v-model="draft.length" /></label>
                                 <label>Created <input class="admin-input" v-model="draft.creationDate" /></label>
                                 <label>Qualify % <input class="admin-input" v-model.number="draft.percentToQualify" type="number" /></label>
-                                <label class="admin-grid--full">Tags (comma) <input class="admin-input" :value="(draft.tags||[]).join(', ')" @input="onTags" /></label>
                             </div>
-                            <h3>Records</h3>
+                            <h3>Records (leaderboard source)</h3>
                             <div class="rec-table">
-                                <div class="rec-table__head"><span>Player</span><span>%</span><span>Hz</span><span>Video link</span><span></span></div>
+                                <div class="rec-table__head"><span>Player</span><span>%</span><span>Hz</span><span>Video</span><span></span></div>
                                 <div class="rec-table__row" v-for="(r, ri) in draftRecords" :key="ri">
-                                    <input class="admin-input" v-model="r.user" /><input class="admin-input" v-model.number="r.percent" type="number" /><input class="admin-input" v-model.number="r.hz" type="number" /><input class="admin-input" v-model="r.link" />
+                                    <input class="admin-input" v-model="r.user" />
+                                    <input class="admin-input" v-model.number="r.percent" type="number" />
+                                    <input class="admin-input" v-model.number="r.hz" type="number" />
+                                    <input class="admin-input" v-model="r.link" />
                                     <button type="button" class="rec-del" @click="draftRecords.splice(ri,1)">✕</button>
                                 </div>
                                 <div class="rec-table__row">
-                                    <input class="admin-input" v-model="newRec.user" placeholder="Player" /><input class="admin-input" v-model.number="newRec.percent" type="number" /><input class="admin-input" v-model.number="newRec.hz" type="number" /><input class="admin-input" v-model="newRec.link" placeholder="https://youtu.be/…" />
+                                    <input class="admin-input" v-model="newRec.user" placeholder="Player" />
+                                    <input class="admin-input" v-model.number="newRec.percent" type="number" placeholder="100" />
+                                    <input class="admin-input" v-model.number="newRec.hz" type="number" placeholder="240" />
+                                    <input class="admin-input" v-model="newRec.link" placeholder="https://youtu.be/…" />
                                     <button type="button" class="auth-btn auth-btn--ghost rec-add" @click="addRecord">Add</button>
                                 </div>
                             </div>
                             <div class="admin-actions">
                                 <button type="button" class="auth-btn" :disabled="saving" @click="saveLevel()">Save to GitHub</button>
-                                <button type="button" class="auth-btn auth-btn--ghost" @click="downloadLevel()">Download JSON</button>
                             </div>
                         </div>
                     </template>
                 </div>
 
+                <div v-if="tab === 'board' && canLevels" class="admin-panel">
+                    <h2>Leaderboard</h2>
+                    <p class="admin-hint">
+                        The leaderboard is <strong>calculated automatically</strong> from level records + list order.
+                        To change someone’s points: open <strong>Levels & records</strong>, pick the level, add/edit their record, Save.
+                    </p>
+                    <div class="admin-actions" style="margin-bottom:0.75rem">
+                        <button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh preview</button>
+                        <button type="button" class="auth-btn" @click="tab = 'levels'">Edit records</button>
+                    </div>
+                    <ul class="admin-userlist" v-if="board.length">
+                        <li v-for="(e, i) in board" :key="e.user">
+                            <span class="admin-order__rank">#{{ i + 1 }}</span>
+                            <strong>{{ e.user }}</strong>
+                            <span class="admin-muted">{{ e.total }} pts · {{ e.completed.length }} clears · {{ e.verified.length }} verifs</span>
+                        </li>
+                    </ul>
+                    <p v-else class="admin-hint">No players yet — add records on levels first.</p>
+                </div>
+
                 <div v-if="tab === 'info' && canLevels" class="admin-panel">
                     <h2>Info page</h2>
-                    <textarea class="admin-ta" v-model="infoText" rows="18"></textarea>
-                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveInfo()">Save to GitHub</button></div>
+                    <textarea class="admin-ta" v-model="infoText" rows="16"></textarea>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveInfo()">Save</button></div>
                 </div>
 
                 <div v-if="tab === 'rules' && canLevels" class="admin-panel">
                     <h2>Rules page</h2>
-                    <textarea class="admin-ta" v-model="rulesText" rows="18"></textarea>
-                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveRules()">Save to GitHub</button></div>
+                    <textarea class="admin-ta" v-model="rulesText" rows="16"></textarea>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveRules()">Save</button></div>
                 </div>
 
                 <div v-if="tab === 'editors' && canEditors" class="admin-panel">
                     <h2>Editors</h2>
                     <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
-                    <textarea class="admin-ta" v-model="editorsTextRaw" rows="14"></textarea>
-                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveEditors()">Save to GitHub</button></div>
+                    <textarea class="admin-ta" v-model="editorsTextRaw" rows="12"></textarea>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveEditors()">Save</button></div>
                 </div>
 
                 <div v-if="tab === 'users' && canUsers" class="admin-panel">
                     <h2>Users & roles</h2>
                     <p class="admin-hint">
-                        After you create an account, click <strong>Sync accounts to GitHub</strong> so your friend can log in from their PC.
-                        Wait ~1 minute, then they hard-refresh and log in.
+                        Friend self-register does <strong>not</strong> show here until you create them (or they sync with a token).
+                        Use <strong>Create + sync</strong> so they can log in from any device.
                     </p>
                     <div class="admin-actions" style="margin-bottom:0.75rem">
                         <button type="button" class="auth-btn" :disabled="saving" @click="syncAccounts">Sync accounts to GitHub</button>
                     </div>
-
-                    <div class="admin-create" v-if="owner">
+                    <div class="admin-create" v-if="owner || canUsers">
                         <h3>Create account for a friend</h3>
                         <label>Username <input class="admin-input" v-model="newUser" autocomplete="off" /></label>
                         <label>Password <input class="admin-input" v-model="newPass" type="password" autocomplete="new-password" /></label>
@@ -224,15 +251,12 @@ export default {
                         </label>
                         <button type="button" class="auth-btn" :disabled="creating" @click="createUser">Create + sync</button>
                     </div>
-
                     <ul class="admin-userlist">
                         <li v-for="u in users" :key="u.username">
                             <strong>{{ u.username }}</strong>
                             <span class="admin-role-tag">{{ u.role }}</span>
                         </li>
-                        <li v-if="!users.length" class="admin-hint">No accounts yet.</li>
                     </ul>
-
                     <h3>Change role</h3>
                     <div class="admin-row">
                         <input class="admin-input" v-model="roleUser" placeholder="Username" />
@@ -245,17 +269,20 @@ export default {
                     </div>
                 </div>
 
-                <div v-if="tab === 'settings' && owner" class="admin-panel">
-                    <h2>GitHub token (owner only)</h2>
-                    <p class="admin-hint">Paste once on this browser. Needed to sync accounts and save list data.</p>
-                    <p class="admin-hint" v-if="hasToken && tokenLocked">Token saved and locked.</p>
+                <div v-if="tab === 'settings' && canToken" class="admin-panel">
+                    <h2>GitHub token</h2>
+                    <p class="admin-hint">
+                        <strong>All repositories</strong> on a fine-grained token is fine if “Only select repositories” is missing.
+                        Paste your own <code>github_pat_…</code> here (Contents: Read and write). Stored only in this browser.
+                    </p>
+                    <p class="admin-hint" v-if="hasToken && tokenLocked">Token saved and locked on this device.</p>
                     <label v-if="!tokenLocked || !hasToken">Token
                         <input class="admin-input" type="password" v-model="ghToken" autocomplete="off" placeholder="github_pat_…" />
                     </label>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" v-if="!tokenLocked || !hasToken" @click="saveToken">Save token</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && tokenLocked" @click="tokenLocked = false">Unlock to change</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && !tokenLocked" @click="clearToken">Clear token</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && tokenLocked" @click="tokenLocked = false">Unlock</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" v-if="hasToken && !tokenLocked" @click="clearToken">Clear</button>
                     </div>
                 </div>
             </section>
@@ -285,16 +312,13 @@ export default {
         },
         async pushFile(path, text, message) {
             if (!getGithubToken()) {
-                this.flash('No GitHub token on this browser. Owner: Settings. Admins: need their own PAT or ask owner to save.', true);
+                this.flash('No token on this browser. Open Settings and paste your github_pat_.', true);
                 return false;
             }
             this.saving = true;
             var res = await githubPutFile(path, text, message);
             this.saving = false;
-            if (!res.ok) {
-                this.flash(res.error, true);
-                return false;
-            }
+            if (!res.ok) { this.flash(res.error, true); return false; }
             this.flash('Saved to GitHub.');
             this.startSyncNotify();
             return true;
@@ -314,10 +338,15 @@ export default {
             this.tab = 'users';
             await this.refreshUsers();
         },
+        async openBoard() {
+            this.tab = 'board';
+            var pair = await fetchLeaderboard();
+            this.board = (pair && pair[0]) || [];
+        },
         async refreshUsers() {
             var list = await getUsersAsync();
             this.users = list.map(function (u) {
-                return { username: u.username, role: u.role, createdAt: u.createdAt };
+                return { username: u.username, role: u.role };
             });
         },
         selectLevel(p) {
@@ -342,10 +371,10 @@ export default {
             this.creating = false;
             if (!res.ok) { this.flash(res.error, true); return; }
             if (res.synced) {
-                this.flash('Created ' + this.newUser + ' as ' + this.newRole + ' and synced. Friend can log in after ~1 min + hard refresh.');
+                this.flash('Created + synced. Friend waits ~1 min, hard refreshes, then logs in.');
                 this.startSyncNotify();
             } else {
-                this.flash('Created locally. Click “Sync accounts to GitHub” (and set token) so your friend can log in.', true);
+                this.flash('Created locally only. Set token in Settings, then Sync accounts.', true);
             }
             this.newUser = '';
             this.newPass = '';
@@ -357,7 +386,7 @@ export default {
             var res = await syncUsersToGithub(users);
             this.saving = false;
             if (!res.ok) { this.flash(res.error, true); return; }
-            this.flash('Accounts synced to GitHub. Friends can log in after rebuild.');
+            this.flash('Accounts synced.');
             this.startSyncNotify();
         },
         loadDraft() {
@@ -384,11 +413,6 @@ export default {
                 link: this.newRec.link || '',
             });
             this.newRec = { user: '', percent: 100, hz: 240, link: '' };
-        },
-        downloadLevel() {
-            if (!this.draft || !this.selectedPath) return;
-            downloadJson(this.selectedPath + '.json', Object.assign({}, this.draft, { records: this.draftRecords || [] }));
-            this.flash('Downloaded');
         },
         async saveLevel() {
             if (!this.draft || !this.selectedPath) return;
@@ -445,13 +469,11 @@ export default {
             }
         },
         saveToken() {
-            if (!isOwner()) { this.flash('Only the owner can change the token.', true); return; }
             setGithubToken(this.ghToken);
             this.tokenLocked = !!this.ghToken;
-            this.flash(this.ghToken ? 'Token saved.' : 'Token cleared.');
+            this.flash(this.ghToken ? 'Token saved on this browser.' : 'Token cleared.');
         },
         clearToken() {
-            if (!isOwner()) return;
             this.ghToken = '';
             setGithubToken('');
             this.tokenLocked = false;
