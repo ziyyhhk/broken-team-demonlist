@@ -4,15 +4,11 @@ import {
     isOwner,
     logout,
     getUsersAsync,
-    setUserRole,
     createAccount,
     syncUsersToGithub,
     getGithubToken,
     setGithubToken,
     githubPutFile,
-    downloadJson,
-    staffFromUsers,
-    fetchGithubCollaborators,
     testGithubToken,
 } from '../auth.js';
 import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '../content.js';
@@ -28,8 +24,6 @@ export default {
         listOrder: [],
         editors: [],
         users: [],
-        collabs: [],
-        collabErr: '',
         board: [],
         boardPlayer: null,
         boardRows: [],
@@ -39,10 +33,7 @@ export default {
         draftRecords: [],
         msg: '',
         err: '',
-        roleUser: '',
-        rolePick: 'helper',
         ghToken: '',
-        tokenLocked: false,
         tokenTestLines: [],
         tokenTesting: false,
         saving: false,
@@ -51,9 +42,8 @@ export default {
         newPass: '',
         newRole: 'admin',
         creating: false,
-        collabPass: '',
-        mainCutoff: 2,
-        extendedCutoff: 4,
+        mainCutoff: 75,
+        extendedCutoff: 150,
         infoText: '',
         rulesText: '',
         newRec: { user: '', percent: 100, hz: 240, link: '' },
@@ -87,23 +77,20 @@ export default {
                 return p.toLowerCase().indexOf(q) !== -1;
             });
         },
-        siteUsernames() {
-            return this.users.map(function (u) { return u.username.toLowerCase(); });
-        },
     },
     template: `
         <main v-if="loading" class="page-shell"><Spinner /></main>
         <main v-else class="page-admin page-shell">
             <aside class="admin-side">
                 <p class="admin-user">{{ auth.user && auth.user.username }} · {{ auth.user && auth.user.role }}</p>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'tiers' }" @click="tab = 'tiers'" v-if="canList">Tiers & order</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'levels' }" @click="tab = 'levels'" v-if="canLevels">Levels & records</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'tiers' }" @click="setTab('tiers')" v-if="canList">Tiers & order</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'levels' }" @click="setTab('levels')" v-if="canLevels">Levels & records</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'board' }" @click="openBoard" v-if="canLevels">Leaderboard</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'info' }" @click="tab = 'info'" v-if="canLevels">Info</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'rules' }" @click="tab = 'rules'" v-if="canLevels">Rules</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'info' }" @click="setTab('info')" v-if="canLevels">Info</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'rules' }" @click="setTab('rules')" v-if="canLevels">Rules</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'editors' }" @click="openEditors" v-if="canEditors">Editors</button>
                 <button type="button" class="admin-tab" :class="{ active: tab === 'users' }" @click="openUsers" v-if="canUsers">Users</button>
-                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="tab = 'settings'" v-if="canToken">Settings</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="setTab('settings')" v-if="canToken">Settings</button>
                 <button type="button" class="admin-tab admin-out" @click="onLogout">Log out</button>
             </aside>
 
@@ -119,8 +106,12 @@ export default {
                     </template>
                 </div>
 
+                <transition name="admin-tab" mode="out-in">
+                    <div :key="tab" class="admin-tab-body">
+
                 <div v-if="tab === 'tiers' && canList" class="admin-panel">
                     <h2>Tiers & order</h2>
+                    <p class="admin-hint">Main = 1 → Main cutoff · Extended = next → Extended cutoff · rest = Legacy</p>
                     <div class="admin-row">
                         <label>Main cutoff <input class="admin-input" type="number" min="1" v-model.number="mainCutoff" /></label>
                         <label>Extended cutoff <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" /></label>
@@ -142,6 +133,17 @@ export default {
 
                 <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
                     <h2>Levels & records</h2>
+                    <div class="admin-howto">
+                        <strong>How to add a VERIFIER (verified level credit)</strong>
+                        <ol>
+                            <li>Pick a level on the left</li>
+                            <li>Fill <em>Verifier</em> with the player’s name (exact spelling)</li>
+                            <li>Paste verification video URL in <em>Verification</em></li>
+                            <li>Click <strong>Save level</strong></li>
+                        </ol>
+                        <p>Leaderboard “Verified” comes from the Verifier field — <strong>not</strong> the records table.</p>
+                        <p>Records table = victors who beat it after verification.</p>
+                    </div>
                     <div class="level-picker">
                         <input class="admin-input" type="search" v-model="levelSearch" placeholder="Search…" />
                         <div class="level-picker__list">
@@ -158,12 +160,16 @@ export default {
                                 <label>Name <input class="admin-input" v-model="draft.name" /></label>
                                 <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
                                 <label>Author <input class="admin-input" v-model="draft.author" /></label>
-                                <label>Verifier <input class="admin-input" v-model="draft.verifier" /></label>
-                                <label class="admin-grid--full">Verification <input class="admin-input" v-model="draft.verification" /></label>
+                                <label class="admin-label-highlight">Verifier (leaderboard Verified)
+                                    <input class="admin-input" v-model="draft.verifier" placeholder="Player name" />
+                                </label>
+                                <label class="admin-grid--full">Verification video URL
+                                    <input class="admin-input" v-model="draft.verification" placeholder="https://youtu.be/…" />
+                                </label>
                                 <label>Length <input class="admin-input" v-model="draft.length" /></label>
                                 <label>Qualify % <input class="admin-input" v-model.number="draft.percentToQualify" type="number" /></label>
                             </div>
-                            <h3>Records</h3>
+                            <h3>Victors / records (not verifier)</h3>
                             <div class="rec-table">
                                 <div class="rec-table__row" v-for="(r, ri) in draftRecords" :key="ri">
                                     <input class="admin-input" v-model="r.user" placeholder="Player" />
@@ -183,10 +189,12 @@ export default {
                             <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveLevel()">Save level</button></div>
                         </div>
                     </template>
+                    <p v-else class="admin-hint">Pick a level to edit.</p>
                 </div>
 
                 <div v-if="tab === 'board' && canLevels" class="admin-panel admin-panel--wide">
-                    <h2>Edit leaderboard</h2>
+                    <h2>Edit leaderboard (victors)</h2>
+                    <p class="admin-hint">This edits <strong>records</strong> (victors). To set a verifier, use Levels → Verifier field.</p>
                     <div class="admin-actions"><button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button></div>
                     <div class="board-layout">
                         <div class="board-players">
@@ -195,6 +203,7 @@ export default {
                                 <span>{{ e.user }}</span>
                                 <span class="admin-muted">{{ e.total }} pts</span>
                             </button>
+                            <p v-if="!board.length" class="admin-hint">No players yet.</p>
                         </div>
                         <div class="board-detail" v-if="boardPlayer">
                             <h3>{{ boardPlayer }}</h3>
@@ -263,17 +272,10 @@ export default {
 
                 <div v-if="tab === 'settings' && canToken" class="admin-panel">
                     <h2>GitHub token</h2>
+                    <p class="admin-hint">Both <code>ghp_</code> (classic) and <code>github_pat_</code> (fine-grained) work. Token must be from the account that has Write on the repo.</p>
                     <p class="admin-hint">
-                        Being able to edit on github.com is <strong>not the same</strong> as an API token.
-                        The token must be created on <strong>the same GitHub account that is the collaborator</strong>.
-                    </p>
-                    <p class="admin-hint">
-                        <strong>Classic token (recommended for collaborators)</strong><br/>
-                        1. Open <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github.com/settings/tokens</a><br/>
-                        2. Generate new token <strong>(classic)</strong><br/>
-                        3. Check the <strong>repo</strong> scope (full control)<br/>
-                        4. Generate → copy (starts with <code>ghp_</code>)<br/>
-                        5. Paste below → Save → <strong>Test token</strong>
+                        <strong>Classic:</strong> settings/tokens → classic → check <strong>repo</strong> → copy ghp_…<br/>
+                        <strong>Fine-grained:</strong> Contents = Read and write → copy github_pat_…
                     </p>
                     <label>Token
                         <input class="admin-input" type="password" v-model="ghToken" placeholder="ghp_… or github_pat_…" autocomplete="off" />
@@ -287,10 +289,14 @@ export default {
                         <li v-for="(line, i) in tokenTestLines" :key="i">{{ line }}</li>
                     </ul>
                 </div>
+
+                    </div>
+                </transition>
             </section>
         </main>
     `,
     methods: {
+        setTab(t) { this.tab = t; },
         flash(msg, isErr) {
             this.msg = isErr ? '' : msg;
             this.err = isErr ? msg : '';
@@ -314,14 +320,14 @@ export default {
         },
         async pushFile(path, text, message) {
             if (!getGithubToken()) {
-                this.flash('No token — Settings → paste ghp_ token → Test token.', true);
+                this.flash('No token — Settings → paste ghp_ or github_pat_ → Test token.', true);
                 return false;
             }
             this.saving = true;
             var res = await githubPutFile(path, text, message);
             this.saving = false;
             if (!res.ok) { this.flash(res.error, true); return false; }
-            this.flash('Saved.');
+            this.flash('Saved to GitHub.');
             this.startSyncNotify();
             return true;
         },
@@ -486,6 +492,9 @@ export default {
         },
         async saveLevel() {
             if (!this.draft || !this.selectedPath) return;
+            if (!(this.draft.verifier || '').trim()) {
+                this.flash('Tip: set Verifier if someone verified this level (leaderboard Verified). Saving anyway…');
+            }
             var payload = Object.assign({}, this.draft, { records: this.draftRecords || [] });
             var ok = await this.pushFile('data/' + this.selectedPath + '.json', JSON.stringify(payload, null, 4), 'Admin: update ' + this.selectedPath);
             if (ok) {
@@ -528,13 +537,11 @@ export default {
         },
         saveToken() {
             setGithubToken(this.ghToken);
-            this.tokenLocked = !!getGithubToken();
             this.flash(getGithubToken() ? 'Token saved on this browser.' : 'Token cleared.');
         },
         clearToken() {
             this.ghToken = '';
             setGithubToken('');
-            this.tokenLocked = false;
             this.tokenTestLines = [];
             this.flash('Token cleared.');
         },
@@ -545,7 +552,7 @@ export default {
             var res = await testGithubToken(this.ghToken || getGithubToken());
             this.tokenTesting = false;
             this.tokenTestLines = res.steps || [];
-            if (res.ok) this.flash('Token OK — you can Save to GitHub.');
+            if (res.ok) this.flash('Token OK — ghp_ / github_pat_ can Save.');
             else this.flash('Token failed — see steps below.', true);
         },
     },
@@ -561,7 +568,6 @@ export default {
             return;
         }
         this.ghToken = getGithubToken();
-        this.tokenLocked = !!this.ghToken;
         var cfg = await fetchConfig();
         this.mainCutoff = cfg.mainCutoff;
         this.extendedCutoff = cfg.extendedCutoff;
