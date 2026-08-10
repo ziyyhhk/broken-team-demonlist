@@ -106,7 +106,7 @@ export default {
                             </ul>
                             <div class="id-row">
                                 <span class="type-title-sm">Level ID</span>
-                                <button type="button" class="id-copy" @click="copyId(level.id)" :title="copiedId === String(level.id) ? 'Copied' : 'Copy ID'">
+                                <button type="button" class="id-copy" @click="copyId(level.id)" title="Copy ID">
                                     <span>{{ level.id }}</span>
                                     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <rect x="9" y="9" width="13" height="13" rx="2"></rect>
@@ -115,10 +115,20 @@ export default {
                                 </button>
                                 <span class="id-pass">{{ level.password || 'Free to Copy' }}</span>
                             </div>
-                            <h2>Records ({{ level.records.length }})</h2>
-                            <p v-if="selected + 1 <= MAIN_CUTOFF">Progress records from <strong>{{ level.percentToQualify }}%</strong> may count on Main.</p>
-                            <p v-else-if="selected + 1 <= EXTENDED_CUTOFF">Extended wants <strong>100%</strong>.</p>
-                            <p v-else>This level does not accept new records.</p>
+
+                            <div class="verifier-banner" v-if="level.verifier">
+                                <strong>Verified by {{ level.verifier }}</strong>
+                                — verifier points go on the leaderboard automatically (set Verifier in Admin → Levels).
+                            </div>
+
+                            <h2>Victors / records ({{ level.records.length }})</h2>
+                            <p class="rec-hint">
+                                These are people who <strong>beat</strong> the level after verification (victors).
+                                To credit the <strong>verifier</strong>, edit the level’s Verifier field — not the records list.
+                            </p>
+                            <p class="rec-hint" v-if="selected + 1 <= MAIN_CUTOFF">Progress from <strong>{{ level.percentToQualify }}%</strong> may count on Main.</p>
+                            <p class="rec-hint" v-else-if="selected + 1 <= EXTENDED_CUTOFF">Extended wants <strong>100%</strong>.</p>
+                            <p class="rec-hint" v-else>Legacy does not accept new records.</p>
                             <table class="records" v-if="level.records.length > 0">
                                 <tr v-for="record in level.records" class="record">
                                     <td class="percent"><p>{{ record.percent }}%</p></td>
@@ -155,7 +165,7 @@ export default {
                                 <li v-for="rule in rules">{{ rule }}</li>
                             </ol>
                             <div class="og">
-                                <p class="type-label-md">Website layout based on <a href="https://tsl.pages.dev/" target="_blank" rel="noopener">TheShittyList</a></p>
+                                <p class="type-label-md">Website layout based on <a href="https://tsl.pages.dev/" target="_blank" rel="noopener">TheShittyList</a> · Modified by Kira</p>
                             </div>
                         </div>
                     </div>
@@ -187,6 +197,7 @@ export default {
                                         <h2 class="level-card__name">{{ level?.name || ('Error (' + err + ')') }}</h2>
                                         <p class="level-card__by" v-if="level">
                                             by {{ (level.creators && level.creators.length) ? level.creators.join(', ') : level.author }}
+                                            <template v-if="level.verifier"> · verified {{ level.verifier }}</template>
                                         </p>
                                         <div class="level-card__tags" v-if="level">
                                             <span class="tag tag-tier">{{ tierName(index) }}</span>
@@ -196,7 +207,7 @@ export default {
                                     <div class="level-card__side" v-if="level">
                                         <div class="level-card__pts">{{ score(index + 1, 100, level.percentToQualify) }}</div>
                                         <div class="level-card__pts-label">pts</div>
-                                        <div class="level-card__recs">{{ level.records.length }} record{{ level.records.length === 1 ? '' : 's' }}</div>
+                                        <div class="level-card__recs">{{ level.records.length }} victor{{ level.records.length === 1 ? '' : 's' }}</div>
                                         <button type="button" class="level-card__expand-hint" @click.stop="toggleExpand(index)">
                                             {{ expanded === index ? 'Show less ▲' : 'Show details ▼' }}
                                         </button>
@@ -217,10 +228,6 @@ export default {
                                                         <dd>
                                                             <button type="button" class="id-copy id-copy--inline" @click.stop="copyId(level.id)">
                                                                 <span>{{ level.id }}</span>
-                                                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                                    <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-                                                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                                                </svg>
                                                             </button>
                                                         </dd>
                                                     </div>
@@ -228,22 +235,21 @@ export default {
                                                     <div class="info-row"><dt>Verifier</dt><dd>{{ level.verifier }}</dd></div>
                                                     <div class="info-row"><dt>Uploader</dt><dd>{{ level.author }}</dd></div>
                                                     <div class="info-row"><dt>Length</dt><dd>{{ level.length || '—' }}</dd></div>
-                                                    <div class="info-row"><dt>Creation Date</dt><dd>{{ level.creationDate || '—' }}</dd></div>
-                                                    <div class="info-row"><dt>Password</dt><dd>{{ level.password || 'Free to Copy' }}</dd></div>
+                                                    <div class="info-row"><dt>Created</dt><dd>{{ level.creationDate || '—' }}</dd></div>
                                                     <div class="info-row"><dt>Points</dt><dd class="info-pts">{{ score(index + 1, 100, level.percentToQualify) }}</dd></div>
                                                 </dl>
                                                 <div class="card-expand__records-head">
-                                                    <span>Records</span>
+                                                    <span>Victors</span>
                                                     <span class="records-count">{{ level.records.length }}</span>
                                                 </div>
                                                 <ul class="card-expand__records" v-if="level.records.length > 0">
                                                     <li v-for="(record, ri) in level.records" :key="ri">
                                                         <a :href="record.link" target="_blank" rel="noopener" class="rec-user">{{ record.user }}</a>
-                                                        <a :href="record.link" target="_blank" rel="noopener" class="rec-watch">Watch run</a>
+                                                        <a :href="record.link" target="_blank" rel="noopener" class="rec-watch">Watch</a>
                                                         <span class="rec-pct">{{ record.percent }}%</span>
                                                     </li>
                                                 </ul>
-                                                <p v-else class="no-recs">No records yet.</p>
+                                                <p v-else class="no-recs">No victors yet.</p>
                                             </div>
                                         </div>
                                     </div>
