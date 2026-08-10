@@ -2,8 +2,10 @@ import { round, score } from './score.js';
 
 const dir = './data';
 
+/** Bust browser / CDN cache so Admin saves show up after Pages rebuilds. */
 async function fetchJson(path) {
-    const res = await fetch(path);
+    const url = path + (path.includes('?') ? '&' : '?') + 't=' + Date.now();
+    const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) {
         throw new Error(`${path} responded with ${res.status}`);
     }
@@ -13,9 +15,11 @@ async function fetchJson(path) {
 export async function fetchConfig() {
     try {
         const cfg = await fetchJson(`${dir}/_config.json`);
+        const main = Number(cfg.mainCutoff);
+        const ext = Number(cfg.extendedCutoff);
         return {
-            mainCutoff: Number(cfg.mainCutoff) || 75,
-            extendedCutoff: Number(cfg.extendedCutoff) || 150,
+            mainCutoff: Number.isFinite(main) && main > 0 ? main : 75,
+            extendedCutoff: Number.isFinite(ext) && ext > 0 ? ext : 150,
         };
     } catch (e) {
         console.error('Failed to load config.', e);
@@ -110,8 +114,7 @@ export async function fetchLeaderboard() {
             completed: [],
             progressed: [],
         };
-        const { verified } = scoreMap[verifier];
-        verified.push({
+        scoreMap[verifier].verified.push({
             rank: rank + 1,
             level: level.name,
             score: score(rank + 1, 100, level.percentToQualify),
@@ -128,9 +131,8 @@ export async function fetchLeaderboard() {
                 completed: [],
                 progressed: [],
             };
-            const { completed, progressed } = scoreMap[user];
             if (record.percent === 100) {
-                completed.push({
+                scoreMap[user].completed.push({
                     rank: rank + 1,
                     level: level.name,
                     score: score(rank + 1, 100, level.percentToQualify),
@@ -139,7 +141,7 @@ export async function fetchLeaderboard() {
                 return;
             }
 
-            progressed.push({
+            scoreMap[user].progressed.push({
                 rank: rank + 1,
                 level: level.name,
                 percent: record.percent,
