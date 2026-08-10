@@ -1,6 +1,7 @@
 .page-doc {
     overflow-y: auto;
     background: var(--color-background);
+    color: var(--color-on-background);
 }
 
 .doc-wrap {
@@ -12,26 +13,34 @@
     max-width: 1100px;
 }
 
+/* Clean centered title — no green banner */
 .doc-hero {
     text-align: center;
     margin-bottom: 2rem;
+    padding: 0;
+    background: transparent;
 }
 .doc-hero h1 {
-    margin: 0 0 0.4rem;
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    margin: 0 0 0.45rem;
+    font-size: clamp(1.85rem, 4vw, 2.5rem);
     letter-spacing: -0.03em;
+    color: var(--color-on-background);
+    background: none;
 }
 .doc-kicker {
-    margin: 0 0 0.35rem;
-    font-size: 0.8rem;
+    margin: 0 0 0.4rem;
+    font-size: 0.78rem;
     font-weight: 800;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     color: var(--color-muted);
 }
 .doc-subtitle {
     margin: 0;
     color: var(--color-muted);
     font-size: 1rem;
+    max-width: 36ch;
+    margin-inline: auto;
+    line-height: 1.45;
 }
 
 .doc-panel {
@@ -52,19 +61,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 1.55rem;
+    height: 1.55rem;
     border-radius: 50%;
     background: color-mix(in srgb, var(--color-primary) 18%, transparent);
     color: var(--color-primary);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 800;
+    font-style: italic;
+    font-family: Georgia, serif;
 }
 
 .doc-panel > p {
     margin: 0 0 1.25rem;
     line-height: 1.55;
-    color: var(--color-on-background);
 }
 
 .doc-two-col {
@@ -85,7 +95,6 @@
     gap: 0.4rem;
     font-size: 0.92rem;
     line-height: 1.45;
-    color: var(--color-on-background);
 }
 .doc-bullets code {
     font-family: "Chivo Mono", monospace;
@@ -157,7 +166,6 @@
     font-weight: 800;
 }
 
-/* Rules page */
 .rules-cta {
     text-align: center;
     padding: 1.5rem 1.25rem;
@@ -245,9 +253,19 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 1rem;
-    padding: 1.4rem 1.35rem 1.75rem;
-    min-height: 320px;
+    padding: 0.5rem 1.35rem 1.75rem;
 }
+
+.rules-section {
+    padding: 1.25rem 0 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    scroll-margin-top: 1.25rem;
+}
+.rules-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0.5rem;
+}
+
 .rules-section h2 {
     display: flex;
     align-items: center;

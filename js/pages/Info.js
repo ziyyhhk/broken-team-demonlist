@@ -4,12 +4,12 @@ export default {
             <div class="doc-wrap">
                 <header class="doc-hero">
                     <h1>About the Broken List</h1>
-                    <p class="doc-subtitle">How the list works, rankings, and how to get involved</p>
+                    <p class="doc-subtitle">Understanding how the list works and our policies</p>
                 </header>
 
                 <section class="doc-panel">
                     <h2 class="doc-h2">
-                        <span class="doc-icon">ℹ</span>
+                        <span class="doc-icon">i</span>
                         How the List Works
                     </h2>
                     <p>

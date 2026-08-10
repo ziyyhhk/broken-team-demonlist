@@ -1,6 +1,5 @@
 export default {
     data: () => ({
-        section: 'placement',
         sections: [
             { id: 'placement', label: 'I. Placement Guidelines' },
             { id: 'records', label: 'II. Record Requirements' },
@@ -9,19 +8,20 @@ export default {
             { id: 'roulette', label: 'V. Roulette Rules' },
             { id: 'conduct', label: 'VI. Conduct' },
         ],
+        active: 'placement',
     }),
     template: `
-        <main class="page-doc page-shell">
+        <main class="page-doc page-shell" ref="page">
             <div class="doc-wrap doc-wrap--rules">
                 <header class="doc-hero">
+                    <p class="doc-kicker">RULES DOCUMENT</p>
                     <h1>The Broken List</h1>
-                    <p class="doc-kicker">RULES &amp; GUIDELINES</p>
                     <p class="doc-subtitle">Owned and maintained by Broken Team</p>
                 </header>
 
                 <div class="rules-cta">
                     <h2>Looking to submit a record?</h2>
-                    <p>Read the record requirements below, then use the Submit Record button in the header.</p>
+                    <p>Read the chapters below, then use the Submit Record button in the header.</p>
                     <a class="rules-cta__btn" href="https://forms.gle/2j7Xy5QLZqG3sijj9" target="_blank" rel="noopener">Open Submission Form</a>
                 </div>
 
@@ -33,13 +33,13 @@ export default {
                             :key="s.id"
                             type="button"
                             class="rules-toc__item"
-                            :class="{ active: section === s.id }"
-                            @click="section = s.id"
+                            :class="{ active: active === s.id }"
+                            @click="scrollTo(s.id)"
                         >{{ s.label }}</button>
                     </aside>
 
                     <div class="rules-body">
-                        <section v-show="section === 'placement'" class="rules-section">
+                        <section id="placement" class="rules-section" data-chapter="placement">
                             <h2><span class="rules-num">I</span> Placement Guidelines</h2>
                             <ol class="rules-numbered">
                                 <li>Levels are ordered by difficulty. Staff decide final placement.</li>
@@ -51,7 +51,7 @@ export default {
                             </ol>
                         </section>
 
-                        <section v-show="section === 'records'" class="rules-section">
+                        <section id="records" class="rules-section" data-chapter="records">
                             <h2><span class="rules-num">II</span> Record Requirements</h2>
                             <ol class="rules-numbered">
                                 <li>No hacks. FPS bypass is allowed up to 360fps.</li>
@@ -64,7 +64,7 @@ export default {
                             </ol>
                         </section>
 
-                        <section v-show="section === 'quality'" class="rules-section">
+                        <section id="quality" class="rules-section" data-chapter="quality">
                             <h2><span class="rules-num">III</span> Quality Standards</h2>
                             <ol class="rules-numbered">
                                 <li>Levels should meet a reasonable quality bar for decoration and gameplay.</li>
@@ -73,7 +73,7 @@ export default {
                             </ol>
                         </section>
 
-                        <section v-show="section === 'legacy'" class="rules-section">
+                        <section id="legacy" class="rules-section" data-chapter="legacy">
                             <h2><span class="rules-num">IV</span> Legacy Policy</h2>
                             <ol class="rules-numbered">
                                 <li>When a level falls past the Extended cutoff, it moves to the Legacy List.</li>
@@ -83,7 +83,7 @@ export default {
                             </ol>
                         </section>
 
-                        <section v-show="section === 'roulette'" class="rules-section">
+                        <section id="roulette" class="rules-section" data-chapter="roulette">
                             <h2><span class="rules-num">V</span> Roulette Rules</h2>
                             <ol class="rules-numbered">
                                 <li>Roulette is for practice / challenge runs — it does not auto-submit list records.</li>
@@ -92,7 +92,7 @@ export default {
                             </ol>
                         </section>
 
-                        <section v-show="section === 'conduct'" class="rules-section">
+                        <section id="conduct" class="rules-section" data-chapter="conduct">
                             <h2><span class="rules-num">VI</span> Conduct</h2>
                             <ol class="rules-numbered">
                                 <li>Be respectful to staff and other players.</li>
@@ -106,4 +106,32 @@ export default {
             </div>
         </main>
     `,
+    methods: {
+        scrollTo(id) {
+            this.active = id;
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        onScroll() {
+            const sections = this.sections.map((s) => document.getElementById(s.id)).filter(Boolean);
+            let current = this.sections[0]?.id;
+            for (const el of sections) {
+                const top = el.getBoundingClientRect().top;
+                if (top <= 120) current = el.id;
+            }
+            this.active = current;
+        },
+    },
+    mounted() {
+        this._onScroll = () => this.onScroll();
+        // page-doc is the scroll container
+        this.$el.addEventListener('scroll', this._onScroll, { passive: true });
+        this.onScroll();
+    },
+    beforeUnmount() {
+        if (this._onScroll && this.$el) {
+            this.$el.removeEventListener('scroll', this._onScroll);
+        }
+    },
 };
