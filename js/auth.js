@@ -2,6 +2,7 @@
  * Auth for static GitHub Pages.
  * Accounts sync through data/_users.json so staff can log in from any PC.
  * ONLY username "akirraaw" is owner.
+ * Tokens: classic ghp_ and fine-grained github_pat_ both supported.
  */
 
 const USERS_KEY = 'broken_auth_users';
@@ -100,6 +101,70 @@ function publicUserPayload(users) {
         permissions: u.permissions || NO_PERMS,
         createdAt: u.createdAt || new Date().toISOString(),
     }));
+}
+
+function toBase64(str) {
+    // UTF-8 safe base64 for GitHub Contents API
+    const bytes = new TextEncoder().encode(str);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
+
+/** Prefer correct auth scheme per token type; fall back to the other. */
+function authHeaderVariants(token) {
+    const t = String(token || '').trim();
+    if (t.startsWith('ghp_')) {
+        return ['token ' + t, 'Bearer ' + t];
+    }
+    // fine-grained github_pat_ and anything else
+    return ['Bearer ' + t, 'token ' + t];
+}
+
+function baseHeaders(authValue) {
+    return {
+        Authorization: authValue,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+    };
+}
+
+async function githubFetch(url, options, token) {
+    const variants = authHeaderVariants(token);
+    let lastRes = null;
+    let lastBody = '';
+    for (let i = 0; i < variants.length; i++) {
+        const headers = {
+            ...baseHeaders(variants[i]),
+            ...(options.headers || {}),
+        };
+        // don't let caller Authorization override
+        headers.Authorization = variants[i];
+        const res = await fetch(url, { ...options, headers });
+        lastRes = res;
+        if (res.ok) return res;
+        // try next scheme on auth failures
+        if (res.status === 401 || res.status === 403) {
+            lastBody = await res.text();
+            continue;
+        }
+        return res;
+    }
+    // rebuild a Response-like failure with last body for callers that read text
+    return {
+        ok: false,
+        status: lastRes ? lastRes.status : 0,
+        async text() {
+            return lastBody;
+        },
+        async json() {
+            try {
+                return JSON.parse(lastBody);
+            } catch (e) {
+                return {};
+            }
+        },
+    };
 }
 
 export async function syncUsersToGithub(users) {
@@ -340,54 +405,38 @@ export function setGithubToken(token) {
     else localStorage.setItem(GH_TOKEN_KEY, String(token).trim());
 }
 
-/** Auth header that works for classic (ghp_) and fine-grained (github_pat_). */
-function authHeaders(token) {
-    const t = String(token || '').trim();
-    // Classic PATs prefer "token"; fine-grained prefer "Bearer". Send both styles via Bearer which GitHub accepts for both.
-    return {
-        Authorization: 'Bearer ' + t,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-    };
-}
-
 function formatGithubError(status, body) {
     const text = String(body || '');
     if (status === 403 || text.indexOf('Resource not accessible by personal access token') !== -1) {
         return (
-            '403: this token cannot write to ziyyhhk/broken-team-demonlist. ' +
-            'Classic token: must have the "repo" scope checked when creating it. ' +
-            'Fine-grained: Contents = Read and write. ' +
-            'Token must be created on YOUR GitHub account (the collaborator), not the owner. ' +
-            'Use Test token in Settings to verify.'
+            '403: token cannot write to this repo. ' +
+            'ghp_ classic: check the full "repo" scope. ' +
+            'github_pat_ fine-grained: Contents = Read and write. ' +
+            'Token must be from the collaborator account. Use Test token.'
         );
     }
     if (status === 401) {
-        return '401: token invalid/expired or wrong. Create a new one and paste it again.';
+        return '401: token invalid/expired. Create a new ghp_ or github_pat_ and paste it again.';
     }
     if (status === 404) {
-        return '404: repo not visible to this token. Accept the collaborator invite on the collaborator account.';
+        return '404: repo not visible to this token. Accept the collaborator invite.';
     }
     return 'GitHub error ' + status + ': ' + text.slice(0, 180);
 }
 
-/**
- * Diagnose token against this repo.
- * Returns { ok, steps: string[] } with what worked / failed.
- */
 export async function testGithubToken(tokenOverride) {
     const token = (tokenOverride || getGithubToken() || '').trim();
     const steps = [];
     if (!token) {
         return { ok: false, steps: ['No token pasted.'] };
     }
-    if (token.startsWith('ghp_')) steps.push('Detected classic token (ghp_).');
-    else if (token.startsWith('github_pat_')) steps.push('Detected fine-grained token (github_pat_).');
-    else steps.push('Token format unusual (expected ghp_ or github_pat_).');
+    if (token.startsWith('ghp_')) steps.push('Detected classic token (ghp_) — will try token + Bearer auth.');
+    else if (token.startsWith('github_pat_'))
+        steps.push('Detected fine-grained token (github_pat_) — will try Bearer + token auth.');
+    else steps.push('Unusual token prefix (expected ghp_ or github_pat_).');
 
-    // 1) Who am I?
     try {
-        const me = await fetch('https://api.github.com/user', { headers: authHeaders(token) });
+        const me = await githubFetch('https://api.github.com/user', { method: 'GET' }, token);
         if (!me.ok) {
             const t = await me.text();
             steps.push('Auth failed: ' + formatGithubError(me.status, t));
@@ -396,15 +445,12 @@ export async function testGithubToken(tokenOverride) {
         const user = await me.json();
         steps.push('Logged in as GitHub user: ' + user.login);
     } catch (e) {
-        steps.push('Network error talking to GitHub: ' + e);
+        steps.push('Network error: ' + e);
         return { ok: false, steps };
     }
 
-    // 2) Can we see the repo?
     try {
-        const repo = await fetch('https://api.github.com/repos/' + GH_REPO, {
-            headers: authHeaders(token),
-        });
+        const repo = await githubFetch('https://api.github.com/repos/' + GH_REPO, { method: 'GET' }, token);
         if (!repo.ok) {
             const t = await repo.text();
             steps.push('Cannot access repo: ' + formatGithubError(repo.status, t));
@@ -413,17 +459,10 @@ export async function testGithubToken(tokenOverride) {
         const info = await repo.json();
         const perms = info.permissions || {};
         steps.push(
-            'Repo visible. permissions push=' +
-                !!perms.push +
-                ' admin=' +
-                !!perms.admin +
-                ' pull=' +
-                !!perms.pull,
+            'Repo visible. push=' + !!perms.push + ' admin=' + !!perms.admin + ' pull=' + !!perms.pull,
         );
         if (!perms.push) {
-            steps.push(
-                'FAIL: this account cannot push (no write). Owner must give Write access, or token scopes are too weak (classic needs "repo").',
-            );
+            steps.push('FAIL: no push permission. Need Write on the repo + correct token scopes.');
             return { ok: false, steps };
         }
     } catch (e) {
@@ -431,18 +470,18 @@ export async function testGithubToken(tokenOverride) {
         return { ok: false, steps };
     }
 
-    // 3) Can we read a file via Contents API?
     try {
-        const file = await fetch(
+        const file = await githubFetch(
             'https://api.github.com/repos/' + GH_REPO + '/contents/data/_config.json',
-            { headers: authHeaders(token) },
+            { method: 'GET' },
+            token,
         );
         if (!file.ok) {
             const t = await file.text();
             steps.push('Contents API read failed: ' + formatGithubError(file.status, t));
             return { ok: false, steps };
         }
-        steps.push('Contents API read OK — token should be able to Save.');
+        steps.push('Contents API read OK — Save should work with ghp_ or github_pat_.');
     } catch (e) {
         steps.push('Contents read error: ' + e);
         return { ok: false, steps };
@@ -457,7 +496,7 @@ export async function fetchGithubCollaborators() {
 
     const api = 'https://api.github.com/repos/' + GH_REPO + '/collaborators?per_page=100';
     try {
-        const res = await fetch(api, { headers: authHeaders(token) });
+        const res = await githubFetch(api, { method: 'GET' }, token);
         if (!res.ok) {
             const t = await res.text();
             return { ok: false, error: formatGithubError(res.status, t), list: [] };
@@ -482,7 +521,7 @@ export async function githubPutFile(path, content, message) {
     const api = 'https://api.github.com/repos/' + GH_REPO + '/contents/' + path;
     let sha;
     try {
-        const cur = await fetch(api, { headers: authHeaders(token) });
+        const cur = await githubFetch(api, { method: 'GET' }, token);
         if (cur.ok) {
             const j = await cur.json();
             sha = j.sha;
@@ -496,19 +535,20 @@ export async function githubPutFile(path, content, message) {
 
     const body = {
         message: message || ('Update ' + path + ' via Broken List admin'),
-        content: btoa(unescape(encodeURIComponent(content))),
+        content: toBase64(content),
         branch: 'main',
     };
     if (sha) body.sha = sha;
 
-    const res = await fetch(api, {
-        method: 'PUT',
-        headers: {
-            ...authHeaders(token),
-            'Content-Type': 'application/json',
+    const res = await githubFetch(
+        api,
+        {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
         },
-        body: JSON.stringify(body),
-    });
+        token,
+    );
 
     if (!res.ok) {
         const err = await res.text();

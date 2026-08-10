@@ -99,44 +99,47 @@ export async function fetchLeaderboard() {
 
     const scoreMap = {};
     const errs = [];
+
+    function bucket(name) {
+        if (!name || !String(name).trim()) return null;
+        const key =
+            Object.keys(scoreMap).find((u) => u.toLowerCase() === String(name).toLowerCase()) ||
+            String(name).trim();
+        scoreMap[key] ??= { verified: [], completed: [], progressed: [] };
+        return key;
+    }
+
     list.forEach(([level, err], rank) => {
         if (err || !level) {
             errs.push(err ?? `#${rank + 1}`);
             return;
         }
 
-        const verifier =
-            Object.keys(scoreMap).find(
-                (u) => u.toLowerCase() === level.verifier.toLowerCase(),
-            ) || level.verifier;
-        scoreMap[verifier] ??= {
-            verified: [],
-            completed: [],
-            progressed: [],
-        };
-        scoreMap[verifier].verified.push({
-            rank: rank + 1,
-            level: level.name,
-            score: score(rank + 1, 100, level.percentToQualify),
-            link: level.verification,
-        });
+        // Verifier credit — set via Admin → Levels → Verifier field
+        const verifierName = level.verifier && String(level.verifier).trim();
+        if (verifierName) {
+            const verifier = bucket(verifierName);
+            if (verifier) {
+                scoreMap[verifier].verified.push({
+                    rank: rank + 1,
+                    level: level.name,
+                    score: score(rank + 1, 100, level.percentToQualify),
+                    link: level.verification || '',
+                });
+            }
+        }
 
         (level.records ?? []).forEach((record) => {
-            const user =
-                Object.keys(scoreMap).find(
-                    (u) => u.toLowerCase() === record.user.toLowerCase(),
-                ) || record.user;
-            scoreMap[user] ??= {
-                verified: [],
-                completed: [],
-                progressed: [],
-            };
-            if (record.percent === 100) {
+            if (!record || !record.user) return;
+            const user = bucket(record.user);
+            if (!user) return;
+
+            if (Number(record.percent) === 100) {
                 scoreMap[user].completed.push({
                     rank: rank + 1,
                     level: level.name,
                     score: score(rank + 1, 100, level.percentToQualify),
-                    link: record.link,
+                    link: record.link || '',
                 });
                 return;
             }
@@ -146,7 +149,7 @@ export async function fetchLeaderboard() {
                 level: level.name,
                 percent: record.percent,
                 score: score(rank + 1, record.percent, level.percentToQualify),
-                link: record.link,
+                link: record.link || '',
             });
         });
     });
