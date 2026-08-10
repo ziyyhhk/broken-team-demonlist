@@ -51,6 +51,7 @@ export default {
         infoText: '',
         rulesText: '',
         newRec: { user: '', percent: 100, hz: 240, link: '' },
+        levelSearch: '',
     }),
     computed: {
         owner() {
@@ -77,6 +78,13 @@ export default {
                 return { name: name, rank: rank, tier: tier };
             });
         },
+        filteredLevels() {
+            var q = (this.levelSearch || '').trim().toLowerCase();
+            if (!q) return this.listOrder;
+            return this.listOrder.filter(function (p) {
+                return p.toLowerCase().indexOf(q) !== -1;
+            });
+        },
     },
     template: `
         <main v-if="loading" class="page-shell"><Spinner /></main>
@@ -97,29 +105,24 @@ export default {
                 <p class="admin-banner" v-if="msg">{{ msg }}</p>
                 <p class="admin-banner admin-banner--err" v-if="err">{{ err }}</p>
 
-                <!-- TIERS -->
                 <div v-if="tab === 'tiers' && canList" class="admin-panel">
                     <h2>Main / Extended / Legacy</h2>
                     <p class="admin-hint">
-                        <strong>Order decides rank.</strong> #1 is the top of the list (hardest).<br/>
-                        Ranks 1 → Main cutoff = <strong>Main</strong><br/>
-                        Next ranks until Extended cutoff = <strong>Extended</strong><br/>
-                        Everything after = <strong>Legacy</strong><br/>
-                        Leaderboard points update automatically from level records + this order.
+                        <strong>Order decides rank.</strong> #1 is hardest.<br/>
+                        1 → Main cutoff = Main · then → Extended cutoff = Extended · rest = Legacy
                     </p>
                     <div class="admin-row">
-                        <label>Main cutoff (last Main rank)
-                            <input type="number" min="1" v-model.number="mainCutoff" />
+                        <label>Main cutoff
+                            <input class="admin-input" type="number" min="1" v-model.number="mainCutoff" />
                         </label>
-                        <label>Extended cutoff (last Extended rank)
-                            <input type="number" min="1" v-model.number="extendedCutoff" />
+                        <label>Extended cutoff
+                            <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" />
                         </label>
                     </div>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveConfig(true)">Save cutoffs to GitHub</button>
                     </div>
-
-                    <h3>List order (drag with buttons)</h3>
+                    <h3>List order</h3>
                     <ul class="admin-order">
                         <li v-for="(row, i) in tierPreview" :key="row.name">
                             <span class="admin-order__rank">#{{ row.rank }}</span>
@@ -133,107 +136,126 @@ export default {
                     </ul>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveList(true)">Save order to GitHub</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="saveList(false)">Download _list.json</button>
                     </div>
                 </div>
 
-                <!-- LEVELS + RECORDS -->
-                <div v-if="tab === 'levels' && canLevels" class="admin-panel">
+                <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
                     <h2>Levels & records</h2>
-                    <p class="admin-hint">Editing records changes the <strong>leaderboard</strong> (it is calculated from these). Save to GitHub to sync globally.</p>
-                    <div class="admin-row">
-                        <select v-model="selectedPath" @change="loadDraft">
-                            <option :value="null" disabled>Select level…</option>
-                            <option v-for="p in listOrder" :key="p" :value="p">{{ p }}</option>
-                        </select>
-                    </div>
-                    <template v-if="draft">
-                        <label>Name <input v-model="draft.name" /></label>
-                        <label>ID <input v-model.number="draft.id" type="number" /></label>
-                        <label>Author / uploader <input v-model="draft.author" /></label>
-                        <label>Creators (comma) <input :value="(draft.creators||[]).join(', ')" @input="onCreators" /></label>
-                        <label>Verifier <input v-model="draft.verifier" /></label>
-                        <label>Verification URL <input v-model="draft.verification" /></label>
-                        <label>Password <input v-model="draft.password" /></label>
-                        <label>Length <input v-model="draft.length" placeholder="1m 12s" /></label>
-                        <label>Creation date <input v-model="draft.creationDate" placeholder="3/14/2025" /></label>
-                        <label>Percent to qualify <input v-model.number="draft.percentToQualify" type="number" /></label>
-                        <label>Tags (comma) <input :value="(draft.tags||[]).join(', ')" @input="onTags" /></label>
+                    <p class="admin-hint">Records feed the <strong>leaderboard</strong>. Save to GitHub to sync for everyone.</p>
 
-                        <h3>Records (leaderboard source)</h3>
-                        <ul class="admin-userlist">
-                            <li v-for="(r, ri) in draftRecords" :key="ri">
-                                <input v-model="r.user" placeholder="Player" style="width:7rem" />
-                                <input v-model.number="r.percent" type="number" placeholder="%" style="width:4rem" />
-                                <input v-model.number="r.hz" type="number" placeholder="Hz" style="width:4rem" />
-                                <input v-model="r.link" placeholder="Video URL" style="flex:1;min-width:8rem" />
-                                <button type="button" class="auth-btn auth-btn--ghost" @click="draftRecords.splice(ri,1)">✕</button>
-                            </li>
-                        </ul>
-                        <div class="admin-row">
-                            <input v-model="newRec.user" placeholder="Player" />
-                            <input v-model.number="newRec.percent" type="number" placeholder="%" style="width:4rem" />
-                            <input v-model.number="newRec.hz" type="number" placeholder="Hz" style="width:4rem" />
-                            <input v-model="newRec.link" placeholder="https://youtu.be/…" />
-                            <button type="button" class="auth-btn auth-btn--ghost" @click="addRecord">Add record</button>
+                    <div class="level-picker">
+                        <input
+                            class="admin-input level-picker__search"
+                            type="search"
+                            v-model="levelSearch"
+                            placeholder="Search levels…"
+                        />
+                        <div class="level-picker__list">
+                            <button
+                                type="button"
+                                class="level-picker__item"
+                                v-for="(p, i) in filteredLevels"
+                                :key="p"
+                                :class="{ active: selectedPath === p }"
+                                @click="selectLevel(p)"
+                            >
+                                <span class="level-picker__rank">#{{ listOrder.indexOf(p) + 1 }}</span>
+                                <span class="level-picker__name">{{ p }}</span>
+                            </button>
+                            <p v-if="!filteredLevels.length" class="admin-hint">No match.</p>
                         </div>
+                    </div>
 
-                        <div class="admin-actions">
-                            <button type="button" class="auth-btn" :disabled="saving" @click="saveLevel(true)">Save to GitHub</button>
-                            <button type="button" class="auth-btn auth-btn--ghost" @click="saveLevel(false)">Download JSON</button>
+                    <template v-if="draft">
+                        <div class="admin-edit-card">
+                            <h3 class="admin-edit-card__title">{{ draft.name || selectedPath }}</h3>
+                            <div class="admin-grid">
+                                <label>Name <input class="admin-input" v-model="draft.name" /></label>
+                                <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
+                                <label>Author <input class="admin-input" v-model="draft.author" /></label>
+                                <label>Verifier <input class="admin-input" v-model="draft.verifier" /></label>
+                                <label class="admin-grid--full">Creators (comma) <input class="admin-input" :value="(draft.creators||[]).join(', ')" @input="onCreators" /></label>
+                                <label class="admin-grid--full">Verification URL <input class="admin-input" v-model="draft.verification" /></label>
+                                <label>Password <input class="admin-input" v-model="draft.password" /></label>
+                                <label>Length <input class="admin-input" v-model="draft.length" placeholder="1m 12s" /></label>
+                                <label>Created <input class="admin-input" v-model="draft.creationDate" /></label>
+                                <label>Qualify % <input class="admin-input" v-model.number="draft.percentToQualify" type="number" /></label>
+                                <label class="admin-grid--full">Tags (comma) <input class="admin-input" :value="(draft.tags||[]).join(', ')" @input="onTags" /></label>
+                            </div>
+
+                            <h3>Records</h3>
+                            <div class="rec-table">
+                                <div class="rec-table__head">
+                                    <span>Player</span>
+                                    <span>%</span>
+                                    <span>Hz</span>
+                                    <span>Video link</span>
+                                    <span></span>
+                                </div>
+                                <div class="rec-table__row" v-for="(r, ri) in draftRecords" :key="ri">
+                                    <input class="admin-input" v-model="r.user" placeholder="Player" />
+                                    <input class="admin-input" v-model.number="r.percent" type="number" placeholder="100" />
+                                    <input class="admin-input" v-model.number="r.hz" type="number" placeholder="240" />
+                                    <input class="admin-input" v-model="r.link" placeholder="https://youtu.be/…" />
+                                    <button type="button" class="rec-del" @click="draftRecords.splice(ri,1)" title="Remove">✕</button>
+                                </div>
+                                <div class="rec-table__row rec-table__row--new">
+                                    <input class="admin-input" v-model="newRec.user" placeholder="Player" />
+                                    <input class="admin-input" v-model.number="newRec.percent" type="number" placeholder="100" />
+                                    <input class="admin-input" v-model.number="newRec.hz" type="number" placeholder="240" />
+                                    <input class="admin-input" v-model="newRec.link" placeholder="https://youtu.be/…" />
+                                    <button type="button" class="auth-btn auth-btn--ghost rec-add" @click="addRecord">Add</button>
+                                </div>
+                            </div>
+
+                            <div class="admin-actions">
+                                <button type="button" class="auth-btn" :disabled="saving" @click="saveLevel(true)">Save to GitHub</button>
+                                <button type="button" class="auth-btn auth-btn--ghost" @click="saveLevel(false)">Download JSON</button>
+                            </div>
                         </div>
                     </template>
+                    <p v-else class="admin-hint">Pick a level on the left to edit.</p>
                 </div>
 
-                <!-- INFO -->
                 <div v-if="tab === 'info' && canLevels" class="admin-panel">
                     <h2>Info page</h2>
-                    <p class="admin-hint">JSON for data/info.json. Edit carefully, then Save to GitHub.</p>
                     <textarea class="admin-ta" v-model="infoText" rows="18"></textarea>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveInfo(true)">Save to GitHub</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="saveInfo(false)">Download</button>
                     </div>
                 </div>
 
-                <!-- RULES -->
                 <div v-if="tab === 'rules' && canLevels" class="admin-panel">
                     <h2>Rules page</h2>
-                    <p class="admin-hint">JSON for data/rules.json (chapters + rules arrays).</p>
                     <textarea class="admin-ta" v-model="rulesText" rows="18"></textarea>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveRules(true)">Save to GitHub</button>
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="saveRules(false)">Download</button>
                     </div>
                 </div>
 
-                <!-- EDITORS -->
                 <div v-if="tab === 'editors' && canEditors" class="admin-panel">
                     <h2>Editors</h2>
-                    <div class="admin-actions" style="margin-bottom:0.75rem">
-                        <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
-                    </div>
+                    <button type="button" class="auth-btn auth-btn--ghost" @click="buildEditorsFromUsers">Build from users</button>
                     <textarea class="admin-ta" v-model="editorsTextRaw" rows="14"></textarea>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" :disabled="saving" @click="saveEditors(true)">Save to GitHub</button>
                     </div>
                 </div>
 
-                <!-- USERS -->
                 <div v-if="tab === 'users' && canUsers" class="admin-panel">
                     <h2>Users & roles</h2>
                     <div class="admin-create" v-if="owner">
-                        <h3>Create account for someone</h3>
-                        <label>Username <input v-model="newUser" autocomplete="off" /></label>
-                        <label>Password <input v-model="newPass" type="password" autocomplete="new-password" /></label>
+                        <h3>Create account</h3>
+                        <label>Username <input class="admin-input" v-model="newUser" autocomplete="off" /></label>
+                        <label>Password <input class="admin-input" v-model="newPass" type="password" autocomplete="new-password" /></label>
                         <label>Role
-                            <select v-model="newRole">
+                            <select class="admin-input" v-model="newRole">
                                 <option value="admin">Admin</option>
                                 <option value="helper">Helper</option>
                                 <option value="member">Member</option>
                             </select>
                         </label>
-                        <button type="button" class="auth-btn" :disabled="creating" @click="createUser">Create account</button>
+                        <button type="button" class="auth-btn" :disabled="creating" @click="createUser">Create</button>
                     </div>
                     <ul class="admin-userlist">
                         <li v-for="u in users" :key="u.username">
@@ -241,10 +263,9 @@ export default {
                             <span class="admin-role-tag">{{ u.role }}</span>
                         </li>
                     </ul>
-                    <h3>Change role</h3>
                     <div class="admin-row">
-                        <input v-model="roleUser" placeholder="Username" />
-                        <select v-model="rolePick">
+                        <input class="admin-input" v-model="roleUser" placeholder="Username" />
+                        <select class="admin-input" v-model="rolePick">
                             <option value="helper">Helper</option>
                             <option value="admin">Admin</option>
                             <option value="member">Member</option>
@@ -253,11 +274,10 @@ export default {
                     </div>
                 </div>
 
-                <!-- SETTINGS -->
                 <div v-if="tab === 'settings' && owner" class="admin-panel">
                     <h2>GitHub token</h2>
                     <p class="admin-hint"><code>github_pat_…</code> is fine. Contents: Read and write.</p>
-                    <label>Token <input type="password" v-model="ghToken" autocomplete="off" /></label>
+                    <label>Token <input class="admin-input" type="password" v-model="ghToken" autocomplete="off" /></label>
                     <div class="admin-actions">
                         <button type="button" class="auth-btn" @click="saveToken">Save token</button>
                         <button type="button" class="auth-btn auth-btn--ghost" @click="clearToken">Clear</button>
@@ -291,6 +311,10 @@ export default {
             this.users = getUsers().map(function (u) {
                 return { username: u.username, role: u.role, createdAt: u.createdAt };
             });
+        },
+        selectLevel(p) {
+            this.selectedPath = p;
+            this.loadDraft();
         },
         moveUp(i) {
             if (i <= 0) return;
@@ -358,7 +382,7 @@ export default {
             var res = await githubPutFile('data/' + this.selectedPath + '.json', text, 'Admin: update ' + this.selectedPath);
             this.saving = false;
             if (!res.ok) this.flash(res.error, true);
-            else this.flash('Level + records saved. Leaderboard will update after rebuild.');
+            else this.flash('Level + records saved. Leaderboard updates after rebuild.');
         },
         async saveList(toGithub) {
             var order = this.listOrder.slice();
@@ -384,10 +408,6 @@ export default {
                 return;
             }
             var text = JSON.stringify(cfg, null, 4);
-            if (!toGithub) {
-                downloadJson('_config.json', cfg);
-                return;
-            }
             this.saving = true;
             var res = await githubPutFile('data/_config.json', text, 'Admin: update tier cutoffs');
             this.saving = false;
@@ -399,7 +419,6 @@ export default {
             try { data = JSON.parse(this.infoText); }
             catch (e) { this.flash('Info JSON invalid.', true); return; }
             var text = JSON.stringify(data, null, 4);
-            if (!toGithub) { downloadJson('info.json', data); return; }
             this.saving = true;
             var res = await githubPutFile('data/info.json', text, 'Admin: update info');
             this.saving = false;
@@ -411,7 +430,6 @@ export default {
             try { data = JSON.parse(this.rulesText); }
             catch (e) { this.flash('Rules JSON invalid.', true); return; }
             var text = JSON.stringify(data, null, 4);
-            if (!toGithub) { downloadJson('rules.json', data); return; }
             this.saving = true;
             var res = await githubPutFile('data/rules.json', text, 'Admin: update rules');
             this.saving = false;
