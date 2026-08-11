@@ -1,6 +1,6 @@
 import { store } from '../main.js';
 import { embed, getThumbnailFromId, getYoutubeIdFromUrl } from '../util.js';
-import { fetchServerHardest } from '../content.js';
+import { fetchServerHardest, fetchConfig } from '../content.js';
 import Spinner from '../components/Spinner.js';
 
 export default {
@@ -11,36 +11,44 @@ export default {
             <div class="classic-grid">
                 <div class="list-container">
                     <div class="list-toolbar">
-                        <div class="sh-title-block">
-                            <h2 class="sh-heading">Server Hardest</h2>
-                            <p class="sh-sub">Custom rankings from our GD server</p>
+                        <div class="list-tiers">
+                            <button type="button" class="list-tier" :class="{ active: tier === 'main' }" @click="setTier('main')">Main</button>
+                            <button type="button" class="list-tier" :class="{ active: tier === 'extended' }" @click="setTier('extended')">Extended</button>
+                            <button type="button" class="list-tier" :class="{ active: tier === 'legacy' }" @click="setTier('legacy')">Legacy</button>
                         </div>
+                    </div>
+                    <div class="sh-title-block" style="padding:0.35rem 0.6rem 0">
+                        <h2 class="sh-heading">Server Hardest</h2>
+                        <p class="sh-sub">Main #1–{{ MAIN_CUTOFF }} · Extended #{{ MAIN_CUTOFF + 1 }}–{{ EXTENDED_CUTOFF }} · Legacy #{{ EXTENDED_CUTOFF + 1 }}+</p>
                     </div>
                     <div class="list-search">
                         <input type="text" v-model="query" placeholder="Search level" aria-label="Search" />
                         <span class="count">{{ filtered.length }}</span>
                     </div>
                     <table class="list" v-if="filtered.length">
-                        <tr v-for="(level, i) in filtered" :key="level._key || i">
-                            <td class="rank"><p class="type-label-lg">#{{ level._rank }}</p></td>
-                            <td class="level" :class="{ active: selected === level._idx }">
-                                <button type="button" @click="selected = level._idx">
-                                    <span class="type-label-lg">{{ level.name }}</span>
+                        <tr v-for="row in filtered" :key="row._key">
+                            <td class="rank">
+                                <p v-if="row._rank <= EXTENDED_CUTOFF" class="type-label-lg">#{{ row._rank }}</p>
+                                <p v-else class="type-label-lg legacy-tag">LEGACY</p>
+                            </td>
+                            <td class="level" :class="{ active: selected === row._idx }">
+                                <button type="button" @click="selected = row._idx">
+                                    <span class="type-label-lg">{{ row.name }}</span>
                                 </button>
                             </td>
                         </tr>
                     </table>
                     <p v-else class="type-label-md list-empty">
                         <template v-if="query">No match for "{{ query }}".</template>
-                        <template v-else>No server hardest levels yet. Add them in Admin.</template>
+                        <template v-else>No levels in this tier yet.</template>
                     </p>
                 </div>
 
                 <div class="level-container">
                     <div class="level" v-if="level" :key="selected">
-                        <p class="level-tag">Server Hardest · #{{ selected + 1 }}</p>
+                        <p class="level-tag">{{ rankLabel }}</p>
                         <h1>{{ level.name }}</h1>
-                        <p class="sh-meta" v-if="level.author || level.verifier">
+                        <p class="sh-meta">
                             <template v-if="level.author">by {{ level.author }}</template>
                             <template v-if="level.verifier"> · verified {{ level.verifier }}</template>
                         </p>
@@ -60,11 +68,26 @@ export default {
                                     </button>
                                 </p>
                             </li>
+                            <li>
+                                <div class="type-title-sm">Clears</div>
+                                <p>{{ (level.records || []).length }}</p>
+                            </li>
                         </ul>
                         <p class="sh-note" v-if="level.note">{{ level.note }}</p>
-                        <p class="rec-hint" v-if="level.verification">
-                            <a :href="level.verification" target="_blank" rel="noopener">Open verification video</a>
-                        </p>
+
+                        <h2>Who beat it ({{ (level.records || []).length }})</h2>
+                        <p class="rec-hint">Player · attempts · date · video</p>
+                        <table class="records" v-if="level.records && level.records.length">
+                            <tr class="record" v-for="(r, ri) in level.records" :key="ri">
+                                <td class="user">
+                                    <a v-if="r.link" :href="r.link" target="_blank" rel="noopener" class="type-label-lg">{{ r.user }}</a>
+                                    <span v-else class="type-label-lg">{{ r.user }}</span>
+                                </td>
+                                <td class="percent"><p>{{ r.attempts != null ? r.attempts + ' att' : '—' }}</p></td>
+                                <td class="hz"><p>{{ r.date || '—' }}</p></td>
+                            </tr>
+                        </table>
+                        <p v-else class="rec-hint">No clears logged yet.</p>
                     </div>
                     <div v-else class="empty">
                         <span>¯\\_(ツ)_/¯</span>
@@ -76,8 +99,8 @@ export default {
                     <div class="meta">
                         <h3>About Server Hardest</h3>
                         <p class="type-label-md">
-                            This is a separate ranking for levels cleared on the Broken Team server —
-                            not the main demonlist. Staff can edit it anytime in Admin.
+                            Separate ranking for our GD server. Same tier cutoffs as the main list
+                            (Main / Extended / Legacy), but entries and clears are independent.
                         </p>
                         <div class="og">
                             <p class="type-label-md">The Broken List · Server Hardest</p>
@@ -92,11 +115,16 @@ export default {
         loading: true,
         selected: 0,
         query: '',
+        tier: 'main',
         store,
+        MAIN_CUTOFF: 75,
+        EXTENDED_CUTOFF: 150,
     }),
     computed: {
         filtered() {
             const q = this.query.trim().toLowerCase();
+            const MAIN = this.MAIN_CUTOFF;
+            const EXT = this.EXTENDED_CUTOFF;
             return this.levels
                 .map((level, idx) => ({
                     ...level,
@@ -104,18 +132,43 @@ export default {
                     _rank: idx + 1,
                     _key: (level.name || '') + '-' + idx,
                 }))
-                .filter((l) => !q || (l.name || '').toLowerCase().includes(q));
+                .filter((row) => {
+                    const rank = row._rank;
+                    let inTier = true;
+                    if (this.tier === 'main') inTier = rank <= MAIN;
+                    else if (this.tier === 'extended') inTier = rank > MAIN && rank <= EXT;
+                    else if (this.tier === 'legacy') inTier = rank > EXT;
+                    if (!inTier) return false;
+                    if (!q) return true;
+                    return (row.name || '').toLowerCase().includes(q);
+                });
         },
         level() {
             return this.levels[this.selected] || null;
+        },
+        rankLabel() {
+            const r = this.selected + 1;
+            if (r <= this.MAIN_CUTOFF) return 'Server Hardest · Main · #' + r;
+            if (r <= this.EXTENDED_CUTOFF) return 'Server Hardest · Extended · #' + r;
+            return 'Server Hardest · Legacy · #' + r;
         },
         video() {
             if (!this.level || !this.level.verification) return '';
             return embed(this.level.verification);
         },
     },
+    watch: {
+        tier() {
+            if (this.filtered.length > 0) this.selected = this.filtered[0]._idx;
+        },
+    },
     methods: {
         embed,
+        setTier(t) {
+            if (this.tier === t) return;
+            this.tier = t;
+            this.query = '';
+        },
         async copyId(id) {
             const text = String(id);
             try {
@@ -131,7 +184,13 @@ export default {
         },
     },
     async mounted() {
+        const cfg = await fetchConfig();
+        this.MAIN_CUTOFF = cfg.mainCutoff || 75;
+        this.EXTENDED_CUTOFF = cfg.extendedCutoff || 150;
         this.levels = (await fetchServerHardest()) || [];
+        if (this.levels.length) {
+            this.tier = 'main';
+        }
         this.loading = false;
     },
 };
