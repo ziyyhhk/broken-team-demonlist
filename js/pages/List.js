@@ -1,4 +1,4 @@
-const parts = await Promise.all([0,1,2].map(i => fetch(new URL("./List_b64_"+i+".txt", import.meta.url)).then(r => { if (!r.ok) throw new Error("List_b64_"+i); return r.text(); })));
+const parts = await Promise.all([0,1,2,3,4].map(i => fetch(new URL("./Lb_p"+i+".txt", import.meta.url)).then(r => { if (!r.ok) throw new Error("Lb_p"+i); return r.text(); })));
 let code = atob(parts.join(""));
 const jsBase = new URL("../", import.meta.url).href;
 const pagesBase = new URL("./", import.meta.url).href;
