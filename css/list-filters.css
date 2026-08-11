@@ -1,0 +1,67 @@
+/* List toolbar + filters */
+.list-sort-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; margin: 0.4rem 0 0.6rem; }
+.chip {
+  border: 1px solid rgba(128,128,128,0.35);
+  background: rgba(128,128,128,0.12);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.chip:hover { background: rgba(128,128,128,0.22); }
+.chip.active { background: #5b6cff; border-color: #5b6cff; color: #fff; }
+.chip-filter.active { background: #3d8bfd; border-color: #3d8bfd; }
+.chip-ghost { opacity: 0.85; }
+.filter-panel {
+  background: rgba(0,0,0,0.28);
+  border: 1px solid rgba(128,128,128,0.25);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 280px;
+  overflow: auto;
+  margin-bottom: 0.6rem;
+}
+body:not(.dark) .filter-panel { background: rgba(0,0,0,0.04); }
+.filter-group__title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.65; margin-bottom: 0.35rem; }
+.filter-group__tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.tag-chip {
+  border: 1px solid rgba(128,128,128,0.3);
+  background: rgba(128,128,128,0.08);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.22rem 0.55rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.tag-chip.on { background: #5b6cff; border-color: #5b6cff; color: #fff; }
+.admin-tags { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0; }
+.admin-tags__group-title { font-size: 0.75rem; opacity: 0.7; margin-bottom: 0.25rem; }
+.admin-tags__row { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.admin-tag {
+  border: 1px solid rgba(128,128,128,0.3);
+  background: rgba(128,128,128,0.08);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: inherit;
+}
+.admin-tag.on { background: #2ecc71; border-color: #2ecc71; color: #0b1a10; font-weight: 700; }
+.sh-list { list-style: none; padding: 0; margin: 0 0 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.sh-item {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  background: rgba(128,128,128,0.08); border: 1px solid rgba(128,128,128,0.2);
+  border-radius: 10px; padding: 0.55rem 0.7rem;
+}
+.sh-item__rank { opacity: 0.6; min-width: 2rem; }
+.sh-item__actions { margin-left: auto; display: flex; gap: 0.3rem; }
+@media (max-width: 720px) {
+  .list-sort-chips { gap: 0.3rem; }
+  .chip { padding: 0.3rem 0.55rem; font-size: 0.72rem; }
+}
