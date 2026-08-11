@@ -65,3 +65,9 @@ body:not(.dark) .filter-panel { background: rgba(0,0,0,0.04); }
   .list-sort-chips { gap: 0.3rem; }
   .chip { padding: 0.3rem 0.55rem; font-size: 0.72rem; }
 }
+
+/* Cards view filter bar */
+.cards-view .list-sort-chips { margin: 0.5rem 0 0.75rem; width: 100%; }
+.cards-view .filter-panel { margin-top: 0.35rem; }
+.cards-toolbar { flex-wrap: wrap; }
+.cards-toolbar .list-sort-chips { flex: 1 1 100%; }
