@@ -1,17 +1,5 @@
-const base = new URL('.', import.meta.url).href;
-
-async function load() {
-  const [a, b] = await Promise.all([
-    fetch(base + 'Admin_b64_0.txt?t=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()),
-    fetch(base + 'Admin_b64_1.txt?t=' + Date.now(), { cache: 'no-store' }).then((r) => r.text()),
-  ]);
-  const bin = atob(a + b);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const code = new TextDecoder().decode(bytes);
-  const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
-  return import(url);
-}
-
-const mod = await load();
-export default mod.default;
+/**
+ * Load Admin from jsDelivr so relative imports (../auth.js etc.) resolve on the CDN.
+ * No blob rewrite — avoids 404 on auth/content/Spinner.
+ */
+export { default } from 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@1ed15d470ab131c2c8c8789fcbd74d023260dde2/js/pages/Admin.js';
