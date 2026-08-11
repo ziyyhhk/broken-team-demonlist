@@ -65,7 +65,7 @@ const app = Vue.createApp({
             <div class="logo">
                 <div class="logo__text">
                     <h2>The Broken List</h2>
-                    <p>v1.0.1</p>
+                    <p>v1.0.2</p>
                 </div>
             </div>
             <nav class="nav">
