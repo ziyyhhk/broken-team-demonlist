@@ -229,3 +229,68 @@ body:not(.dark) .sync-toast--done { background: #e8f8ea; color: #145214; }
     .level-picker { max-width: none; }
     .board-layout { grid-template-columns: 1fr; }
 }
+
+/* Activity Log */
+.admin-loglist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+.admin-log {
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+.admin-log__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.55rem;
+    font-size: 0.88rem;
+}
+.admin-log__time {
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    min-width: 9.5rem;
+}
+.admin-log__user {
+    font-weight: 800;
+}
+.admin-log__action {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+    color: var(--color-primary);
+}
+.admin-log__detail {
+    font-size: 0.86rem;
+    color: var(--color-on-background);
+    line-height: 1.4;
+    padding-left: 0.1rem;
+}
+.admin-log__path {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+}
+.admin-log__path code {
+    font-family: "Chivo Mono", monospace;
+    font-size: 0.78em;
+    background: var(--color-background);
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.3rem;
+}
