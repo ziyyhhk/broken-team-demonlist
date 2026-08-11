@@ -6,7 +6,6 @@ import Rules from './pages/Rules.js';
 import Credits from './pages/Credits.js';
 import Login from './pages/Login.js';
 import Register from './pages/Register.js';
-import Admin from './pages/Admin.js';
 import ServerHardest from './pages/ServerHardest.js';
 
 export default [
@@ -19,5 +18,5 @@ export default [
     { path: '/credits', component: Credits },
     { path: '/login', component: Login },
     { path: '/register', component: Register },
-    { path: '/admin', component: Admin },
+    { path: '/admin', component: () => import('./pages/Admin.js') },
 ];
