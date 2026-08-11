@@ -1,27 +1,13 @@
 /**
- * Bootstrap loader for Admin panel (with Activity Log).
+ * TEMP: load working Admin from historical commit so panel is usable.
+ * Log page will be added in a follow-up once source is restored cleanly.
  */
-const PARTS = [
-  './data/_admin_b64_0.txt',
-  './data/_admin_b64_1.txt',
-  './data/_admin_b64_2.txt',
-  './data/_admin_b64_3.txt',
-  './data/_admin_b64_4.txt',
-  './data/_admin_b64_5.txt'
-];
+const SRC = 'https://raw.githubusercontent.com/ziyyhhk/broken-team-demonlist/c8877705bbca81cd8867195ca21bfd985d896c9c/js/pages/Admin.js';
 
 async function loadAdmin() {
-  const chunks = [];
-  for (const path of PARTS) {
-    const res = await fetch(path + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('Failed to load ' + path);
-    chunks.push(await res.text());
-  }
-  const b64 = chunks.join('').replace(/\s+/g, '');
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const code = new TextDecoder().decode(bytes);
+  const res = await fetch(SRC + '?t=' + Date.now(), { cache: 'no-store' });
+  if (!res.ok) throw new Error('Failed to load Admin source: ' + res.status);
+  const code = await res.text();
   const blob = new Blob([code], { type: 'text/javascript' });
   const url = URL.createObjectURL(blob);
   return import(url);
