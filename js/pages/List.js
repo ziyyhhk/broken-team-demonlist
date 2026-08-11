@@ -15,9 +15,16 @@ code = code.replace(
   "import { filterDataExtras, filterMethods, applyFiltersAndSort, filterToolbarHtml } from '" + jsBase + "listFilters.js';\nimport LevelAuthors from"
 );
 
+// Classic view: inject after first list-search block
 code = code.replace(
   '</div>\n                        <transition-group name="tier-list"',
   '</div>\n                        ${filterToolbarHtml}\n                        <transition-group name="tier-list"'
+);
+
+// Cards view: inject after cards-search
+code = code.replace(
+  'list-search cards-search">\n                            <input type="text" v-model="query" placeholder="Search level" aria-label="Search level" />\n                        </div>',
+  'list-search cards-search">\n                            <input type="text" v-model="query" placeholder="Search…" aria-label="Search level" />\n                        </div>\n                        ${filterToolbarHtml}'
 );
 
 code = code.replace(
