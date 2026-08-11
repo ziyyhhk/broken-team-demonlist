@@ -7,11 +7,13 @@ import Credits from './pages/Credits.js';
 import Login from './pages/Login.js';
 import Register from './pages/Register.js';
 import Admin from './pages/Admin.js';
+import ServerHardest from './pages/ServerHardest.js';
 
 export default [
     { path: '/', component: List },
     { path: '/leaderboard', component: Leaderboard },
     { path: '/roulette', component: Roulette },
+    { path: '/server-hardest', component: ServerHardest },
     { path: '/info', component: Info },
     { path: '/rules', component: Rules },
     { path: '/credits', component: Credits },
