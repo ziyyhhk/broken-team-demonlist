@@ -73,6 +73,7 @@ const app = Vue.createApp({
                     <router-link class="nav__tab" to="/"><span class="type-label-lg">List</span></router-link>
                     <router-link class="nav__tab" to="/leaderboard"><span class="type-label-lg">Leaderboard</span></router-link>
                     <router-link class="nav__tab" to="/roulette"><span class="type-label-lg">Roulette</span></router-link>
+                    <router-link class="nav__tab" to="/server-hardest"><span class="type-label-lg">Server Hardest</span></router-link>
                     <router-link class="nav__tab" to="/info"><span class="type-label-lg">Info</span></router-link>
                     <router-link class="nav__tab" to="/rules"><span class="type-label-lg">Rules</span></router-link>
                     <router-link class="nav__tab" to="/credits"><span class="type-label-lg">Credits</span></router-link>

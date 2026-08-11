@@ -115,7 +115,6 @@ export async function fetchLeaderboard() {
             return;
         }
 
-        // Verifier credit — set via Admin → Levels → Verifier field
         const verifierName = level.verifier && String(level.verifier).trim();
         if (verifierName) {
             const verifier = bucket(verifierName);
@@ -168,4 +167,14 @@ export async function fetchLeaderboard() {
     });
 
     return [res.sort((a, b) => b.total - a.total), errs];
+}
+
+export async function fetchServerHardest() {
+    try {
+        const data = await fetchJson(`${dir}/_server_hardest.json`);
+        return Array.isArray(data) ? data : [];
+    } catch (e) {
+        console.error('Failed to load server hardest.', e);
+        return [];
+    }
 }
