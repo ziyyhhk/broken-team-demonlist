@@ -1,11 +1,13 @@
 /**
- * Bootstrap: loads full Admin panel (with Activity Log) from base64 parts.
- * Written so large source can be pushed in chunks.
+ * Bootstrap loader for Admin panel (with Activity Log).
  */
 const PARTS = [
   './data/_admin_b64_0.txt',
   './data/_admin_b64_1.txt',
   './data/_admin_b64_2.txt',
+  './data/_admin_b64_3.txt',
+  './data/_admin_b64_4.txt',
+  './data/_admin_b64_5.txt'
 ];
 
 async function loadAdmin() {
