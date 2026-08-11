@@ -1,0 +1,264 @@
+import {
+    auth,
+    can,
+    isOwner,
+    logout,
+    getUsersAsync,
+    createAccount,
+    syncUsersToGithub,
+    getGithubToken,
+    setGithubToken,
+    githubPutFile,
+    testGithubToken,
+} from '../auth.js';
+import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '../content.js';
+import Spinner from '../components/Spinner.js';
+
+function slugify(name) {
+    return String(name || '').trim().replace(/[^a-zA-Z0-9]+/g, '').replace(/^\d+/, '') || 'NewLevel';
+}
+
+export default {
+    components: { Spinner },
+    data: () => ({
+        auth, tab: 'levels', loading: true, list: [], listOrder: [], editors: [], users: [],
+        board: [], boardPlayer: null, boardRows: [], verifiedRows: [], playerLookup: '', setVerifierPath: '', activityLogs: [], serverHardestText: '[]',
+        addBeat: { path: '', percent: 100, hz: 240, link: '' },
+        selectedPath: null, draft: null, draftRecords: [], msg: '', err: '',
+        ghToken: '', tokenTestLines: [], tokenTesting: false, saving: false,
+        editorsTextRaw: '', newUser: '', newPass: '', newRole: 'admin', creating: false,
+        mainCutoff: 75, extendedCutoff: 150, infoText: '', rulesText: '',
+        newRec: { user: '', percent: 100, hz: 240, link: '' }, levelSearch: '',
+        syncPhase: '', syncSeconds: 60, showAddLevel: false,
+        newLevel: { name: '', id: '', author: '', verifier: '', verification: '', length: '', percentToQualify: 100 },
+        _syncTimer: null, _syncTick: null,
+    }),
+    computed: {
+        owner() { return isOwner(); },
+        canLevels() { return can('editLevels'); },
+        canList() { return can('editList'); },
+        canEditors() { return can('editEditors'); },
+        canUsers() { return can('manageUsers') || isOwner(); },
+        canToken() { return isOwner() || can('editLevels') || can('editList'); },
+        hasToken() { return !!getGithubToken(); },
+        tierPreview() {
+            var main = Number(this.mainCutoff) || 0, ext = Number(this.extendedCutoff) || 0;
+            return this.listOrder.map(function (name, i) {
+                var rank = i + 1;
+                return { name: name, rank: rank, tier: rank <= main ? 'Main' : rank <= ext ? 'Extended' : 'Legacy' };
+            });
+        },
+        filteredLevels() {
+            var q = (this.levelSearch || '').trim().toLowerCase();
+            if (!q) return this.listOrder;
+            return this.listOrder.filter(function (p) { return p.toLowerCase().indexOf(q) !== -1; });
+        },
+    },
+    template: `
+        <main v-if="loading" class="page-shell"><Spinner /></main>
+        <main v-else class="page-admin page-shell">
+            <aside class="admin-side">
+                <p class="admin-user">{{ auth.user && auth.user.username }} · {{ auth.user && auth.user.role }}</p>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'tiers' }" @click="setTab('tiers')" v-if="canList">Tiers & order</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'levels' }" @click="setTab('levels')" v-if="canLevels">Levels & records</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'board' }" @click="openBoard" v-if="canLevels">Leaderboard</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'info' }" @click="setTab('info')" v-if="canLevels">Info</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'rules' }" @click="setTab('rules')" v-if="canLevels">Rules</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'editors' }" @click="openEditors" v-if="canEditors">Editors</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'users' }" @click="openUsers" v-if="canUsers">Users</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'settings' }" @click="setTab('settings')" v-if="canToken">Settings</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'server' }" @click="openServerHardest" v-if="canLevels">Server Hardest</button>
+                <button type="button" class="admin-tab" :class="{ active: tab === 'log' }" @click="openLog" v-if="canLevels || canList">Activity log</button>
+                <button type="button" class="admin-tab admin-out" @click="onLogout">Log out</button>
+            </aside>
+            <section class="admin-main">
+                <p class="admin-banner" v-if="msg">{{ msg }}</p>
+                <p class="admin-banner admin-banner--err" v-if="err">{{ err }}</p>
+                <div class="sync-toast" v-if="syncPhase" :class="'sync-toast--' + syncPhase">
+                    <template v-if="syncPhase === 'waiting'"><strong>Sync…</strong> ~{{ syncSeconds }}s</template>
+                    <template v-else><strong>Sync done.</strong> Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>
+                        <button type="button" class="sync-toast__x" @click="syncPhase = ''">Dismiss</button></template>
+                </div>
+                <transition name="admin-tab" mode="out-in">
+                    <div :key="tab" class="admin-tab-body">
+
+                <div v-if="tab === 'tiers' && canList" class="admin-panel">
+                    <h2>Tiers & order</h2>
+                    <div class="admin-row">
+                        <label>Main cutoff <input class="admin-input" type="number" min="1" v-model.number="mainCutoff" /></label>
+                        <label>Extended cutoff <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" /></label>
+                    </div>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveConfig()">Save cutoffs</button></div>
+                    <ul class="admin-order">
+                        <li v-for="(row, i) in tierPreview" :key="row.name">
+                            <span class="admin-order__rank">#{{ row.rank }}</span>
+                            <span class="admin-role-tag">{{ row.tier }}</span>
+                            <strong>{{ row.name }}</strong>
+                            <span class="admin-order__btns">
+                                <button type="button" @click="moveUp(i)" :disabled="i===0">↑</button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>
+                            </span>
+                        </li>
+                    </ul>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveList()">Save order</button></div>
+                </div>
+
+                <div v-if="tab === 'levels' && canLevels" class="admin-panel admin-panel--wide">
+                    <h2>Levels & people</h2>
+                    <div class="admin-howto">
+                        <strong>Verifier vs victor</strong>
+                        <ol>
+                            <li><b>Verifier</b> → field “Player who verified”</li>
+                            <li><b>Victor</b> → table below</li>
+                            <li>Or Leaderboard tab → Set as verifier</li>
+                        </ol>
+                    </div>
+                    <div class="admin-actions">
+                        <button type="button" class="auth-btn" @click="showAddLevel = !showAddLevel">{{ showAddLevel ? 'Hide new level' : '+ New level' }}</button>
+                    </div>
+                    <div class="admin-edit-card" v-if="showAddLevel">
+                        <h3>Add a new level</h3>
+                        <div class="admin-grid">
+                            <label>Level name * <input class="admin-input" v-model="newLevel.name" /></label>
+                            <label>In-game ID <input class="admin-input" v-model="newLevel.id" type="number" /></label>
+                            <label>Author <input class="admin-input" v-model="newLevel.author" /></label>
+                            <label>Player who verified * <input class="admin-input" v-model="newLevel.verifier" placeholder="Nyx" /></label>
+                            <label class="admin-grid--full">Verification video * <input class="admin-input" v-model="newLevel.verification" /></label>
+                            <label>Length <input class="admin-input" v-model="newLevel.length" /></label>
+                            <label>Qualify % <input class="admin-input" v-model.number="newLevel.percentToQualify" type="number" /></label>
+                        </div>
+                        <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="createLevel">Create level on list</button></div>
+                    </div>
+                    <div class="level-picker">
+                        <input class="admin-input" type="search" v-model="levelSearch" placeholder="Search…" />
+                        <div class="level-picker__list">
+                            <button type="button" class="level-picker__item" v-for="p in filteredLevels" :key="p" :class="{ active: selectedPath === p }" @click="selectLevel(p)">
+                                <span class="level-picker__rank">#{{ listOrder.indexOf(p) + 1 }}</span><span>{{ p }}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <template v-if="draft">
+                        <div class="admin-edit-card">
+                            <h3>Edit: {{ draft.name || selectedPath }}</h3>
+                            <div class="admin-grid">
+                                <label>Name <input class="admin-input" v-model="draft.name" /></label>
+                                <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
+                                <label>Author <input class="admin-input" v-model="draft.author" /></label>
+                                <label>Player who verified <input class="admin-input" v-model="draft.verifier" placeholder="Real name" /></label>
+                                <label class="admin-grid--full">Verification video <input class="admin-input" v-model="draft.verification" /></label>
+                                <label>Length <input class="admin-input" v-model="draft.length" /></label>
+                                <label>Qualify % <input class="admin-input" v-model.number="draft.percentToQualify" type="number" /></label>
+                            </div>
+                            <h3>Victors</h3>
+                            <div class="rec-table">
+                                <div class="rec-table__row" v-for="(r, ri) in draftRecords" :key="ri">
+                                    <input class="admin-input" v-model="r.user" placeholder="Player" />
+                                    <input class="admin-input" v-model.number="r.percent" type="number" />
+                                    <input class="admin-input" v-model.number="r.hz" type="number" />
+                                    <input class="admin-input" v-model="r.link" placeholder="Video" />
+                                    <button type="button" class="rec-del" @click="draftRecords.splice(ri,1)">✕</button>
+                                </div>
+                                <div class="rec-table__row">
+                                    <input class="admin-input" v-model="newRec.user" placeholder="Player" />
+                                    <input class="admin-input" v-model.number="newRec.percent" type="number" />
+                                    <input class="admin-input" v-model.number="newRec.hz" type="number" />
+                                    <input class="admin-input" v-model="newRec.link" placeholder="Video" />
+                                    <button type="button" class="auth-btn auth-btn--ghost rec-add" @click="addRecord">Add</button>
+                                </div>
+                            </div>
+                            <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveLevel()">Save level</button></div>
+                        </div>
+                    </template>
+                </div>
+
+                <div v-if="tab === 'board' && canLevels" class="admin-panel admin-panel--wide">
+                    <h2>Leaderboard editor</h2>
+                    <div class="admin-howto">
+                        <ol>
+                            <li>Type name → <b>Open / create player</b></li>
+                            <li><b>VERIFIED:</b> pick level → <b>Set as verifier</b></li>
+                            <li><b>COMPLETED:</b> Add level they beat → Save</li>
+                        </ol>
+                    </div>
+                    <div class="admin-row" style="margin-bottom:0.75rem">
+                        <input class="admin-input" v-model="playerLookup" placeholder="Player name" style="min-width:12rem" />
+                        <button type="button" class="auth-btn" @click="openPlayerByName">Open / create player</button>
+                        <button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button>
+                    </div>
+                    <div class="board-layout">
+                        <div class="board-players">
+                            <button type="button" class="level-picker__item" v-for="(e, i) in board" :key="e.user" :class="{ active: boardPlayer === e.user }" @click="selectBoardPlayer(e)">
+                                <span class="level-picker__rank">#{{ i + 1 }}</span>
+                                <span>{{ e.user }}</span>
+                                <span class="admin-muted">{{ e.total }} pts</span>
+                            </button>
+                        </div>
+                        <div class="board-detail" v-if="boardPlayer">
+                            <h3>{{ boardPlayer }}</h3>
+                            <h3>Verified ({{ verifiedRows.length }})</h3>
+                            <ul class="admin-userlist" v-if="verifiedRows.length">
+                                <li v-for="v in verifiedRows" :key="'v-'+v.path">
+                                    <strong>#{{ v.rank }} {{ v.levelName }}</strong>
+                                    <button type="button" class="auth-btn auth-btn--ghost" style="margin-left:auto;padding:0.3rem 0.5rem;font-size:0.75rem" @click="clearVerifier(v.path)">Remove</button>
+                                </li>
+                            </ul>
+                            <p v-else class="admin-hint">None yet.</p>
+                            <div class="admin-row" style="margin:0.75rem 0">
+                                <select class="admin-input" v-model="setVerifierPath">
+                                    <option value="" disabled>Pick level…</option>
+                                    <option v-for="p in listOrder" :key="'sv-'+p" :value="p">{{ p }}</option>
+                                </select>
+                                <button type="button" class="auth-btn" :disabled="saving" @click="setAsVerifier">Set as verifier</button>
+                            </div>
+                            <h3>Victors / records</h3>
+                            <div class="rec-table">
+                                <div class="rec-table__row" v-for="(row, ri) in boardRows" :key="row.path+ri">
+                                    <span class="board-lvl">#{{ row.rank }} {{ row.levelName }}</span>
+                                    <input class="admin-input" type="number" v-model.number="row.percent" />
+                                    <input class="admin-input" type="number" v-model.number="row.hz" />
+                                    <input class="admin-input" v-model="row.link" />
+                                    <button type="button" class="rec-del" @click="removeBoardRow(ri)">✕</button>
+                                </div>
+                            </div>
+                            <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveBoardPlayer">Save victor records</button></div>
+                            <h3>Add level they beat</h3>
+                            <div class="admin-row">
+                                <select class="admin-input" v-model="addBeat.path">
+                                    <option value="" disabled>Level…</option>
+                                    <option v-for="p in listOrder" :key="p" :value="p">{{ p }}</option>
+                                </select>
+                                <input class="admin-input" type="number" v-model.number="addBeat.percent" placeholder="%" style="width:5rem" />
+                                <input class="admin-input" type="number" v-model.number="addBeat.hz" placeholder="Hz" style="width:5rem" />
+                                <input class="admin-input" v-model="addBeat.link" placeholder="Video" />
+                                <button type="button" class="auth-btn auth-btn--ghost" @click="addBeatToPlayer">Add</button>
+                            </div>
+                        </div>
+                        <p v-else class="admin-hint">Type a player name and click Open.</p>
+                    </div>
+                </div>
+
+                <div v-if="tab === 'info' && canLevels" class="admin-panel">
+                    <h2>Info</h2>
+                    <textarea class="admin-ta" v-model="infoText" rows="14"></textarea>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveInfo()">Save</button></div>
+                </div>
+                <div v-if="tab === 'rules' && canLevels" class="admin-panel">
+                    <h2>Rules</h2>
+                    <textarea class="admin-ta" v-model="rulesText" rows="14"></textarea>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveRules()">Save</button></div>
+                </div>
+                <div v-if="tab === 'editors' && canEditors" class="admin-panel">
+                    <h2>Editors</h2>
+                    <textarea class="admin-ta" v-model="editorsTextRaw" rows="12"></textarea>
+                    <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveEditors()">Save</button></div>
+                </div>
+                <div v-if="tab === 'users' && canUsers" class="admin-panel">
+                    <h2>Users</h2>
+                    <div class="admin-create">
+                        <label>Username <input class="admin-input" v-model="newUser" /></label>
+                        <label>Password <input class="admin-input" v-model="newPass" type="password" /></label>
+                        <label>Role <select class="admin-input" v-model="newRole"><option value="admin">Admin</option><option value="helper">Helper</option><option value="member">Member</option></select></label>
+                        <button type="button" class="auth-btn" :disabled="creating" @click="createUser">Create + sync</button>
+                    </div>
+                    <ul class="admin-userlist"><li v-for="u in users" :key="u.username"><strong>{{ u.username }}</strong> <span class="admin-role-tag">{{ u.role }}</span></li></ul>
+                </div>
