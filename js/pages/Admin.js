@@ -1,5 +1,25 @@
-/**
- * Load Admin from jsDelivr so relative imports (../auth.js etc.) resolve on the CDN.
- * No blob rewrite — avoids 404 on auth/content/Spinner.
- */
-export { default } from 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@1ed15d470ab131c2c8c8789fcbd74d023260dde2/js/pages/Admin.js';
+const base = new URL('.', import.meta.url).href;
+
+async function load() {
+  const parts = await Promise.all(
+    [0, 1, 2].map((i) =>
+      fetch(base + 'Admin_ab' + i + '.txt?t=' + Date.now(), { cache: 'no-store' }).then((r) => {
+        if (!r.ok) throw new Error('Admin_ab' + i + ' ' + r.status);
+        return r.text();
+      }),
+    ),
+  );
+  const bin = atob(parts.join(''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  let code = new TextDecoder().decode(bytes);
+  const pagesBase = base;
+  code = code.replace(/from\s+['"](\.\.?\/[^'"]+)['"]/g, (_, p) => {
+    return "from '" + new URL(p, pagesBase).href + "'";
+  });
+  const url = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+  return import(url);
+}
+
+const mod = await load();
+export default mod.default;
