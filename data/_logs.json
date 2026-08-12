@@ -1,5 +1,12 @@
 [
     {
+        "at": "2026-08-12T12:11:54.094Z",
+        "user": "akirraaw",
+        "action": "save",
+        "detail": "Admin: editors",
+        "path": "data/_editors.json"
+    },
+    {
         "at": "2026-08-11T14:14:17.311Z",
         "user": "akirraaw",
         "action": "save",
