@@ -12,13 +12,11 @@ export default Vue.defineAsyncComponent(async () => {
     return a + pagesBase + p + c;
   });
 
-  // Pull in form helpers
   code = code.replace(
     'import Spinner from',
     "import { boardMethods, shMethods, TAG_GROUPS, emptyShLevel } from '" + pagesBase + "AdminExtras.js';\nimport Spinner from"
   );
 
-  // Extra data fields for form + leaderboard
   code = code.replace(
     "activityLogs: [], serverHardestText: '[]',",
     [
@@ -32,7 +30,6 @@ export default Vue.defineAsyncComponent(async () => {
     ].join('\n    ')
   );
 
-  // Override open/save Server Hardest to use form data model
   code = code.replace(
     /async openServerHardest\(\) \{[\s\S]*?\n    \},\n    async saveServerHardest\(\) \{[\s\S]*?\n    \},/,
     [
@@ -56,7 +53,6 @@ export default Vue.defineAsyncComponent(async () => {
     ].join('\n    ')
   );
 
-  // Replace JSON textarea panel with simple form UI
   const oldPanel = [
     'tab===\'server\' && canLevels" class="admin-panel">',
     '<h2>Server Hardest</h2>',
@@ -69,7 +65,7 @@ export default Vue.defineAsyncComponent(async () => {
   const newPanel = [
     'tab===\'server\' && canLevels" class="admin-panel admin-panel--wide">',
     '<h2>Server Hardest</h2>',
-    '<p class="admin-hint">Rank = order in the list. Edit a level, Apply, then Save all.</p>',
+    '<p class="admin-hint">Rank = order in the list. Edit a level, Apply, then Save all. Use X to remove a row.</p>',
     '<div class="admin-actions" style="margin-bottom:0.75rem">',
     '<button type="button" class="auth-btn" @click="startNewSh">+ Add level</button>',
     '<button type="button" class="auth-btn" :disabled="saving" @click="saveServerHardest">Save all</button>',
@@ -134,6 +130,18 @@ export default Vue.defineAsyncComponent(async () => {
     code = code.replace(oldPanel, newPanel);
   } else {
     console.warn('[Admin] Server Hardest panel pattern not found — keeping JSON editor');
+  }
+
+  code = code.replace(
+    '<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>\n</span>',
+    '<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>\n<button type="button" class="rec-del" title="Remove from list" @click="removeFromList(i)">✕</button>\n</span>'
+  );
+
+  if (!code.includes('removeFromList(')) {
+    code = code.replace(
+      'async saveList() {',
+      "removeFromList(i) {\n      const name = this.listOrder[i];\n      if (!name) return;\n      if (!confirm('Remove \"' + name + '\" from the list order? Click Save order after.')) return;\n      this.listOrder.splice(i, 1);\n      this.list = this.list.filter((pair) => {\n        const p = pair[0] ? pair[0].path : pair[1];\n        return p !== name;\n      });\n      if (this.selectedPath === name) { this.selectedPath = null; this.draft = null; }\n      this.flash('Removed from order — click Save order to apply.');\n    },\n    async saveList() {"
+    );
   }
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
