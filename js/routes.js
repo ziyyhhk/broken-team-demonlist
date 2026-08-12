@@ -1,21 +1,12 @@
-import Leaderboard from './pages/Leaderboard.js';
-import Roulette from './pages/Roulette.js';
-import Info from './pages/Info.js';
-import Rules from './pages/Rules.js';
-import Credits from './pages/Credits.js';
-import Login from './pages/Login.js';
-import Register from './pages/Register.js';
-import ServerHardest from './pages/ServerHardest.js';
-
 export default [
     { path: '/', component: () => import('./pages/List.js') },
-    { path: '/leaderboard', component: Leaderboard },
-    { path: '/roulette', component: Roulette },
-    { path: '/server-hardest', component: ServerHardest },
-    { path: '/info', component: Info },
-    { path: '/rules', component: Rules },
-    { path: '/credits', component: Credits },
-    { path: '/login', component: Login },
-    { path: '/register', component: Register },
+    { path: '/leaderboard', component: () => import('./pages/Leaderboard.js') },
+    { path: '/roulette', component: () => import('./pages/Roulette.js') },
+    { path: '/server-hardest', component: () => import('./pages/ServerHardest.js') },
+    { path: '/info', component: () => import('./pages/Info.js') },
+    { path: '/rules', component: () => import('./pages/Rules.js') },
+    { path: '/credits', component: () => import('./pages/Credits.js') },
+    { path: '/login', component: () => import('./pages/Login.js') },
+    { path: '/register', component: () => import('./pages/Register.js') },
     { path: '/admin', component: () => import('./pages/Admin.js') },
 ];
