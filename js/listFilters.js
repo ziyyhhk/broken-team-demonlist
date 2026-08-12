@@ -47,6 +47,7 @@ export const filterToolbarHtml = `
 <button type="button" class="chip chip-filter" :class="{ active: showFilters || filterTags.length }" @click="showFilters = !showFilters">Filters{{ filterTags.length ? ' · ' + filterTags.length : '' }}</button>
 <button type="button" class="chip chip-ghost" v-if="filterTags.length || sortKey!=='rank'" @click="clearFilters">Clear</button>
 </div>
+<transition name="filter-drop">
 <div class="filter-panel" v-if="showFilters">
 <div class="filter-group" v-for="g in TAG_GROUPS" :key="g.name">
 <div class="filter-group__title">{{ g.name }}</div>
@@ -55,4 +56,5 @@ export const filterToolbarHtml = `
 </div>
 </div>
 </div>
+</transition>
 `;
