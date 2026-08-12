@@ -1,3 +1,4 @@
+export default Vue.defineAsyncComponent(async () => {
 const CDN = 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@1562ed3c8171bf007a22daa608c535e9eef4f659/js/pages/Admin.js';
 const jsBase = new URL('../', import.meta.url).href;
 const pagesBase = new URL('./', import.meta.url).href;
@@ -37,4 +38,5 @@ code = code.replace(
 );
 
 const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
-export default mod.default;
+return mod.default;
+});
