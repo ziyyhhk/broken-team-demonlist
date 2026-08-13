@@ -1,22 +1,22 @@
 import { store } from '../main.js';
-import { embed, getThumbnailFromId, getYoutubeIdFromUrl } from '../util.js';
-import { fetchServerHardest, fetchConfig } from '../content.js';
-import Spinner from '../components/Spinner.js';
+import { embed } from '../util.js';
+import { fetchServerHardest } from '../content.js';
 
 export default {
-    components: { Spinner },
     template: `
-        <main class="page-server-hardest" v-if="loading">
-            <div style="padding:2rem;text-align:center">Loading…</div>
-        </main>
-        <main class="page-server-hardest" v-else>
-            <div class="list-container">
+        <main class="page-list page-server-hardest">
+            <div v-if="loading" class="page-loading" style="padding:2rem;text-align:center;opacity:0.7">Loading…</div>
+            <div class="list-container" v-else>
                 <div class="list">
-                    <div class="list-toolbar" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.75rem">
+                    <div class="list-toolbar">
                         <input class="search" type="search" v-model="query" placeholder="Search levels…" />
-                        <div class="view-toggle">
-                            <button type="button" class="view-btn" :class="{ active: viewMode === 'classic' }" @click="setView('classic')">Classic</button>
-                            <button type="button" class="view-btn" :class="{ active: viewMode === 'cards' }" @click="setView('cards')">Cards</button>
+                        <div class="view-toggle" title="Switch layout">
+                            <button type="button" class="view-btn" :class="{ active: viewMode === 'classic' }" @click="setView('classic')" aria-label="Classic" title="Classic">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+                            </button>
+                            <button type="button" class="view-btn" :class="{ active: viewMode === 'cards' }" @click="setView('cards')" aria-label="Cards" title="Cards">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>
+                            </button>
                         </div>
                     </div>
 
@@ -38,11 +38,9 @@ export default {
                     </template>
 
                     <template v-else>
-                        <div class="cards-grid">
+                        <div class="level-card-wrap" v-for="row in filtered" :key="row._key">
                             <article
                                 class="level-card"
-                                v-for="row in filtered"
-                                :key="row._key"
                                 :class="{ selected: expanded === row._idx }"
                                 @click="toggleExpand(row._idx)"
                             >
@@ -72,24 +70,37 @@ export default {
                                         {{ expanded === row._idx ? 'Show less' : 'Show details' }}
                                     </button>
                                 </div>
-                                <div class="card-expand" v-if="expanded === row._idx" @click.stop>
-                                    <dl class="info-list">
-                                        <div class="info-row" v-if="row.id"><dt>Level ID</dt><dd>{{ row.id }}</dd></div>
-                                        <div class="info-row" v-if="row.author"><dt>Creator</dt><dd>{{ row.author }}</dd></div>
-                                        <div class="info-row" v-if="row.victor"><dt>Victor</dt><dd>{{ row.victor }}</dd></div>
-                                        <div class="info-row" v-if="row.verifier"><dt>Verifier</dt><dd>{{ row.verifier }}</dd></div>
-                                        <div class="info-row" v-if="row.length"><dt>Length</dt><dd>{{ row.length }}</dd></div>
-                                    </dl>
-                                    <div class="card-expand__records-head"><span>Who beat it</span><span class="records-count">{{ beatList(row).length }}</span></div>
-                                    <ul class="card-expand__records" v-if="beatList(row).length">
-                                        <li v-for="(r, ri) in beatList(row)" :key="ri">
-                                            <span class="rec-user">{{ r.user }}</span>
-                                            <a v-if="r.link" class="yt-link" :href="r.link" target="_blank" rel="noopener" title="Watch" @click.stop>▶</a>
-                                        </li>
-                                    </ul>
-                                    <p v-else class="rec-hint">No victors yet.</p>
-                                </div>
                             </article>
+                            <div class="card-expand" v-if="expanded === row._idx" @click.stop>
+                                <div class="card-expand__grid">
+                                    <div class="card-expand__media" v-if="row.verification">
+                                        <iframe class="card-expand__video" :src="embed(row.verification)" frameborder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            allowfullscreen></iframe>
+                                    </div>
+                                    <div class="card-expand__info">
+                                        <dl class="info-list">
+                                            <div class="info-row" v-if="row.id"><dt>Level ID</dt><dd>{{ row.id }}</dd></div>
+                                            <div class="info-row" v-if="row.author"><dt>Creator</dt><dd>{{ row.author }}</dd></div>
+                                            <div class="info-row" v-if="row.victor"><dt>Victor</dt><dd>{{ row.victor }}
+                                                <a v-if="row.verification" class="yt-link" :href="row.verification" target="_blank" rel="noopener">▶</a>
+                                            </dd></div>
+                                            <div class="info-row" v-if="row.verifier"><dt>Verifier</dt><dd>{{ row.verifier }}
+                                                <a v-if="row.verifierVideo" class="yt-link" :href="row.verifierVideo" target="_blank" rel="noopener">▶</a>
+                                            </dd></div>
+                                            <div class="info-row" v-if="row.length"><dt>Length</dt><dd>{{ row.length }}</dd></div>
+                                        </dl>
+                                        <div class="card-expand__records-head"><span>Who beat it</span><span class="records-count">{{ beatList(row).length }}</span></div>
+                                        <ul class="card-expand__records" v-if="beatList(row).length">
+                                            <li v-for="(r, ri) in beatList(row)" :key="ri">
+                                                <span class="rec-user">{{ r.user }}</span>
+                                                <a v-if="r.link" class="yt-link" :href="r.link" target="_blank" rel="noopener" title="Watch" @click.stop>▶</a>
+                                            </li>
+                                        </ul>
+                                        <p v-else class="rec-hint">No victors yet.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <p v-if="!filtered.length" class="list-empty">No levels found.</p>
                     </template>
