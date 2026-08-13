@@ -33,15 +33,29 @@ export default Vue.defineAsyncComponent(async () => {
   code = code.replace(/>Verifier</g, '>Victor<');
   code = code.replace(/verified by \{\{ ?row\.verifier ?\}\}/gi, 'victor {{ row.victor || row.verifier }}');
 
-  // YouTube thumbnail above video embed in classic preview
+  // YouTube / custom thumbnail above video embed
   if (code.indexOf('sh-preview-thumb') === -1) {
     code = code.replace(
       '<iframe v-if="video" class="video" :src="video" frameborder="0"',
-      '<div class="sh-preview-thumb" v-if="level && level.verification">' +
-        '<img :src="thumb(level)" alt="" loading="lazy" @error="onThumbError" />' +
+      '<div class="sh-preview-thumb" v-if="level && (level.thumbnail || level.verification)">' +
+        '<img :src="level.thumbnail || thumb(level)" alt="" loading="lazy" @error="onThumbError" />' +
         '</div>\n                            <iframe v-if="video" class="video" :src="video" frameborder="0"'
     );
   }
+
+  // Prefer custom thumbnail image URL over YouTube poster
+  code = code.replace(
+    /thumb\s*\(\s*row\s*\)\s*\{[\s\S]*?\n\s*\},/,
+    'thumb(row) {\n            if (!row) return \'\';\n            if (row.thumbnail) return row.thumbnail;\n            var id = getYoutubeIdFromUrl(row.verification || row.video || \'\');\n            return id ? getThumbnailFromId(id) : \'\';\n        },'
+  );
+  code = code.replace(
+    ':src="thumb(level)"',
+    ':src="(level && level.thumbnail) || thumb(level)"'
+  );
+  code = code.replace(
+    ':src="thumb(row)"',
+    ':src="row.thumbnail || thumb(row)"'
+  );
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   return mod.default;
