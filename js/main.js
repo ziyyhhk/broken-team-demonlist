@@ -38,38 +38,30 @@ window.addEventListener('keydown', (event) => {
     if (event.key === konamiCode[konamiIndex]) {
         konamiIndex += 1;
         if (konamiIndex === konamiCode.length) {
-            document.body.classList.toggle('secret-mode');
             konamiIndex = 0;
+            document.body.classList.toggle('secret');
         }
     } else {
-        konamiIndex = event.key === konamiCode[0] ? 1 : 0;
+        konamiIndex = 0;
     }
 });
 
 const app = Vue.createApp({
-    data: () => ({ store, auth }),
-    computed: {
-        showAdmin() {
-            if (!auth.user) return false;
-            return isOwner() || can('editLevels') || can('editList') || can('editEditors') || can('manageUsers');
-        },
-    },
+    data: () => ({ store, auth, isOwner, can }),
     methods: {
-        onLogout() {
+        logout() {
             logout();
             if (this.$router) this.$router.push('/');
         },
     },
     template: `
-        <header>
-            <div class="logo">
-                <div class="logo__text">
+        <div class="app" :class="{ dark: store.dark }">
+            <header class="nav">
+                <div class="nav__brand">
                     <h2>The Broken List</h2>
-                    <p>v1.0.2</p>
+                    <p>v1.0.3</p>
                 </div>
-            </div>
-            <nav class="nav">
-                <div class="nav__tabs">
+                <nav class="nav__tabs">
                     <router-link class="nav__tab" to="/"><span class="type-label-lg">List</span></router-link>
                     <router-link class="nav__tab" to="/leaderboard"><span class="type-label-lg">Leaderboard</span></router-link>
                     <router-link class="nav__tab" to="/roulette"><span class="type-label-lg">Roulette</span></router-link>
@@ -77,43 +69,22 @@ const app = Vue.createApp({
                     <router-link class="nav__tab" to="/info"><span class="type-label-lg">Info</span></router-link>
                     <router-link class="nav__tab" to="/rules"><span class="type-label-lg">Rules</span></router-link>
                     <router-link class="nav__tab" to="/credits"><span class="type-label-lg">Credits</span></router-link>
-                    <router-link v-if="showAdmin" class="nav__tab" to="/admin"><span class="type-label-lg">Admin</span></router-link>
-                </div>
+                    <router-link class="nav__tab" to="/admin" v-if="auth.user && can('levels')"><span class="type-label-lg">Admin</span></router-link>
+                </nav>
                 <div class="nav__actions">
-                    <button
-                        class="nav__icon"
-                        title="Toggle theme"
-                        aria-label="Toggle theme"
-                        @click.prevent="store.toggleDark()"
-                    >
-                        <img :src="store.dark ? './assets/light.svg' : './assets/dark.svg'" alt="" />
-                    </button>
-                    <a class="nav__icon" title="Discord" href="https://discord.gg/swuWBj59yp" target="_blank" rel="noopener">
-                        <img src="./assets/discord.svg" alt="Discord" />
-                    </a>
+                    <button type="button" class="nav__icon" @click="store.toggleDark()" title="Toggle theme">☀</button>
                     <template v-if="auth.user">
                         <span class="nav__user">{{ auth.user.username }}</span>
-                        <button type="button" class="nav__text-btn" @click="onLogout">Log out</button>
+                        <button type="button" class="nav__link" @click="logout">Log out</button>
                     </template>
                     <template v-else>
-                        <router-link class="nav__text-btn" to="/login">Login</router-link>
-                        <router-link class="nav__text-btn" to="/register">Register</router-link>
+                        <router-link class="nav__link" to="/login">Login</router-link>
+                        <router-link class="nav__link" to="/register">Register</router-link>
                     </template>
-                    <a
-                        class="nav__cta type-label-lg"
-                        href="https://forms.gle/2j7Xy5QLZqG3sijj9"
-                        target="_blank"
-                        rel="noopener"
-                    >Submit Record</a>
+                    <a class="btn" href="#/" >Submit Record</a>
                 </div>
-            </nav>
-        </header>
-        <div class="page-stage">
-            <router-view v-slot="{ Component, route }">
-                <transition name="page" mode="out-in">
-                    <component :is="Component" :key="route.fullPath" />
-                </transition>
-            </router-view>
+            </header>
+            <router-view />
         </div>
     `,
 });
@@ -121,8 +92,6 @@ const app = Vue.createApp({
 const router = VueRouter.createRouter({
     history: VueRouter.createWebHashHistory(),
     routes,
-    linkActiveClass: 'nav-active',
-    linkExactActiveClass: 'nav-exact',
 });
 
 app.use(router);
