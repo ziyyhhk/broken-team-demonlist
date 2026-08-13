@@ -1,5 +1,12 @@
 [
     {
+        "at": "2026-08-13T02:44:03.722Z",
+        "user": "akirraaw",
+        "action": "save",
+        "detail": "Admin: remove ForgottenOrbit",
+        "path": "data/_list.json"
+    },
+    {
         "at": "2026-08-13T02:10:27.397Z",
         "user": "akirraaw",
         "action": "save",
