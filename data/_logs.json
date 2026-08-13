@@ -1,5 +1,12 @@
 [
     {
+        "at": "2026-08-13T05:08:08.515Z",
+        "user": "akirraaw",
+        "action": "save",
+        "detail": "Admin: remove SH Henken",
+        "path": "data/_server_hardest.json"
+    },
+    {
         "at": "2026-08-13T04:34:26.155Z",
         "user": "akirraaw",
         "action": "save",
