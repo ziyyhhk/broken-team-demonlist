@@ -196,3 +196,15 @@ body:not(.dark) .filter-panel {
 .page-server-hardest .level .video {
   margin-top: 0.5rem;
 }
+
+.yt-link {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  vertical-align: middle;
+  opacity: 0.9;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.yt-link:hover { opacity: 1; transform: scale(1.1); }
+.records .user { display: flex; align-items: center; gap: 0.25rem; }
+.card-expand__records li { display: flex; align-items: center; gap: 0.35rem; }

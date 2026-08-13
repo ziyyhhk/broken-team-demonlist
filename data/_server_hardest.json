@@ -9,7 +9,14 @@
         "length": "1:27",
         "note": "",
         "tags": [],
-        "records": [],
+        "records": [
+            {
+                "user": "Chaverin",
+                "link": "https://youtu.be/Wuy_mRA8b58?si=0uDiFsSeqp649nb-",
+                "attempts": null,
+                "date": ""
+            }
+        ],
         "verifier": "Gokill"
     }
 ]
