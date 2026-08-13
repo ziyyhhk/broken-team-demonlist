@@ -12,14 +12,26 @@ export default Vue.defineAsyncComponent(async () => {
     return a + pagesBase + p + c;
   });
 
+  if (code.indexOf('fetchLeaderboard') === -1) {
+    code = code.replace(
+      /import \{ fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules \} from ['"][^'"]+content\.js['"];/,
+      "import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '" + jsBase + "content.js';"
+    );
+  }
+
   code = code.replace(
     "activityLogs: [], serverHardestText: '[]',",
-    "activityLogs: [], serverHardestText: '[]', serverLevels: [],"
+    "activityLogs: [], serverHardestText: '[]', serverLevels: [], board: [], boardPlayer: null, boardSearch: '', boardAdd: { path: '', percent: 100, hz: 240, link: '' },"
   );
 
   code = code.replace(
     '<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>\n</span>',
     '<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>\n<button type="button" class="rec-del" title="Remove" @click="removeFromList(i)">✕</button>\n</span>'
+  );
+
+  code = code.replace(
+    'Levels & records</button>',
+    'Levels & records</button>\n<button type="button" class="admin-tab" :class="{ active: tab===\'board\' }" @click="openBoard" v-if="canLevels">Leaderboard</button>'
   );
 
   var shMethods = [
@@ -51,7 +63,7 @@ export default Vue.defineAsyncComponent(async () => {
     "    },",
     "    async saveServerHardest() {",
     "      await this.pushFile('data/_server_hardest.json', JSON.stringify(this.serverLevels, null, 4), 'Admin: Server Hardest (' + this.serverLevels.length + ' levels)');",
-    "    },"
+    "    },",
   ].join('\n');
 
   code = code.replace(
@@ -60,7 +72,7 @@ export default Vue.defineAsyncComponent(async () => {
   );
 
   if (code.indexOf('async removeFromList(') === -1) {
-    var rm = [
+    code = code.replace('async saveList() {', [
       "async removeFromList(i) {",
       "      var name = this.listOrder[i];",
       "      if (!name) return;",
@@ -73,9 +85,133 @@ export default Vue.defineAsyncComponent(async () => {
       "      if (this.selectedPath === name) { this.selectedPath = null; this.draft = null; }",
       "      await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: remove ' + name);",
       "    },",
-      "    async saveList() {"
-    ].join('\n');
-    code = code.replace('async saveList() {', rm);
+      "    async saveList() {",
+    ].join('\n'));
+  }
+
+  if (code.indexOf('async openBoard(') === -1) {
+    code = code.replace('async saveList() {', [
+      "async openBoard() {",
+      "      this.tab = 'board';",
+      "      try {",
+      "        var pair = await fetchLeaderboard();",
+      "        this.board = (pair && pair[0]) || [];",
+      "      } catch (e) { this.board = []; }",
+      "      if (this.boardPlayer) {",
+      "        var still = this.board.find(function (e) { return e.user === this.boardPlayer; }.bind(this));",
+      "        if (!still) this.boardPlayer = null;",
+      "      }",
+      "    },",
+      "    selectBoardPlayer(e) {",
+      "      if (!e) return;",
+      "      this.boardPlayer = e.user;",
+      "      this.boardAdd = { path: '', percent: 100, hz: 240, link: '' };",
+      "    },",
+      "    findLevelByName(name) {",
+      "      return this.list.find(function (pair) { return pair[0] && pair[0].name === name; });",
+      "    },",
+      "    findLevelByPath(path) {",
+      "      return this.list.find(function (pair) { return pair[0] && pair[0].path === path; });",
+      "    },",
+      "    async boardSaveLevel(path, levelObj, msg) {",
+      "      var payload = Object.assign({}, levelObj);",
+      "      delete payload.path;",
+      "      var ok = await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), msg || ('Admin: board ' + path));",
+      "      if (ok) {",
+      "        var pair = this.findLevelByPath(path);",
+      "        if (pair) pair[0] = Object.assign({}, payload, { path: path });",
+      "      }",
+      "      return ok;",
+      "    },",
+      "    async boardRemoveRecord(levelName, kind) {",
+      "      if (!this.boardPlayer) return;",
+      "      var pair = this.findLevelByName(levelName);",
+      "      if (!pair || !pair[0]) { this.flash('Level not found: ' + levelName, true); return; }",
+      "      var path = pair[0].path;",
+      "      var lv = JSON.parse(JSON.stringify(pair[0]));",
+      "      var user = this.boardPlayer;",
+      "      if (kind === 'verified') {",
+      "        if ((lv.verifier || '').toLowerCase() === user.toLowerCase()) lv.verifier = '';",
+      "      } else {",
+      "        lv.records = (lv.records || []).filter(function (r) {",
+      "          return !r || !r.user || r.user.toLowerCase() !== user.toLowerCase();",
+      "        });",
+      "      }",
+      "      if (!confirm('Remove ' + user + ' from ' + levelName + '? Saves immediately.')) return;",
+      "      var ok = await this.boardSaveLevel(path, lv, 'Admin: remove ' + user + ' from ' + path);",
+      "      if (ok) await this.openBoard();",
+      "    },",
+      "    async boardAddRecord() {",
+      "      if (!this.boardPlayer || !this.boardAdd.path) { this.flash('Pick a level first.', true); return; }",
+      "      var path = this.boardAdd.path;",
+      "      var pair = this.findLevelByPath(path);",
+      "      if (!pair || !pair[0]) { this.flash('Level not found.', true); return; }",
+      "      var lv = JSON.parse(JSON.stringify(pair[0]));",
+      "      var user = this.boardPlayer;",
+      "      lv.records = lv.records || [];",
+      "      lv.records = lv.records.filter(function (r) {",
+      "        return !r || !r.user || r.user.toLowerCase() !== user.toLowerCase();",
+      "      });",
+      "      lv.records.push({",
+      "        user: user,",
+      "        percent: Number(this.boardAdd.percent) || 100,",
+      "        hz: Number(this.boardAdd.hz) || 240,",
+      "        link: this.boardAdd.link || '',",
+      "      });",
+      "      var ok = await this.boardSaveLevel(path, lv, 'Admin: add ' + user + ' on ' + path);",
+      "      if (ok) {",
+      "        this.boardAdd = { path: '', percent: 100, hz: 240, link: '' };",
+      "        await this.openBoard();",
+      "      }",
+      "    },",
+      "    async boardSetVerifier() {",
+      "      if (!this.boardPlayer || !this.boardAdd.path) { this.flash('Pick a level first.', true); return; }",
+      "      var path = this.boardAdd.path;",
+      "      var pair = this.findLevelByPath(path);",
+      "      if (!pair || !pair[0]) return;",
+      "      var lv = JSON.parse(JSON.stringify(pair[0]));",
+      "      lv.verifier = this.boardPlayer;",
+      "      var ok = await this.boardSaveLevel(path, lv, 'Admin: set verifier ' + this.boardPlayer + ' on ' + path);",
+      "      if (ok) await this.openBoard();",
+      "    },",
+      "    async boardRemovePlayer() {",
+      "      if (!this.boardPlayer) return;",
+      "      var user = this.boardPlayer;",
+      "      if (!confirm('Remove ALL records + verifier roles for ' + user + '?')) return;",
+      "      var self = this;",
+      "      var changed = 0;",
+      "      for (var i = 0; i < this.list.length; i++) {",
+      "        var pair = this.list[i];",
+      "        if (!pair || !pair[0]) continue;",
+      "        var lv = JSON.parse(JSON.stringify(pair[0]));",
+      "        var path = lv.path;",
+      "        var dirty = false;",
+      "        if ((lv.verifier || '').toLowerCase() === user.toLowerCase()) { lv.verifier = ''; dirty = true; }",
+      "        var before = (lv.records || []).length;",
+      "        lv.records = (lv.records || []).filter(function (r) {",
+      "          return !r || !r.user || r.user.toLowerCase() !== user.toLowerCase();",
+      "        });",
+      "        if (lv.records.length !== before) dirty = true;",
+      "        if (dirty) {",
+      "          var ok = await self.boardSaveLevel(path, lv, 'Admin: strip ' + user + ' from ' + path);",
+      "          if (ok) changed++;",
+      "        }",
+      "      }",
+      "      this.flash('Updated ' + changed + ' level(s).');",
+      "      this.boardPlayer = null;",
+      "      await this.openBoard();",
+      "    },",
+      "    async boardCreatePlayer() {",
+      "      var name = (this.boardSearch || '').trim();",
+      "      if (!name) { this.flash('Type a player name in search first.', true); return; }",
+      "      var exists = this.board.find(function (e) { return e.user.toLowerCase() === name.toLowerCase(); });",
+      "      if (exists) { this.selectBoardPlayer(exists); return; }",
+      "      this.board.unshift({ user: name, total: 0, verified: [], completed: [], progressed: [] });",
+      "      this.selectBoardPlayer(this.board[0]);",
+      "      this.flash('Player ready — add a clear on a level to save them.');",
+      "    },",
+      "    async saveList() {",
+    ].join('\n'));
   }
 
   var oldPanel = [
@@ -84,7 +220,7 @@ export default Vue.defineAsyncComponent(async () => {
     '<p class="admin-hint">JSON array. Rank = order in the list. Each item: name, id, author, verifier, verification (video), length, note, records: [{ user, attempts, date, link }]</p>',
     '<textarea class="admin-ta" v-model="serverHardestText" rows="18"></textarea>',
     '<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveServerHardest">Save Server Hardest</button></div>',
-    '</div>'
+    '</div>',
   ].join('\n');
 
   var newPanel = [
@@ -109,13 +245,81 @@ export default Vue.defineAsyncComponent(async () => {
     '<button type="button" class="rec-del" @click="shRemove(i)">✕</button>',
     '</li></ul>',
     '<p v-if="!serverLevels.length" class="admin-hint">No levels yet. Click + Add level.</p>',
-    '</div>'
+    '</div>',
   ].join('\n');
 
-  if (code.indexOf(oldPanel) !== -1) {
-    code = code.split(oldPanel).join(newPanel);
+  if (code.indexOf(oldPanel) !== -1) code = code.split(oldPanel).join(newPanel);
+
+  var boardPanel = [
+    '<div v-if="tab===\'board\' && canLevels" class="admin-panel admin-panel--wide">',
+    '<h2>Leaderboard</h2>',
+    '<p class="admin-hint">Players come from level records + verifiers. Edit here to update the public board.</p>',
+    '<div class="admin-row" style="margin-bottom:0.75rem">',
+    '<input class="admin-input" v-model="boardSearch" placeholder="Search or new player name" style="min-width:12rem" />',
+    '<button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button>',
+    '<button type="button" class="auth-btn" @click="boardCreatePlayer">+ Player</button>',
+    '</div>',
+    '<div class="board-layout" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">',
+    '<div class="board-players" style="flex:1;min-width:12rem;max-height:28rem;overflow:auto">',
+    '<button type="button" class="level-picker__item" v-for="(e, i) in board" :key="e.user" v-show="!(boardSearch||\'\').trim() || (e.user||\'\').toLowerCase().indexOf((boardSearch||\'\').trim().toLowerCase())!==-1" :class="{ active: boardPlayer === e.user }" @click="selectBoardPlayer(e)">',
+    '<span class="level-picker__rank">#{{ i + 1 }}</span><span>{{ e.user }}</span><span class="admin-muted">{{ e.total }} pts</span>',
+    '</button>',
+    '<p v-if="!board.length" class="admin-hint">No players yet.</p>',
+    '</div>',
+    '<div class="board-detail" style="flex:2;min-width:16rem" v-if="boardPlayer">',
+    '<h3>{{ boardPlayer }}</h3>',
+    '<div class="admin-actions" style="margin-bottom:0.75rem">',
+    '<button type="button" class="auth-btn auth-btn--ghost" style="color:#f66" @click="boardRemovePlayer">Remove player entirely</button>',
+    '</div>',
+    '<h3>Verified</h3>',
+    '<ul class="admin-userlist">',
+    '<li v-for="v in ((board.find(function(e){ return e.user===boardPlayer; })||{}).verified)||[]" :key="\'v\'+v.level">',
+    '<strong>#{{ v.rank }} {{ v.level }}</strong>',
+    '<button type="button" class="rec-del" style="margin-left:auto" @click="boardRemoveRecord(v.level, \'verified\')">✕</button>',
+    '</li>',
+    '</ul>',
+    '<h3>Completions (100%)</h3>',
+    '<ul class="admin-userlist">',
+    '<li v-for="v in ((board.find(function(e){ return e.user===boardPlayer; })||{}).completed)||[]" :key="\'c\'+v.level">',
+    '<strong>#{{ v.rank }} {{ v.level }}</strong>',
+    '<button type="button" class="rec-del" style="margin-left:auto" @click="boardRemoveRecord(v.level, \'completed\')">✕</button>',
+    '</li>',
+    '</ul>',
+    '<h3>Progress</h3>',
+    '<ul class="admin-userlist">',
+    '<li v-for="v in ((board.find(function(e){ return e.user===boardPlayer; })||{}).progressed)||[]" :key="\'p\'+v.level">',
+    '<strong>#{{ v.rank }} {{ v.level }}</strong> <span class="admin-muted">{{ v.percent }}%</span>',
+    '<button type="button" class="rec-del" style="margin-left:auto" @click="boardRemoveRecord(v.level, \'progress\')">✕</button>',
+    '</li>',
+    '</ul>',
+    '<h3 style="margin-top:1rem">Add clear / verifier</h3>',
+    '<div class="admin-row">',
+    '<select class="admin-input" v-model="boardAdd.path">',
+    '<option value="" disabled>Pick level…</option>',
+    '<option v-for="p in listOrder" :key="p" :value="p">{{ p }}</option>',
+    '</select>',
+    '<input class="admin-input" type="number" v-model.number="boardAdd.percent" placeholder="%" style="width:5rem" />',
+    '<input class="admin-input" type="number" v-model.number="boardAdd.hz" placeholder="Hz" style="width:5rem" />',
+    '<input class="admin-input" v-model="boardAdd.link" placeholder="Video link" />',
+    '</div>',
+    '<div class="admin-actions">',
+    '<button type="button" class="auth-btn" :disabled="saving" @click="boardAddRecord">Add clear</button>',
+    '<button type="button" class="auth-btn auth-btn--ghost" :disabled="saving" @click="boardSetVerifier">Set as verifier</button>',
+    '</div>',
+    '</div>',
+    '<p v-else class="admin-hint">Select a player or type a name and click + Player.</p>',
+    '</div>',
+    '</div>',
+  ].join('\n');
+
+  var serverNeedle = '<div v-if="tab===\'server\' && canLevels" class="admin-panel admin-panel--wide">';
+  if (code.indexOf(serverNeedle) !== -1) {
+    code = code.split(serverNeedle).join(boardPanel + '\n' + serverNeedle);
   } else {
-    console.warn('[Admin] Server Hardest panel not found');
+    var serverNeedle2 = '<div v-if="tab===\'server\' && canLevels" class="admin-panel">';
+    if (code.indexOf(serverNeedle2) !== -1) {
+      code = code.split(serverNeedle2).join(boardPanel + '\n' + serverNeedle2);
+    }
   }
 
   var mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
