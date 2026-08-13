@@ -132,14 +132,18 @@ export const shMethods = {
     a[j] = t;
     this.serverLevels = a;
   },
-  removeSh(i) {
+  async removeSh(i) {
     const lv = this.serverLevels[i];
     const label = (lv && lv.name) || ('#' + (i + 1));
-    if (!confirm('Remove "' + label + '" from Server Hardest?')) return;
+    if (!confirm('Remove "' + label + '" from Server Hardest? This saves immediately.')) return;
     this.serverLevels.splice(i, 1);
     if (this.shEditIndex === i) this.shEditIndex = -2;
     else if (this.shEditIndex > i) this.shEditIndex -= 1;
-    this.flash('Removed — click Save all to apply.');
+    await this.pushFile(
+      'data/_server_hardest.json',
+      JSON.stringify(this.serverLevels, null, 4),
+      'Admin: remove SH ' + label,
+    );
   },
   addShRec() {
     if (!this.shNewRec.user) return;
