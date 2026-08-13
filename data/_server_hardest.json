@@ -4,6 +4,8 @@
         "name": "Henken",
         "author": "PloLek",
         "victor": "Chaverin",
+        "verifier": "Gokill",
+        "verifierVideo": "",
         "verification": "https://youtu.be/Wuy_mRA8b58?si=0uDiFsSeqp649nb-",
         "thumbnail": "",
         "length": "1:27",
@@ -16,8 +18,6 @@
                 "attempts": null,
                 "date": ""
             }
-        ],
-        "verifier": "Gokill",
-        "verifierVideo": ""
+        ]
     }
 ]
