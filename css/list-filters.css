@@ -124,42 +124,34 @@ body:not(.dark) .filter-panel { background: rgba(0, 0, 0, 0.04); }
 .sh-victors__head { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
 .sh-victor-row { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.35rem; align-items: center; }
 
-/* Server Hardest card video embed */
-.level-card__thumb--video {
-  position: relative;
-  width: 100%;
-  min-height: 0;
+/* Server Hardest compact cards — match main list */
+.page-server-hardest .level-card__thumb {
+  width: 140px;
+  max-width: 140px;
   aspect-ratio: 16 / 9;
-  background: #000;
+  flex-shrink: 0;
 }
-.level-card__embed {
-  position: absolute;
-  inset: 0;
+.page-server-hardest .level-card__thumb img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.page-server-hardest .card-expand__video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
   border: 0;
+  border-radius: 0.6rem;
 }
-.level-card__thumb-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  min-height: 4rem;
-  opacity: 0.5;
-  font-size: 1.5rem;
-}
+
 .yt-link {
   display: inline-flex;
   align-items: center;
   margin-left: 0.3rem;
-  color: #f44;
-  text-decoration: none;
-  font-weight: 700;
+  vertical-align: middle;
+  opacity: 0.9;
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
-.yt-link:hover { opacity: 0.85; }
-.page-server-hardest .records .user {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-}
+.yt-link:hover { opacity: 1; transform: scale(1.1); }
+.records .user { display: flex; align-items: center; gap: 0.25rem; }
+.card-expand__records li { display: flex; align-items: center; gap: 0.35rem; }

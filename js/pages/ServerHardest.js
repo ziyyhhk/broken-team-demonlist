@@ -1,5 +1,5 @@
 import { store } from '../main.js';
-import { embed } from '../util.js';
+import { embed, getThumbnailFromId, getYoutubeIdFromUrl } from '../util.js';
 import { fetchServerHardest } from '../content.js';
 
 export default {
@@ -44,18 +44,8 @@ export default {
                                 :class="{ selected: expanded === row._idx }"
                                 @click="toggleExpand(row._idx)"
                             >
-                                <div class="level-card__thumb level-card__thumb--video">
-                                    <iframe
-                                        v-if="row.verification"
-                                        class="level-card__embed"
-                                        :src="embed(row.verification)"
-                                        title="video"
-                                        frameborder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowfullscreen
-                                        loading="lazy"
-                                        @click.stop
-                                    ></iframe>
+                                <div class="level-card__thumb">
+                                    <img v-if="thumb(row)" :src="thumb(row)" alt="" loading="lazy" />
                                     <div v-else class="level-card__thumb-fallback">?</div>
                                     <span class="level-card__rank">#{{ row._rank }}</span>
                                 </div>
@@ -67,39 +57,35 @@ export default {
                                         <template v-if="row.verifier"> · Verifier {{ row.verifier }}</template>
                                     </p>
                                     <button type="button" class="level-card__expand-hint" @click.stop="toggleExpand(row._idx)">
-                                        {{ expanded === row._idx ? 'Show less' : 'Show details' }}
+                                        {{ expanded === row._idx ? 'Show less ▲' : 'Show details ▼' }}
                                     </button>
                                 </div>
                             </article>
                             <div class="card-expand" v-if="expanded === row._idx" @click.stop>
-                                <div class="card-expand__grid">
-                                    <div class="card-expand__media" v-if="row.verification">
-                                        <iframe class="card-expand__video" :src="embed(row.verification)" frameborder="0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                            allowfullscreen></iframe>
-                                    </div>
-                                    <div class="card-expand__info">
-                                        <dl class="info-list">
-                                            <div class="info-row" v-if="row.id"><dt>Level ID</dt><dd>{{ row.id }}</dd></div>
-                                            <div class="info-row" v-if="row.author"><dt>Creator</dt><dd>{{ row.author }}</dd></div>
-                                            <div class="info-row" v-if="row.victor"><dt>Victor</dt><dd>{{ row.victor }}
-                                                <a v-if="row.verification" class="yt-link" :href="row.verification" target="_blank" rel="noopener">▶</a>
-                                            </dd></div>
-                                            <div class="info-row" v-if="row.verifier"><dt>Verifier</dt><dd>{{ row.verifier }}
-                                                <a v-if="row.verifierVideo" class="yt-link" :href="row.verifierVideo" target="_blank" rel="noopener">▶</a>
-                                            </dd></div>
-                                            <div class="info-row" v-if="row.length"><dt>Length</dt><dd>{{ row.length }}</dd></div>
-                                        </dl>
-                                        <div class="card-expand__records-head"><span>Who beat it</span><span class="records-count">{{ beatList(row).length }}</span></div>
-                                        <ul class="card-expand__records" v-if="beatList(row).length">
-                                            <li v-for="(r, ri) in beatList(row)" :key="ri">
-                                                <span class="rec-user">{{ r.user }}</span>
-                                                <a v-if="r.link" class="yt-link" :href="r.link" target="_blank" rel="noopener" title="Watch" @click.stop>▶</a>
-                                            </li>
-                                        </ul>
-                                        <p v-else class="rec-hint">No victors yet.</p>
-                                    </div>
+                                <div class="card-expand__media" v-if="row.verification">
+                                    <iframe class="card-expand__video" :src="embed(row.verification)" frameborder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowfullscreen></iframe>
                                 </div>
+                                <dl class="info-list">
+                                    <div class="info-row" v-if="row.id"><dt>Level ID</dt><dd>{{ row.id }}</dd></div>
+                                    <div class="info-row" v-if="row.author"><dt>Creator</dt><dd>{{ row.author }}</dd></div>
+                                    <div class="info-row" v-if="row.victor"><dt>Victor</dt><dd>{{ row.victor }}
+                                        <a v-if="row.verification" class="yt-link" :href="row.verification" target="_blank" rel="noopener">▶</a>
+                                    </dd></div>
+                                    <div class="info-row" v-if="row.verifier"><dt>Verifier</dt><dd>{{ row.verifier }}
+                                        <a v-if="row.verifierVideo" class="yt-link" :href="row.verifierVideo" target="_blank" rel="noopener">▶</a>
+                                    </dd></div>
+                                    <div class="info-row" v-if="row.length"><dt>Length</dt><dd>{{ row.length }}</dd></div>
+                                </dl>
+                                <div class="card-expand__records-head"><span>Who beat it</span><span class="records-count">{{ beatList(row).length }}</span></div>
+                                <ul class="card-expand__records" v-if="beatList(row).length">
+                                    <li v-for="(r, ri) in beatList(row)" :key="ri">
+                                        <span class="rec-user">{{ r.user }}</span>
+                                        <a v-if="r.link" class="yt-link" :href="r.link" target="_blank" rel="noopener" @click.stop>▶</a>
+                                    </li>
+                                </ul>
+                                <p v-else class="rec-hint">No victors yet.</p>
                             </div>
                         </div>
                         <p v-if="!filtered.length" class="list-empty">No levels found.</p>
@@ -174,6 +160,17 @@ export default {
     },
     methods: {
         embed,
+        thumb(level) {
+            if (!level) return '';
+            const t = level.thumbnail || '';
+            if (t && !/imgur\.com\/a\//i.test(t) && !/imgur\.com\/gallery\//i.test(t)) {
+                const im = t.match(/imgur\.com\/(?:gallery\/)?([a-zA-Z0-9]{5,})/i);
+                if (im && t.indexOf('i.imgur.com') === -1) return 'https://i.imgur.com/' + im[1] + '.jpg';
+                return t;
+            }
+            const id = getYoutubeIdFromUrl(level.verification || '');
+            return id ? getThumbnailFromId(id) : '';
+        },
         beatList(level) {
             if (!level) return [];
             const list = [];
