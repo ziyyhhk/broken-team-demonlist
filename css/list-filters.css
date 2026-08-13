@@ -55,7 +55,6 @@ body:not(.dark) .filter-panel {
   background: rgba(0, 0, 0, 0.04);
 }
 
-/* Open / close animation */
 .filter-drop-enter-active,
 .filter-drop-leave-active {
   transition: opacity 0.22s ease, transform 0.22s ease, max-height 0.25s ease;
@@ -176,4 +175,24 @@ body:not(.dark) .filter-panel {
   display: flex;
   gap: 0.3rem;
   align-items: center;
+}
+
+/* Server Hardest preview thumbnail */
+.sh-preview-thumb {
+  width: 100%;
+  max-width: 640px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 0.75rem 0 0.5rem;
+  background: rgba(128, 128, 128, 0.15);
+  aspect-ratio: 16 / 9;
+}
+.sh-preview-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.page-server-hardest .level .video {
+  margin-top: 0.5rem;
 }
