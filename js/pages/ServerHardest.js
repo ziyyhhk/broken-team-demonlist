@@ -65,7 +65,7 @@ export default {
                                 <li v-if="level.id"><div class="type-title-sm">Level ID</div><p>{{ level.id }}</p></li>
                             </ul>
                             <div class="records-wrap">
-                                <h2>Who beat it ({{ beatList(level).length }})</h2>
+                                <h2>Records ({{ beatList(level).length }})</h2>
                                 <table class="records" v-if="beatList(level).length">
                                     <tr class="record" v-for="(r, ri) in beatList(level)" :key="ri">
                                         <td class="user">
@@ -74,7 +74,7 @@ export default {
                                         </td>
                                     </tr>
                                 </table>
-                                <p v-else class="rec-hint">No victors yet.</p>
+                                <p v-else class="rec-hint">No records yet.</p>
                             </div>
                         </div>
                         <div class="level level--empty" v-else>
@@ -136,7 +136,7 @@ export default {
                                                 <div class="info-row" v-if="row.length"><dt>Length</dt><dd>{{ row.length }}</dd></div>
                                             </dl>
                                             <div class="card-expand__records-head">
-                                                <span>Who beat it</span>
+                                                <span>Records</span>
                                                 <span class="records-count">{{ beatList(row).length }}</span>
                                             </div>
                                             <ul class="card-expand__records" v-if="beatList(row).length">
@@ -145,7 +145,7 @@ export default {
                                                     <a v-if="r.link" class="yt-link" :href="r.link" target="_blank" rel="noopener" @click.stop>▶</a>
                                                 </li>
                                             </ul>
-                                            <p v-else class="rec-hint">No victors yet.</p>
+                                            <p v-else class="rec-hint">No records yet.</p>
                                         </div>
                                     </div>
                                 </div>
