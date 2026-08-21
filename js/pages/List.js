@@ -41,26 +41,21 @@ export default Vue.defineAsyncComponent(async () => {
     '...filterMethods,\n        setTier(t) {'
   );
 
-  // Custom thumbnail: use level.thumbnail if set, else YouTube hqdefault
-  code = code.replace(
-    `thumb(level) {
-            const id = getYoutubeIdFromUrl(level.verification || "");
-            return id ? getThumbnailFromId(id) : "";
-        },`,
-    `thumb(level) {
-            if (!level) return "";
-            const t = (level.thumbnail || "").trim();
-            if (t) {
-                if (!/imgur\.com\/a\//i.test(t) && !/imgur\.com\/gallery\//i.test(t)) {
-                    const im = t.match(/imgur\.com\/(?:gallery\/)?([a-zA-Z0-9]{5,})/i);
-                    if (im && t.indexOf("i.imgur.com") === -1) return "https://i.imgur.com/" + im[1] + ".jpg";
-                }
-                return t;
-            }
-            const id = getYoutubeIdFromUrl(level.verification || "");
-            return id ? getThumbnailFromId(id) : "";
-        },`
-  );
+  // Custom thumbnail URL, else YouTube (no regex literals — keeps the blob module valid)
+  var oldThumb =
+    'thumb(level) {\n' +
+    '            const id = getYoutubeIdFromUrl(level.verification || "");\n' +
+    '            return id ? getThumbnailFromId(id) : "";\n' +
+    '        },';
+  var newThumb =
+    'thumb(level) {\n' +
+    '            if (!level) return "";\n' +
+    '            var t = String(level.thumbnail || "").trim();\n' +
+    '            if (t) return t;\n' +
+    '            var id = getYoutubeIdFromUrl(level.verification || "");\n' +
+    '            return id ? getThumbnailFromId(id) : "";\n' +
+    '        },';
+  code = code.split(oldThumb).join(newThumb);
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   return mod.default;
