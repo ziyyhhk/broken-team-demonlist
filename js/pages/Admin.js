@@ -1,306 +1,303 @@
-const CDN = 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@1562ed3c8171bf007a22daa608c535e9eef4f659/js/pages/Admin.js';
-const jsBase = new URL('../', import.meta.url).href;
-const pagesBase = new URL('./', import.meta.url).href;
+import {
+  auth, can, isOwner, logout, getUsersAsync, createAccount,
+  getGithubToken, setGithubToken, githubPutFile, testGithubToken,
+} from '../auth.js';
+import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules } from '../content.js';
+import Spinner from '../components/Spinner.js';
 
-export default Vue.defineAsyncComponent(async () => {
-  let code = await (await fetch(CDN)).text();
+function slugify(n) {
+  return String(n || '').trim().replace(/[^a-zA-Z0-9]+/g, '').replace(/^\d+/, '') || 'NewLevel';
+}
 
-  code = code.replace(/(from\s+['"])\.\.\/([^'"]+)(['"])/g, function (_, a, p, c) {
-    return a + jsBase + p + c;
-  });
-  code = code.replace(/(from\s+['"])\.\/([^'"]+)(['"])/g, function (_, a, p, c) {
-    return a + pagesBase + p + c;
-  });
-
-  if (code.indexOf('fetchLeaderboard') === -1) {
-    code = code.replace(
-      /import \{ fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules \} from ['"][^'"]+content\.js['"];/,
-      "import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchLeaderboard } from '" + jsBase + "content.js';"
-    );
-  }
-
-  code = code.replace(
-    "activityLogs: [], serverHardestText: '[]',",
-    "activityLogs: [], serverHardestText: '[]', serverLevels: [], board: [], boardPlayer: null, boardSearch: '', boardAdd: { path: '', percent: 100, hz: 240, link: '' },"
-  );
-
-  code = code.replace(
-    '<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>\n</span>',
-    '<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>\n<button type="button" class="rec-del" title="Remove" @click="removeFromList(i)">✕</button>\n</span>'
-  );
-
-  code = code.replace(
-    'Levels & records</button>',
-    'Levels & records</button>\n<button type="button" class="admin-tab" :class="{ active: tab===\'board\' }" @click="openBoard" v-if="canLevels">Leaderboard</button>'
-  );
-
-  code = code.replace(
-    '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>',
-    '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>'
-  );
-
-  code = code.replace(
-    '<label class="admin-grid--full">Video <input class="admin-input" v-model="draft.verification" /></label>\n<label>Length <input class="admin-input" v-model="draft.length" /></label>',
-    '<label class="admin-grid--full">Video <input class="admin-input" v-model="draft.verification" /></label>\n<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="draft.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>\n<label>Length <input class="admin-input" v-model="draft.length" /></label>'
-  );
-
-  code = code.replace(
-    "newLevel: { name: '', id: '', author: '', verifier: '', verification: '', length: '', percentToQualify: 100 },",
-    "newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 },"
-  );
-
-  code = code.replace(
-    "verifier: n.verifier.trim(), verification: n.verification.trim(),\n        percentToQualify: Number(n.percentToQualify) || 100,\n        password: 'Free to Copy', length: n.length || '',",
-    "verifier: n.verifier.trim(), verification: n.verification.trim(),\n        thumbnail: (n.thumbnail || '').trim(),\n        percentToQualify: Number(n.percentToQualify) || 100,\n        password: 'Free to Copy', length: n.length || '',"
-  );
-
-  code = code.replace(
-    "this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', length: '', percentToQualify: 100 };",
-    "this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 };"
-  );
-
-  var shMethods = [
-    "async openServerHardest() {",
-    "      this.tab = 'server';",
-    "      try {",
-    "        var res = await fetch('./data/_server_hardest.json?t=' + Date.now(), { cache: 'no-store' });",
-    "        if (res.ok) {",
-    "          var data = await res.json();",
-    "          this.serverLevels = Array.isArray(data) ? data.map(function(l) {",
-    "            var o = Object.assign({}, l);",
-    "            o.records = Array.isArray(o.records) ? o.records.map(function(r) { return Object.assign({ user: '', link: '', attempts: null, date: '' }, r || {}); }) : [];",
-    "            o.victor = o.victor || '';",
-    "            o.verifier = o.verifier || '';",
-    "            o.verifierVideo = o.verifierVideo || '';",
-    "            o.verification = o.verification || '';",
-    "            if (!o.records.length && o.victor) o.records.push({ user: o.victor, link: o.verification || '', attempts: null, date: '' });",
-    "            return o;",
-    "          }) : [];",
-    "        } else this.serverLevels = [];",
-    "      } catch (e) { this.serverLevels = []; }",
-    "    },",
-    "    shAddRow() {",
-    "      this.serverLevels.push({ id: '', name: '', author: '', victor: '', verifier: '', verifierVideo: '', verification: '', thumbnail: '', length: '', note: '', tags: [], records: [{ user: '', link: '', attempts: null, date: '' }] });",
-    "    },",
-    "    shAddVictor(i) {",
-    "      if (!this.serverLevels[i].records) this.serverLevels[i].records = [];",
-    "      this.serverLevels[i].records.push({ user: '', link: '', attempts: null, date: '' });",
-    "    },",
-    "    shRemoveVictor(i, ri) {",
-    "      this.serverLevels[i].records.splice(ri, 1);",
-    "    },",
-    "    shMove(i, dir) {",
-    "      var j = i + dir;",
-    "      if (j < 0 || j >= this.serverLevels.length) return;",
-    "      var a = this.serverLevels.slice();",
-    "      var t = a[i]; a[i] = a[j]; a[j] = t;",
-    "      this.serverLevels = a;",
-    "    },",
-    "    async shRemove(i) {",
-    "      var name = (this.serverLevels[i] && this.serverLevels[i].name) || ('#' + (i + 1));",
-    "      if (!confirm('Remove ' + name + ' from Server Hardest? Saves immediately.')) return;",
-    "      this.serverLevels.splice(i, 1);",
-    "      await this.pushFile('data/_server_hardest.json', JSON.stringify(this.serverLevels, null, 4), 'Admin: remove SH ' + name);",
-    "    },",
-    "    async saveServerHardest() {",
-    "      var payload = this.serverLevels.map(function(l) {",
-    "        var o = Object.assign({}, l);",
-    "        o.records = (o.records || []).filter(function(r) { return r && String(r.user || '').trim(); }).map(function(r) {",
-    "          return { user: String(r.user).trim(), link: r.link || '', attempts: r.attempts != null && r.attempts !== '' ? r.attempts : null, date: r.date || '' };",
-    "        });",
-    "        if (!o.victor && o.records.length) o.victor = o.records[0].user;",
-    "        if (!o.verification && o.records.length) {",
-    "          var withLink = o.records.find(function(r) { return r.link; });",
-    "          if (withLink) o.verification = withLink.link;",
-    "        }",
-    "        return o;",
-    "      });",
-    "      await this.pushFile('data/_server_hardest.json', JSON.stringify(payload, null, 4), 'Admin: Server Hardest (' + this.serverLevels.length + ' levels)');",
-    "    },",
-  ].join('\n');
-
-  code = code.replace(
-    /async openServerHardest\(\) \{[\s\S]*?\n    \},\n    async saveServerHardest\(\) \{[\s\S]*?\n    \},/,
-    shMethods
-  );
-
-  if (code.indexOf('async removeFromList(') === -1) {
-    code = code.replace('async saveList() {', [
-      "async removeFromList(i) {",
-      "      var name = this.listOrder[i];",
-      "      if (!name) return;",
-      "      if (!confirm('Remove ' + name + ' from the list? Saves immediately.')) return;",
-      "      this.listOrder.splice(i, 1);",
-      "      this.list = this.list.filter(function (pair) {",
-      "        var p = pair[0] ? pair[0].path : pair[1];",
-      "        return p !== name;",
-      "      });",
-      "      if (this.selectedPath === name) { this.selectedPath = null; this.draft = null; }",
-      "      await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: remove ' + name);",
-      "    },",
-      "    async saveList() {",
-    ].join('\n'));
-  }
-
-  if (code.indexOf('async openBoard(') === -1) {
-    code = code.replace('async saveList() {', [
-      "async openBoard() {",
-      "      this.tab = 'board';",
-      "      try { var pair = await fetchLeaderboard(); this.board = (pair && pair[0]) || []; } catch (e) { this.board = []; }",
-      "    },",
-      "    selectBoardPlayer(e) { if (!e) return; this.boardPlayer = e.user; this.boardAdd = { path: '', percent: 100, hz: 240, link: '' }; },",
-      "    findLevelByName(name) { return this.list.find(function (pair) { return pair[0] && pair[0].name === name; }); },",
-      "    findLevelByPath(path) { return this.list.find(function (pair) { return pair[0] && pair[0].path === path; }); },",
-      "    async boardSaveLevel(path, levelObj, msg) {",
-      "      var payload = Object.assign({}, levelObj); delete payload.path;",
-      "      var ok = await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), msg || ('Admin: board ' + path));",
-      "      if (ok) { var pair = this.findLevelByPath(path); if (pair) pair[0] = Object.assign({}, payload, { path: path }); }",
-      "      return ok;",
-      "    },",
-      "    async boardRemoveRecord(levelName, kind) {",
-      "      if (!this.boardPlayer) return;",
-      "      var pair = this.findLevelByName(levelName);",
-      "      if (!pair || !pair[0]) { this.flash('Level not found: ' + levelName, true); return; }",
-      "      var path = pair[0].path; var lv = JSON.parse(JSON.stringify(pair[0])); var user = this.boardPlayer;",
-      "      if (kind === 'verified') { if ((lv.verifier || '').toLowerCase() === user.toLowerCase()) lv.verifier = ''; }",
-      "      else { lv.records = (lv.records || []).filter(function (r) { return !r || !r.user || r.user.toLowerCase() !== user.toLowerCase(); }); }",
-      "      if (!confirm('Remove ' + user + ' from ' + levelName + '?')) return;",
-      "      var ok = await this.boardSaveLevel(path, lv, 'Admin: remove ' + user + ' from ' + path);",
-      "      if (ok) await this.openBoard();",
-      "    },",
-      "    async boardAddRecord() {",
-      "      if (!this.boardPlayer || !this.boardAdd.path) { this.flash('Pick a level first.', true); return; }",
-      "      var path = this.boardAdd.path; var pair = this.findLevelByPath(path);",
-      "      if (!pair || !pair[0]) { this.flash('Level not found.', true); return; }",
-      "      var lv = JSON.parse(JSON.stringify(pair[0])); var user = this.boardPlayer;",
-      "      lv.records = (lv.records || []).filter(function (r) { return !r || !r.user || r.user.toLowerCase() !== user.toLowerCase(); });",
-      "      lv.records.push({ user: user, percent: Number(this.boardAdd.percent) || 100, hz: Number(this.boardAdd.hz) || 240, link: this.boardAdd.link || '' });",
-      "      var ok = await this.boardSaveLevel(path, lv, 'Admin: add ' + user + ' on ' + path);",
-      "      if (ok) { this.boardAdd = { path: '', percent: 100, hz: 240, link: '' }; await this.openBoard(); }",
-      "    },",
-      "    async boardSetVerifier() {",
-      "      if (!this.boardPlayer || !this.boardAdd.path) { this.flash('Pick a level first.', true); return; }",
-      "      var path = this.boardAdd.path; var pair = this.findLevelByPath(path); if (!pair || !pair[0]) return;",
-      "      var lv = JSON.parse(JSON.stringify(pair[0])); lv.verifier = this.boardPlayer;",
-      "      var ok = await this.boardSaveLevel(path, lv, 'Admin: set verifier ' + this.boardPlayer + ' on ' + path);",
-      "      if (ok) await this.openBoard();",
-      "    },",
-      "    async boardRemovePlayer() {",
-      "      if (!this.boardPlayer) return;",
-      "      var user = this.boardPlayer;",
-      "      if (!confirm('Remove ALL records for ' + user + '?')) return;",
-      "      var changed = 0;",
-      "      for (var i = 0; i < this.list.length; i++) {",
-      "        var pair = this.list[i]; if (!pair || !pair[0]) continue;",
-      "        var lv = JSON.parse(JSON.stringify(pair[0])); var path = lv.path; var dirty = false;",
-      "        if ((lv.verifier || '').toLowerCase() === user.toLowerCase()) { lv.verifier = ''; dirty = true; }",
-      "        var before = (lv.records || []).length;",
-      "        lv.records = (lv.records || []).filter(function (r) { return !r || !r.user || r.user.toLowerCase() !== user.toLowerCase(); });",
-      "        if (lv.records.length !== before) dirty = true;",
-      "        if (dirty) { var ok = await this.boardSaveLevel(path, lv, 'Admin: strip ' + user + ' from ' + path); if (ok) changed++; }",
-      "      }",
-      "      this.flash('Updated ' + changed + ' level(s).'); this.boardPlayer = null; await this.openBoard();",
-      "    },",
-      "    async boardCreatePlayer() {",
-      "      var name = (this.boardSearch || '').trim();",
-      "      if (!name) { this.flash('Type a player name first.', true); return; }",
-      "      var exists = this.board.find(function (e) { return e.user.toLowerCase() === name.toLowerCase(); });",
-      "      if (exists) { this.selectBoardPlayer(exists); return; }",
-      "      this.board.unshift({ user: name, total: 0, verified: [], completed: [], progressed: [] });",
-      "      this.selectBoardPlayer(this.board[0]);",
-      "    },",
-      "    async saveList() {",
-    ].join('\n'));
-  }
-
-  var oldPanel = [
-    'tab===\'server\' && canLevels" class="admin-panel">',
-    '<h2>Server Hardest</h2>',
-    '<p class="admin-hint">JSON array. Rank = order in the list. Each item: name, id, author, verifier, verification (video), length, note, records: [{ user, attempts, date, link }]</p>',
-    '<textarea class="admin-ta" v-model="serverHardestText" rows="18"></textarea>',
-    '<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveServerHardest">Save Server Hardest</button></div>',
-    '</div>',
-  ].join('\n');
-
-  var newPanel = [
-    'tab===\'server\' && canLevels" class="admin-panel admin-panel--wide">',
-    '<h2>Server Hardest</h2>',
-    '<p class="admin-hint">Each victor = name + their own video. Verifier name + optional verifier video. Main video = card embed.</p>',
-    '<div class="admin-actions" style="margin-bottom:0.75rem">',
-    '<button type="button" class="auth-btn" @click="shAddRow">+ Add level</button>',
-    '<button type="button" class="auth-btn" :disabled="saving" @click="saveServerHardest">Save all</button>',
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="openServerHardest">Reload</button>',
-    '</div>',
-    '<ul class="sh-list">',
-    '<li class="sh-item sh-item--block" v-for="(lv, i) in serverLevels" :key="i">',
-    '<div class="sh-item__top">',
-    '<span class="sh-item__rank">#{{ i + 1 }}</span>',
-    '<input class="admin-input" v-model="lv.name" placeholder="Level name" style="flex:1;min-width:8rem" />',
-    '<input class="admin-input" v-model="lv.id" placeholder="ID" style="width:6rem" />',
-    '<input class="admin-input" v-model="lv.author" placeholder="Creator" style="width:7rem" />',
-    '<input class="admin-input" v-model="lv.length" placeholder="Len" style="width:4rem" />',
-    '<button type="button" class="auth-btn auth-btn--ghost" style="padding:0.25rem 0.4rem" @click="shMove(i,-1)" :disabled="i===0">↑</button>',
-    '<button type="button" class="auth-btn auth-btn--ghost" style="padding:0.25rem 0.4rem" @click="shMove(i,1)" :disabled="i===serverLevels.length-1">↓</button>',
-    '<button type="button" class="rec-del" @click="shRemove(i)">✕</button>',
-    '</div>',
-    '<div class="sh-item__row">',
-    '<input class="admin-input" v-model="lv.verification" placeholder="Main video URL (shown on card)" style="flex:1;min-width:12rem" />',
-    '<input class="admin-input" v-model="lv.thumbnail" placeholder="Thumbnail optional" style="flex:1;min-width:8rem" />',
-    '</div>',
-    '<div class="sh-item__row">',
-    '<input class="admin-input" v-model="lv.verifier" placeholder="Verifier name" style="width:9rem" />',
-    '<input class="admin-input" v-model="lv.verifierVideo" placeholder="Verifier video URL" style="flex:1;min-width:12rem" />',
-    '</div>',
-    '<div class="sh-victors">',
-    '<div class="sh-victors__head"><strong>Victors</strong> <button type="button" class="auth-btn auth-btn--ghost" style="padding:0.15rem 0.5rem" @click="shAddVictor(i)">+ Victor</button></div>',
-    '<div class="sh-victor-row" v-for="(r, ri) in (lv.records || [])" :key="ri">',
-    '<input class="admin-input" v-model="r.user" placeholder="Victor name" style="width:9rem" />',
-    '<input class="admin-input" v-model="r.link" placeholder="Victor video URL" style="flex:1;min-width:12rem" />',
-    '<button type="button" class="rec-del" @click="shRemoveVictor(i, ri)">✕</button>',
-    '</div>',
-    '<p v-if="!(lv.records && lv.records.length)" class="admin-hint">No victors — click + Victor.</p>',
-    '</div>',
-    '</li></ul>',
-    '<p v-if="!serverLevels.length" class="admin-hint">No levels yet. Click + Add level.</p>',
-    '</div>',
-  ].join('\n');
-
-  if (code.indexOf(oldPanel) !== -1) code = code.split(oldPanel).join(newPanel);
-
-  var boardPanel = [
-    '<div v-if="tab===\'board\' && canLevels" class="admin-panel admin-panel--wide">',
-    '<h2>Leaderboard</h2>',
-    '<div class="admin-row" style="margin-bottom:0.75rem">',
-    '<input class="admin-input" v-model="boardSearch" placeholder="Search player" style="min-width:12rem" />',
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="openBoard">Refresh</button>',
-    '<button type="button" class="auth-btn" @click="boardCreatePlayer">+ Player</button>',
-    '</div>',
-    '<div class="board-layout" style="display:flex;gap:1rem;flex-wrap:wrap">',
-    '<div style="flex:1;min-width:12rem;max-height:28rem;overflow:auto">',
-    '<button type="button" class="level-picker__item" v-for="(e, i) in board" :key="e.user" v-show="!(boardSearch||\'\').trim() || (e.user||\'\').toLowerCase().indexOf((boardSearch||\'\').trim().toLowerCase())!==-1" :class="{ active: boardPlayer === e.user }" @click="selectBoardPlayer(e)">',
-    '<span class="level-picker__rank">#{{ i + 1 }}</span><span>{{ e.user }}</span><span class="admin-muted">{{ e.total }} pts</span>',
-    '</button></div>',
-    '<div style="flex:2;min-width:16rem" v-if="boardPlayer">',
-    '<h3>{{ boardPlayer }}</h3>',
-    '<button type="button" class="auth-btn auth-btn--ghost" style="color:#f66" @click="boardRemovePlayer">Remove player</button>',
-    '<h3>Add clear</h3>',
-    '<div class="admin-row">',
-    '<select class="admin-input" v-model="boardAdd.path"><option value="" disabled>Level…</option><option v-for="p in listOrder" :key="p" :value="p">{{ p }}</option></select>',
-    '<input class="admin-input" type="number" v-model.number="boardAdd.percent" placeholder="%" style="width:5rem" />',
-    '<input class="admin-input" v-model="boardAdd.link" placeholder="Video" />',
-    '</div>',
-    '<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="boardAddRecord">Add clear</button>',
-    '<button type="button" class="auth-btn auth-btn--ghost" :disabled="saving" @click="boardSetVerifier">Set verifier</button></div>',
-    '</div></div></div>',
-  ].join('\n');
-
-  var serverNeedle = '<div v-if="tab===\'server\' && canLevels" class="admin-panel admin-panel--wide">';
-  if (code.indexOf(serverNeedle) !== -1) code = code.split(serverNeedle).join(boardPanel + '\n' + serverNeedle);
-  else {
-    var serverNeedle2 = '<div v-if="tab===\'server\' && canLevels" class="admin-panel">';
-    if (code.indexOf(serverNeedle2) !== -1) code = code.split(serverNeedle2).join(boardPanel + '\n' + serverNeedle2);
-  }
-
-  const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
-  return mod.default;
-});
+export default {
+  components: { Spinner },
+  data: () => ({
+    auth, tab: 'levels', loading: true, list: [], listOrder: [], users: [],
+    editors: null, config: null, infoText: '', rulesText: '', editorsText: '',
+    selectedPath: null, draft: null, draftRecords: [], msg: '', err: '',
+    saving: false, showAddLevel: false, mainCutoff: 75, extendedCutoff: 150,
+    newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 },
+    newRec: { user: '', percent: 100, hz: 240, link: '' },
+    levelSearch: '', newUser: '', newPass: '', newRole: 'helper',
+    ghToken: '', activityLogs: [], serverHardestText: '[]',
+  }),
+  computed: {
+    canLevels() { return can('editLevels'); },
+    canList() { return can('editList'); },
+    canEditors() { return can('editEditors'); },
+    canUsers() { return isOwner(); },
+    canToken() { return isOwner(); },
+    filteredLevels() {
+      const q = (this.levelSearch || '').trim().toLowerCase();
+      if (!q) return this.listOrder;
+      return this.listOrder.filter((p) => p.toLowerCase().includes(q));
+    },
+  },
+  template: `
+<main class="page-admin page-shell">
+<aside class="admin-side">
+<p class="admin-user">{{ auth.user && auth.user.username }} · {{ auth.user && auth.user.role }}</p>
+<button type="button" class="admin-tab" :class="{ active: tab==='tiers' }" @click="tab='tiers'" v-if="canList">Tiers & order</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='levels' }" @click="tab='levels'" v-if="canLevels">Levels & records</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='server' }" @click="openServerHardest" v-if="canLevels">Server Hardest</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='info' }" @click="tab='info'" v-if="canLevels">Info</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='rules' }" @click="tab='rules'" v-if="canLevels">Rules</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='editors' }" @click="tab='editors'" v-if="canEditors">Editors</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='users' }" @click="openUsers" v-if="canUsers">Users</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='settings' }" @click="tab='settings'" v-if="canToken">Settings</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='log' }" @click="openLog" v-if="canLevels || canList">Activity log</button>
+<button type="button" class="admin-tab admin-out" @click="onLogout">Log out</button>
+</aside>
+<section class="admin-main">
+<p class="admin-banner" v-if="msg">{{ msg }}</p>
+<p class="admin-banner admin-banner--err" v-if="err">{{ err }}</p>
+<div v-if="loading" class="admin-panel"><Spinner /></div>
+<template v-else>
+<div v-if="tab==='tiers' && canList" class="admin-panel">
+<h2>Tiers & order</h2>
+<div class="admin-row">
+<label>Main cutoff <input class="admin-input" type="number" min="1" v-model.number="mainCutoff" /></label>
+<label>Extended cutoff <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" /></label>
+</div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveConfig">Save cutoffs</button></div>
+<ul class="admin-order">
+<li v-for="(p, i) in listOrder" :key="p">
+<span class="admin-order__rank">#{{ i+1 }}</span>
+<span>{{ p }}</span>
+<span class="admin-order__btns">
+<button type="button" @click="moveUp(i)" :disabled="i===0">↑</button>
+<button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>
+</span>
+</li>
+</ul>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveList">Save order</button></div>
+</div>
+<div v-if="tab==='levels' && canLevels" class="admin-panel admin-panel--wide">
+<h2>Levels</h2>
+<div class="admin-actions"><button type="button" class="auth-btn" @click="showAddLevel=!showAddLevel">{{ showAddLevel?'Hide':'+ New level' }}</button></div>
+<div class="admin-edit-card" v-if="showAddLevel">
+<div class="admin-grid">
+<label>Name * <input class="admin-input" v-model="newLevel.name" /></label>
+<label>ID <input class="admin-input" v-model="newLevel.id" type="number" /></label>
+<label>Author <input class="admin-input" v-model="newLevel.author" /></label>
+<label>Verifier * <input class="admin-input" v-model="newLevel.verifier" /></label>
+<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>
+<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>
+<label>Length <input class="admin-input" v-model="newLevel.length" /></label>
+</div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="createLevel">Create</button></div>
+</div>
+<div class="level-picker">
+<input class="admin-input" type="search" v-model="levelSearch" placeholder="Search…" />
+<div class="level-picker__list">
+<button type="button" class="level-picker__item" v-for="p in filteredLevels" :key="p" :class="{ active: selectedPath===p }" @click="selectLevel(p)">
+<span class="level-picker__rank">#{{ listOrder.indexOf(p)+1 }}</span><span>{{ p }}</span>
+</button>
+</div>
+</div>
+<div class="admin-edit-card" v-if="draft">
+<h3>{{ draft.name || selectedPath }}</h3>
+<div class="admin-grid">
+<label>Name <input class="admin-input" v-model="draft.name" /></label>
+<label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
+<label>Author <input class="admin-input" v-model="draft.author" /></label>
+<label>Verifier <input class="admin-input" v-model="draft.verifier" /></label>
+<label class="admin-grid--full">Video <input class="admin-input" v-model="draft.verification" /></label>
+<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="draft.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>
+<label>Length <input class="admin-input" v-model="draft.length" /></label>
+</div>
+<h3>Victors</h3>
+<div class="rec-table">
+<div class="rec-table__row" v-for="(r,ri) in draftRecords" :key="ri">
+<input class="admin-input" v-model="r.user" placeholder="Player" />
+<input class="admin-input" v-model.number="r.percent" type="number" />
+<input class="admin-input" v-model.number="r.hz" type="number" />
+<input class="admin-input" v-model="r.link" placeholder="Video" />
+<button type="button" class="rec-del" @click="draftRecords.splice(ri,1)">✕</button>
+</div>
+<div class="rec-table__row">
+<input class="admin-input" v-model="newRec.user" placeholder="Player" />
+<input class="admin-input" v-model.number="newRec.percent" type="number" />
+<input class="admin-input" v-model.number="newRec.hz" type="number" />
+<input class="admin-input" v-model="newRec.link" placeholder="Video" />
+<button type="button" class="auth-btn auth-btn--ghost rec-add" @click="addRecord">Add</button>
+</div>
+</div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveLevel">Save level</button></div>
+</div>
+</div>
+<div v-if="tab==='server' && canLevels" class="admin-panel">
+<h2>Server Hardest</h2>
+<p class="admin-hint">JSON array. Rank = order in the list.</p>
+<textarea class="admin-ta" v-model="serverHardestText" rows="18"></textarea>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveServerHardest">Save Server Hardest</button></div>
+</div>
+<div v-if="tab==='info' && canLevels" class="admin-panel">
+<h2>Info</h2>
+<textarea class="admin-ta" v-model="infoText" rows="12"></textarea>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveInfo">Save info</button></div>
+</div>
+<div v-if="tab==='rules' && canLevels" class="admin-panel">
+<h2>Rules</h2>
+<textarea class="admin-ta" v-model="rulesText" rows="12"></textarea>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveRules">Save rules</button></div>
+</div>
+<div v-if="tab==='editors' && canEditors" class="admin-panel">
+<h2>Editors</h2>
+<textarea class="admin-ta" v-model="editorsText" rows="10"></textarea>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveEditors">Save editors</button></div>
+</div>
+<div v-if="tab==='users' && canUsers" class="admin-panel">
+<h2>Users</h2>
+<div class="admin-grid">
+<label>Username <input class="admin-input" v-model="newUser" /></label>
+<label>Password <input class="admin-input" v-model="newPass" type="password" /></label>
+<label>Role <select class="admin-input" v-model="newRole"><option value="admin">Admin</option><option value="helper">Helper</option><option value="member">Member</option></select></label>
+</div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="addUser">Add user</button></div>
+<ul class="admin-userlist"><li v-for="u in users" :key="u.username"><strong>{{ u.username }}</strong> <span class="admin-role-tag">{{ u.role }}</span></li></ul>
+</div>
+<div v-if="tab==='settings' && canToken" class="admin-panel">
+<h2>Settings</h2>
+<label>Token <input class="admin-input" type="password" v-model="ghToken" placeholder="ghp_… or github_pat_…" autocomplete="off" /></label>
+<div class="admin-actions"><button type="button" class="auth-btn" @click="saveToken">Save token</button><button type="button" class="auth-btn auth-btn--ghost" @click="testToken">Test</button></div>
+</div>
+<div v-if="tab==='log'" class="admin-panel">
+<h2>Activity log</h2>
+<p class="admin-hint">Recent saves (client-side).</p>
+</div>
+</template>
+</section>
+</main>
+  `,
+  methods: {
+    flash(m, isErr) { if (isErr) { this.err = m; this.msg = ''; } else { this.msg = m; this.err = ''; } setTimeout(() => { this.msg = ''; this.err = ''; }, 4000); },
+    onLogout() { logout(); location.hash = '#/login'; },
+    async pushFile(path, text, message) {
+      this.saving = true;
+      try {
+        const ok = await githubPutFile(path, text, message);
+        if (ok) this.flash('Saved: ' + path);
+        else this.flash('Save failed: ' + path, true);
+        return ok;
+      } catch (e) {
+        this.flash(String(e.message || e), true);
+        return false;
+      } finally { this.saving = false; }
+    },
+    moveUp(i) { if (i <= 0) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.listOrder = a; },
+    moveDown(i) { if (i >= this.listOrder.length - 1) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i+1]; a[i+1] = t; this.listOrder = a; },
+    selectLevel(p) {
+      this.selectedPath = p;
+      const found = this.list.find((pair) => pair[0] && pair[0].path === p);
+      if (!found || !found[0]) { this.draft = null; this.draftRecords = []; return; }
+      this.draft = JSON.parse(JSON.stringify(found[0]));
+      this.draftRecords = JSON.parse(JSON.stringify(this.draft.records || []));
+      delete this.draft.path; delete this.draft.records;
+    },
+    addRecord() {
+      if (!this.newRec.user) return;
+      this.draftRecords.push({ user: this.newRec.user, percent: Number(this.newRec.percent) || 100, hz: Number(this.newRec.hz) || 240, link: this.newRec.link || '' });
+      this.newRec = { user: '', percent: 100, hz: 240, link: '' };
+    },
+    async createLevel() {
+      const n = this.newLevel;
+      if (!(n.name || '').trim()) { this.flash('Name required.', true); return; }
+      if (!(n.verifier || '').trim()) { this.flash('Verifier required.', true); return; }
+      if (!(n.verification || '').trim()) { this.flash('Video required.', true); return; }
+      let path = slugify(n.name);
+      if (this.listOrder.includes(path)) path = path + Date.now().toString().slice(-4);
+      const payload = {
+        id: Number(n.id) || 0, name: n.name.trim(),
+        author: (n.author || n.verifier).trim(),
+        creators: [(n.author || n.verifier).trim()],
+        verifier: n.verifier.trim(), verification: n.verification.trim(),
+        thumbnail: (n.thumbnail || '').trim(),
+        percentToQualify: Number(n.percentToQualify) || 100,
+        password: 'Free to Copy', length: n.length || '',
+        creationDate: new Date().toLocaleDateString('en-US'), tags: [], records: [],
+      };
+      if (!(await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), 'Admin: add ' + path))) return;
+      const order = this.listOrder.slice(); order.unshift(path);
+      if (!(await this.pushFile('data/_list.json', JSON.stringify(order, null, 4), 'Admin: list add'))) return;
+      this.listOrder = order;
+      this.list.unshift([Object.assign({}, payload, { path }), null]);
+      this.showAddLevel = false;
+      this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 };
+      this.selectLevel(path);
+      this.flash('Level added at #1.');
+    },
+    async saveLevel() {
+      if (!this.draft || !this.selectedPath) return;
+      const payload = Object.assign({}, this.draft, { records: this.draftRecords || [] });
+      const ok = await this.pushFile('data/' + this.selectedPath + '.json', JSON.stringify(payload, null, 4), 'Admin: update ' + (payload.name || this.selectedPath));
+      if (ok) {
+        const pair = this.list.find((p) => p[0] && p[0].path === this.selectedPath);
+        if (pair) pair[0] = Object.assign({}, payload, { path: this.selectedPath });
+      }
+    },
+    async saveList() {
+      await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: order');
+    },
+    async saveConfig() {
+      const cfg = { mainCutoff: Number(this.mainCutoff) || 1, extendedCutoff: Number(this.extendedCutoff) || 1 };
+      if (cfg.extendedCutoff < cfg.mainCutoff) { this.flash('Extended must be ≥ Main.', true); return; }
+      await this.pushFile('data/_config.json', JSON.stringify(cfg, null, 4), 'Admin: cutoffs');
+    },
+    async openServerHardest() {
+      this.tab = 'server';
+      try {
+        const res = await fetch('./data/_server_hardest.json?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) this.serverHardestText = JSON.stringify(await res.json(), null, 4);
+        else this.serverHardestText = '[]';
+      } catch (e) { this.serverHardestText = '[]'; }
+    },
+    async saveServerHardest() {
+      try {
+        const data = JSON.parse(this.serverHardestText);
+        await this.pushFile('data/_server_hardest.json', JSON.stringify(data, null, 4), 'Admin: Server Hardest');
+      } catch (e) { this.flash('Invalid JSON', true); }
+    },
+    async saveInfo() {
+      try { const data = JSON.parse(this.infoText); await this.pushFile('data/info.json', JSON.stringify(data, null, 4), 'Admin: info'); }
+      catch (e) { this.flash('Invalid JSON', true); }
+    },
+    async saveRules() {
+      try { const data = JSON.parse(this.rulesText); await this.pushFile('data/rules.json', JSON.stringify(data, null, 4), 'Admin: rules'); }
+      catch (e) { this.flash('Invalid JSON', true); }
+    },
+    async saveEditors() {
+      try { const data = JSON.parse(this.editorsText); await this.pushFile('data/_editors.json', JSON.stringify(data, null, 4), 'Admin: editors'); }
+      catch (e) { this.flash('Invalid JSON', true); }
+    },
+    async openUsers() { this.tab = 'users'; await this.refreshUsers(); },
+    async refreshUsers() { this.users = (await getUsersAsync()) || []; },
+    async addUser() {
+      if (!this.newUser || !this.newPass) { this.flash('User + pass required', true); return; }
+      const ok = await createAccount(this.newUser, this.newPass, this.newRole);
+      if (ok) { this.flash('User created'); this.newUser = ''; this.newPass = ''; await this.refreshUsers(); }
+      else this.flash('Create failed', true);
+    },
+    saveToken() { setGithubToken(this.ghToken); this.flash('Token saved locally'); },
+    async testToken() {
+      const r = await testGithubToken();
+      this.flash(r ? 'Token OK' : 'Token failed', !r);
+    },
+    openLog() { this.tab = 'log'; },
+  },
+  async mounted() {
+    if (!auth.user) { location.hash = '#/login'; return; }
+    this.ghToken = getGithubToken() || '';
+    const cfg = await fetchConfig();
+    this.mainCutoff = cfg.mainCutoff;
+    this.extendedCutoff = cfg.extendedCutoff;
+    this.list = (await fetchList()) || [];
+    this.listOrder = this.list.map((p) => (p[0] && p[0].path) || p[1]).filter(Boolean);
+    try { this.infoText = JSON.stringify(await fetchInfo(), null, 4); } catch (e) { this.infoText = '{}'; }
+    try { this.rulesText = JSON.stringify(await fetchRules(), null, 4); } catch (e) { this.rulesText = '{}'; }
+    try { this.editorsText = JSON.stringify(await fetchEditors(), null, 4); } catch (e) { this.editorsText = '[]'; }
+    await this.refreshUsers();
+    this.tab = this.canList ? 'tiers' : 'levels';
+    this.loading = false;
+  },
+};
