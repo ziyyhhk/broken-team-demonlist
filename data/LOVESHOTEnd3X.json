@@ -20,5 +20,16 @@
         "Unrated",
         "Main List"
     ],
-    "records": []
+    "records": [
+        {
+            "user": "Devsush",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=Vj4iUba3_EE"
+        },
+        {
+            "user": "EtherealSoraa",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=jTS3QJhjldI"
+        }
+    ]
 }
