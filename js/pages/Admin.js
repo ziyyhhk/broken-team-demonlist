@@ -1,8 +1,8 @@
-export default Vue.defineAsyncComponent(async () => {
-  const CDN = 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@1562ed3c8171bf007a22daa608c535e9eef4f659/js/pages/Admin.js';
-  const jsBase = new URL('../', import.meta.url).href;
-  const pagesBase = new URL('./', import.meta.url).href;
+const CDN = 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@1562ed3c8171bf007a22daa608c535e9eef4f659/js/pages/Admin.js';
+const jsBase = new URL('../', import.meta.url).href;
+const pagesBase = new URL('./', import.meta.url).href;
 
+export default Vue.defineAsyncComponent(async () => {
   let code = await (await fetch(CDN)).text();
 
   code = code.replace(/(from\s+['"])\.\.\/([^'"]+)(['"])/g, function (_, a, p, c) {
@@ -34,7 +34,6 @@ export default Vue.defineAsyncComponent(async () => {
     'Levels & records</button>\n<button type="button" class="admin-tab" :class="{ active: tab===\'board\' }" @click="openBoard" v-if="canLevels">Leaderboard</button>'
   );
 
-  // Thumbnail fields
   code = code.replace(
     '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>',
     '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>'
