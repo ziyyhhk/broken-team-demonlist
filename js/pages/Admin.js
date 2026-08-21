@@ -34,6 +34,36 @@ export default Vue.defineAsyncComponent(async () => {
     'Levels & records</button>\n<button type="button" class="admin-tab" :class="{ active: tab===\'board\' }" @click="openBoard" v-if="canLevels">Leaderboard</button>'
   );
 
+  // Thumbnail field on new level form
+  code = code.replace(
+    '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>',
+    '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>'
+  );
+
+  // Thumbnail field on draft edit form
+  code = code.replace(
+    '<label class="admin-grid--full">Video <input class="admin-input" v-model="draft.verification" /></label>\n<label>Length <input class="admin-input" v-model="draft.length" /></label>',
+    '<label class="admin-grid--full">Video <input class="admin-input" v-model="draft.verification" /></label>\n<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="draft.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>\n<label>Length <input class="admin-input" v-model="draft.length" /></label>'
+  );
+
+  // newLevel default includes thumbnail
+  code = code.replace(
+    "newLevel: { name: '', id: '', author: '', verifier: '', verification: '', length: '', percentToQualify: 100 },",
+    "newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 },"
+  );
+
+  // createLevel payload includes thumbnail
+  code = code.replace(
+    "verifier: n.verifier.trim(), verification: n.verification.trim(),\n        percentToQualify: Number(n.percentToQualify) || 100,\n        password: 'Free to Copy', length: n.length || '',",
+    "verifier: n.verifier.trim(), verification: n.verification.trim(),\n        thumbnail: (n.thumbnail || '').trim(),\n        percentToQualify: Number(n.percentToQualify) || 100,\n        password: 'Free to Copy', length: n.length || '',"
+  );
+
+  // reset newLevel after create
+  code = code.replace(
+    "this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', length: '', percentToQualify: 100 };",
+    "this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 };"
+  );
+
   var shMethods = [
     "async openServerHardest() {",
     "      this.tab = 'server';",
@@ -276,6 +306,6 @@ export default Vue.defineAsyncComponent(async () => {
     if (code.indexOf(serverNeedle2) !== -1) code = code.split(serverNeedle2).join(boardPanel + '\n' + serverNeedle2);
   }
 
-  var mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+  const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   return mod.default;
 });
