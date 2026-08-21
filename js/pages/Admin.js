@@ -19,11 +19,10 @@ export default Vue.defineAsyncComponent(async () => {
     );
   }
 
-  // Tag catalog
   if (code.indexOf('TAG_GROUPS') === -1) {
     var _imp = code.match(/import \{[^}]+\} from ['"][^'"]+content\.js['"];/);
-    if (_imp) code = code.replace(_imp[0], _imp[0] + "\nimport { TAG_GROUPS } from '" + jsBase + "tags.js';");
-    else code = "import { TAG_GROUPS } from '" + jsBase + "tags.js";\n" + code;
+    if (_imp) code = code.replace(_imp[0], _imp[0] + "\nimport { TAG_GROUPS } from '" + jsBase + "tags.js";");
+    else code = "import { TAG_GROUPS } from '" + jsBase + "tags.js;\n" + code;
   }
 
   code = code.replace(
@@ -41,7 +40,6 @@ export default Vue.defineAsyncComponent(async () => {
     'Levels & records</button>\n<button type="button" class="admin-tab" :class="{ active: tab===\'board\' }" @click="openBoard" v-if="canLevels">Leaderboard</button>'
   );
 
-  // Thumbnail + tags on new level
   code = code.replace(
     '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>',
     '<label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>\n<label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>\n<label>Length <input class="admin-input" v-model="newLevel.length" /></label>'
@@ -54,10 +52,6 @@ export default Vue.defineAsyncComponent(async () => {
 
   code = code.replace(
     "newLevel: { name: '', id: '', author: '', verifier: '', verification: '', length: '', percentToQualify: 100 },",
-    "TAG_GROUPS: TAG_GROUPS, newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [] },"
-  );
-  code = code.replace(
-    "newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 },",
     "TAG_GROUPS: TAG_GROUPS, newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [] },"
   );
 
@@ -107,7 +101,6 @@ export default Vue.defineAsyncComponent(async () => {
     );
   }
 
-  // Tags UI — new level
   var tagsNewHtml = [
     '</div>',
     '<div class="admin-tags">',
@@ -125,7 +118,6 @@ export default Vue.defineAsyncComponent(async () => {
     '<label>Length <input class="admin-input" v-model="newLevel.length" /></label>\n' + tagsNewHtml
   );
 
-  // Tags UI — edit level
   var tagsDraftHtml = [
     '<div class="admin-tags">',
     '<div class="admin-tags__head"><strong>Tags / Filters</strong> <span class="admin-muted">{{ (draft.tags || []).length }} selected — used by list Filters</span></div>',
