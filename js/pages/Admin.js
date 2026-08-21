@@ -4,6 +4,7 @@ import {
 } from '../auth.js';
 import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules } from '../content.js';
 import Spinner from '../components/Spinner.js';
+import { TAG_GROUPS } from '../tags.js';
 
 function slugify(n) {
   return String(n || '').trim().replace(/[^a-zA-Z0-9]+/g, '').replace(/^\d+/, '') || 'NewLevel';
@@ -16,7 +17,8 @@ export default {
     editors: null, config: null, infoText: '', rulesText: '', editorsText: '',
     selectedPath: null, draft: null, draftRecords: [], msg: '', err: '',
     saving: false, showAddLevel: false, mainCutoff: 75, extendedCutoff: 150,
-    newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 },
+    TAG_GROUPS,
+    newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [] },
     newRec: { user: '', percent: 100, hz: 240, link: '' },
     levelSearch: '', newUser: '', newPass: '', newRole: 'helper',
     ghToken: '', activityLogs: [], serverHardestText: '[]',
@@ -85,6 +87,13 @@ export default {
 <label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>
 <label>Length <input class="admin-input" v-model="newLevel.length" /></label>
 </div>
+<div class="admin-tags">
+<div class="admin-tags__head"><strong>Tags / Filters</strong> <span class="admin-muted">click to toggle</span></div>
+<div class="admin-tag-group" v-for="g in TAG_GROUPS" :key="g.name">
+<div class="admin-tag-group__title">{{ g.name }}</div>
+<div class="admin-tag-group__row">
+<button type="button" class="admin-tag-chip" v-for="tg in g.tags" :key="tg" :class="{ on: (newLevel.tags || []).includes(tg) }" @click="toggleNewLevelTag(tg)">{{ tg }}</button>
+</div></div></div>
 <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="createLevel">Create</button></div>
 </div>
 <div class="level-picker">
@@ -106,6 +115,13 @@ export default {
 <label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="draft.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>
 <label>Length <input class="admin-input" v-model="draft.length" /></label>
 </div>
+<div class="admin-tags">
+<div class="admin-tags__head"><strong>Tags / Filters</strong> <span class="admin-muted">{{ (draft.tags || []).length }} selected</span></div>
+<div class="admin-tag-group" v-for="g in TAG_GROUPS" :key="g.name">
+<div class="admin-tag-group__title">{{ g.name }}</div>
+<div class="admin-tag-group__row">
+<button type="button" class="admin-tag-chip" v-for="tg in g.tags" :key="tg" :class="{ on: (draft.tags || []).includes(tg) }" @click="toggleDraftTag(tg)">{{ tg }}</button>
+</div></div></div>
 <h3>Victors</h3>
 <div class="rec-table">
 <div class="rec-table__row" v-for="(r,ri) in draftRecords" :key="ri">
@@ -192,8 +208,22 @@ export default {
       const found = this.list.find((pair) => pair[0] && pair[0].path === p);
       if (!found || !found[0]) { this.draft = null; this.draftRecords = []; return; }
       this.draft = JSON.parse(JSON.stringify(found[0]));
+      if (!Array.isArray(this.draft.tags)) this.draft.tags = [];
       this.draftRecords = JSON.parse(JSON.stringify(this.draft.records || []));
       delete this.draft.path; delete this.draft.records;
+    },
+    toggleDraftTag(tag) {
+      if (!this.draft) return;
+      if (!Array.isArray(this.draft.tags)) this.draft.tags = [];
+      const i = this.draft.tags.indexOf(tag);
+      if (i === -1) this.draft.tags.push(tag);
+      else this.draft.tags.splice(i, 1);
+    },
+    toggleNewLevelTag(tag) {
+      if (!Array.isArray(this.newLevel.tags)) this.newLevel.tags = [];
+      const i = this.newLevel.tags.indexOf(tag);
+      if (i === -1) this.newLevel.tags.push(tag);
+      else this.newLevel.tags.splice(i, 1);
     },
     addRecord() {
       if (!this.newRec.user) return;
@@ -215,7 +245,7 @@ export default {
         thumbnail: (n.thumbnail || '').trim(),
         percentToQualify: Number(n.percentToQualify) || 100,
         password: 'Free to Copy', length: n.length || '',
-        creationDate: new Date().toLocaleDateString('en-US'), tags: [], records: [],
+        creationDate: new Date().toLocaleDateString('en-US'), tags: Array.isArray(n.tags) ? n.tags.slice() : [], records: [],
       };
       if (!(await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), 'Admin: add ' + path))) return;
       const order = this.listOrder.slice(); order.unshift(path);
@@ -223,7 +253,7 @@ export default {
       this.listOrder = order;
       this.list.unshift([Object.assign({}, payload, { path }), null]);
       this.showAddLevel = false;
-      this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100 };
+      this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [] };
       this.selectLevel(path);
       this.flash('Level added at #1.');
     },
