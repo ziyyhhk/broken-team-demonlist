@@ -8,5 +8,5 @@ export default [
     { path: '/credits', component: () => import('./pages/Credits.js') },
     { path: '/login', component: () => import('./pages/Login.js') },
     { path: '/register', component: () => import('./pages/Register.js') },
-    { path: '/admin', component: () => import('./pages/Admin.js?v=7') },
+    { path: '/admin', component: () => import('./pages/Admin.js?v=8') },
 ];
