@@ -1,0 +1,20 @@
+/* Compact victors — does not change main layout */
+.card-expand__media { align-self: start; }
+.card-expand__info { align-self: start; min-width: 0; }
+.card-expand__records {
+    max-height: 14rem !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+}
+.records {
+    display: block;
+    max-height: 16rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.records tbody,
+.records thead {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
