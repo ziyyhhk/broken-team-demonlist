@@ -21,5 +21,11 @@
         "Main List",
         "Slow-Paced"
     ],
-    "records": []
+    "records": [
+        {
+            "user": "Dev1LW1ns",
+            "percent": 100,
+            "link": "https://youtu.be/Uolhd8K6jrQ?si=NrfmEji7rrygNIK-"
+        }
+    ]
 }
