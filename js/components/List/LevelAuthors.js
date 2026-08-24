@@ -21,39 +21,47 @@ export default {
                     <span>{{ author }}</span>
                 </p>
             </template>
-            <template v-else-if="creators.length === 0">
-                <div class="type-title-sm">Creator</div>
+            <template v-else>
+                <div class="type-title-sm">{{ creators.length > 1 ? 'Creators' : 'Creator' }}</div>
+                <p class="type-body">
+                    <template v-if="creators.length">
+                        <template v-for="(creator, index) in creators" :key="'c-' + index">
+                            <span>{{ creator }}</span><span v-if="index < creators.length - 1">, </span>
+                        </template>
+                    </template>
+                    <span v-else>{{ author || '—' }}</span>
+                </p>
+                <template v-if="hasVerifier">
+                    <div class="type-title-sm">Verifier</div>
+                    <p class="type-body">
+                        <span>{{ verifier }}</span>
+                    </p>
+                </template>
+            </template>
+            <template v-if="showPublisher">
+                <div class="type-title-sm">Publisher</div>
                 <p class="type-body">
                     <span>{{ author }}</span>
                 </p>
-                <div class="type-title-sm">Verifier</div>
-                <p class="type-body">
-                    <span>{{ verifier }}</span>
-                </p>
             </template>
-            <template v-else>
-                <div class="type-title-sm">Creators</div>
-                <p class="type-body">
-                    <template v-for="(creator, index) in creators" :key="\`creator-\$\{creator\}\`">
-                        <span >{{ creator }}</span
-                        ><span v-if="index < creators.length - 1">, </span>
-                    </template>
-                </p>
-                <div class="type-title-sm">Verifier</div>
-                <p class="type-body">
-                    <span>{{ verifier }}</span>
-                </p>
-            </template>
-            <div class="type-title-sm">Publisher</div>
-            <p class="type-body">
-                <span>{{ author }}</span>
-            </p>
         </div>
     `,
 
     computed: {
+        hasVerifier() {
+            return !!(this.verifier && String(this.verifier).trim());
+        },
         selfVerified() {
-            return this.author === this.verifier && this.creators.length === 0;
+            if (!this.hasVerifier) return false;
+            return this.author === this.verifier && (!this.creators || this.creators.length === 0);
+        },
+        showPublisher() {
+            const a = String(this.author || '').trim();
+            if (!a || a === '?' || a === '??') return false;
+            const creators = this.creators || [];
+            if (creators.length === 1 && creators[0] === a) return false;
+            if (!creators.length && a) return false;
+            return true;
         },
     },
 };
