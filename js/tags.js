@@ -18,7 +18,7 @@ export const TAG_GROUPS = [
   },
   {
     name: 'Ranking',
-    tags: ['Main List', 'Extended List', 'Legacy List', 'Server Hardest', 'Top 1 Potential', 'Unrated', 'Rated'],
+    tags: ['Main List', 'Extended List', 'Legacy List', 'Impossible List', 'Server Hardest', 'Top 1 Potential', 'Unrated', 'Rated'],
   },
 ];
 
