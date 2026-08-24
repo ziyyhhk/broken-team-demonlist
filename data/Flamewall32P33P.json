@@ -22,5 +22,11 @@
         "Effect",
         "Main List"
     ],
-    "records": []
+    "records": [
+        {
+            "user": "xopyy",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=6qAxRVjVYic"
+        }
+    ]
 }
