@@ -57,12 +57,10 @@ export default Vue.defineAsyncComponent(async () => {
     '        },';
   code = code.split(oldThumb).join(newThumb);
 
-  // Fix classic records table: don't show bare "Hz" when record has no hz field
+  // Remove Hz column from classic records table entirely
   code = code.split(
     '<td class="hz"><p>{{ record.hz }}Hz</p></td>'
-  ).join(
-    '<td class="hz"><p v-if="record.hz">{{ record.hz }}Hz</p></td>'
-  );
+  ).join('');
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   return mod.default;
