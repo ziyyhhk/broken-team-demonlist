@@ -57,7 +57,7 @@ export default Vue.defineAsyncComponent(async () => {
     '        },';
   code = code.split(oldThumb).join(newThumb);
 
-  // Classic records: percent | centered name | YouTube icon (no Hz)
+  // Classic records → same layout as cards: name | Watch | %
   var oldRec =
     '<table class="records" v-if="level.records.length > 0">\n' +
     '                                <tr v-for="record in level.records" class="record">\n' +
@@ -69,19 +69,13 @@ export default Vue.defineAsyncComponent(async () => {
     '                                </tr>\n' +
     '                            </table>';
   var newRec =
-    '<table class="records" v-if="level.records.length > 0">\n' +
-    '                                <tr v-for="record in level.records" class="record">\n' +
-    '                                    <td class="percent"><p>{{ record.percent }}%</p></td>\n' +
-    '                                    <td class="user">\n' +
-    '                                        <a :href="record.link" target="_blank" rel="noopener" class="type-label-lg">{{ record.user }}</a>\n' +
-    '                                    </td>\n' +
-    '                                    <td class="rec-yt">\n' +
-    '                                        <a v-if="record.link" :href="record.link" target="_blank" rel="noopener" class="yt-link" title="Watch">\n' +
-    '                                            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#FF0000" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2 31.5 31.5 0 0 0 0 12a31.5 31.5 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.5 31.5 0 0 0 24 12a31.5 31.5 0 0 0-.5-5.8z"/><path fill="#fff" d="M9.75 15.5V8.5L15.5 12l-5.75 3.5z"/></svg>\n' +
-    '                                        </a>\n' +
-    '                                    </td>\n' +
-    '                                </tr>\n' +
-    '                            </table>';
+    '<ul class="records records-list" v-if="level.records.length > 0">\n' +
+    '                                <li v-for="(record, ri) in level.records" :key="ri" class="record">\n' +
+    '                                    <a :href="record.link" target="_blank" rel="noopener" class="rec-user">{{ record.user }}</a>\n' +
+    '                                    <a :href="record.link" target="_blank" rel="noopener" class="rec-watch">Watch</a>\n' +
+    '                                    <span class="rec-pct">{{ record.percent }}%</span>\n' +
+    '                                </li>\n' +
+    '                            </ul>';
   code = code.split(oldRec).join(newRec);
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
