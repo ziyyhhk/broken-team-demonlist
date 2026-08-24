@@ -27,20 +27,18 @@ export async function fetchConfig() {
     }
 }
 
-export async function fetchList() {
+async function loadLevelPaths(listPath) {
     let list;
     try {
-        list = await fetchJson(`${dir}/_list.json`);
+        list = await fetchJson(`${dir}/${listPath}`);
     } catch (e) {
-        console.error('Failed to load list.', e);
+        console.error('Failed to load ' + listPath, e);
         return null;
     }
-
     if (!Array.isArray(list)) {
-        console.error('_list.json must contain an array of level file names.');
+        console.error(listPath + ' must contain an array of level file names.');
         return null;
     }
-
     return Promise.all(
         list.map(async (path, rank) => {
             try {
@@ -61,6 +59,19 @@ export async function fetchList() {
             }
         }),
     );
+}
+
+export async function fetchList() {
+    return loadLevelPaths('_list.json');
+}
+
+export async function fetchImpossible() {
+    try {
+        return await loadLevelPaths('_impossible.json');
+    } catch (e) {
+        console.error('Failed to load impossible list.', e);
+        return [];
+    }
 }
 
 export async function fetchEditors() {
