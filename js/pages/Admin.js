@@ -2,7 +2,7 @@ import {
   auth, can, isOwner, logout, getUsersAsync, createAccount,
   getGithubToken, setGithubToken, githubPutFile, testGithubToken,
 } from '../auth.js';
-import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules } from '../content.js';
+import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchImpossible } from '../content.js';
 import Spinner from '../components/Spinner.js';
 import { TAG_GROUPS } from '../tags.js';
 
@@ -13,12 +13,12 @@ function slugify(n) {
 export default {
   components: { Spinner },
   data: () => ({
-    auth, tab: 'levels', loading: true, list: [], listOrder: [], users: [],
+    auth, tab: 'levels', loading: true, list: [], listOrder: [], impossibleOrder: [], users: [],
     editors: null, config: null, infoText: '', rulesText: '', editorsText: '',
     selectedPath: null, draft: null, draftRecords: [], msg: '', err: '',
     saving: false, showAddLevel: false, mainCutoff: 75, extendedCutoff: 150,
     TAG_GROUPS,
-    newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [] },
+    newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [], targetList: 'main' },
     newRec: { user: '', percent: 100, link: '' },
     levelSearch: '', newUser: '', newPass: '', newRole: 'helper',
     ghToken: '', activityLogs: [], serverHardestText: '[]', serverLevels: [],
@@ -31,8 +31,12 @@ export default {
     canToken() { return isOwner(); },
     filteredLevels() {
       const q = (this.levelSearch || '').trim().toLowerCase();
-      if (!q) return this.listOrder;
-      return this.listOrder.filter((p) => p.toLowerCase().includes(q));
+      const all = this.listOrder.concat(this.impossibleOrder.filter((p) => !this.listOrder.includes(p)));
+      if (!q) return all;
+      return all.filter((p) => p.toLowerCase().includes(q));
+    },
+    isSelectedImpossible() {
+      return this.selectedPath && this.impossibleOrder.includes(this.selectedPath);
     },
   },
   template: `
@@ -62,6 +66,7 @@ export default {
 <label>Extended cutoff <input class="admin-input" type="number" min="1" v-model.number="extendedCutoff" /></label>
 </div>
 <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveConfig">Save cutoffs</button></div>
+<h3>Main / Extended / Legacy order</h3>
 <ul class="admin-order">
 <li v-for="(p, i) in listOrder" :key="p">
 <span class="admin-order__rank">#{{ i+1 }}</span>
@@ -69,10 +74,26 @@ export default {
 <span class="admin-order__btns">
 <button type="button" @click="moveUp(i)" :disabled="i===0">↑</button>
 <button type="button" @click="moveDown(i)" :disabled="i===listOrder.length-1">↓</button>
+<button type="button" title="Move to Impossible" @click="moveToImpossible(i)">→ Imp</button>
 </span>
 </li>
 </ul>
-<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveList">Save order</button></div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveList">Save main order</button></div>
+<h3>Impossible list</h3>
+<p class="admin-hint">No victor points. Only progress / WR. A 100% clear auto-moves the level to Main #1 when you save records.</p>
+<ul class="admin-order">
+<li v-for="(p, i) in impossibleOrder" :key="'imp-'+p">
+<span class="admin-order__rank">#{{ i+1 }}</span>
+<span>{{ p }}</span>
+<span class="admin-order__btns">
+<button type="button" @click="impMoveUp(i)" :disabled="i===0">↑</button>
+<button type="button" @click="impMoveDown(i)" :disabled="i===impossibleOrder.length-1">↓</button>
+<button type="button" title="Promote to Main #1" @click="promoteImpossible(i)">→ Main</button>
+</span>
+</li>
+</ul>
+<p v-if="!impossibleOrder.length" class="admin-hint">Empty — create a level with target “Impossible”, or use → Imp above.</p>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveImpossible">Save Impossible order</button></div>
 </div>
 <div v-if="tab==='levels' && canLevels" class="admin-panel admin-panel--wide">
 <h2>Levels</h2>
@@ -86,6 +107,12 @@ export default {
 <label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>
 <label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>
 <label>Length <input class="admin-input" v-model="newLevel.length" /></label>
+<label>Put on
+<select class="admin-input" v-model="newLevel.targetList">
+<option value="main">Main list (#1)</option>
+<option value="impossible">Impossible list</option>
+</select>
+</label>
 </div>
 <div class="admin-tags">
 <div class="admin-tags__head"><strong>Tags / Filters</strong> <span class="admin-muted">click to toggle</span></div>
@@ -100,12 +127,12 @@ export default {
 <input class="admin-input" type="search" v-model="levelSearch" placeholder="Search…" />
 <div class="level-picker__list">
 <button type="button" class="level-picker__item" v-for="p in filteredLevels" :key="p" :class="{ active: selectedPath===p }" @click="selectLevel(p)">
-<span class="level-picker__rank">#{{ listOrder.indexOf(p)+1 }}</span><span>{{ p }}</span>
+<span class="level-picker__rank">{{ impossibleOrder.includes(p) ? 'Imp' : '#' + (listOrder.indexOf(p)+1) }}</span><span>{{ p }}</span>
 </button>
 </div>
 </div>
 <div class="admin-edit-card" v-if="draft">
-<h3>{{ draft.name || selectedPath }}</h3>
+<h3>{{ draft.name || selectedPath }} <span v-if="isSelectedImpossible" class="admin-role-tag">Impossible</span></h3>
 <div class="admin-grid">
 <label>Name <input class="admin-input" v-model="draft.name" /></label>
 <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
@@ -122,8 +149,9 @@ export default {
 <div class="admin-tag-group__row">
 <button type="button" class="admin-tag-chip" v-for="tg in g.tags" :key="tg" :class="{ on: (draft.tags || []).includes(tg) }" @click="toggleDraftTag(tg)">{{ tg }}</button>
 </div></div></div>
-<h3>Victors</h3>
-<p class="admin-hint">Order = rank on the level. First row = 1st victor. Percent = clear % (100 = full clear).</p>
+<h3>{{ isSelectedImpossible ? 'Records / WR' : 'Victors' }}</h3>
+<p class="admin-hint" v-if="isSelectedImpossible">Impossible: progress & WR only. Saving a <strong>100%</strong> record promotes this level to Main #1 automatically.</p>
+<p class="admin-hint" v-else>Order = rank on the level. First row = 1st victor. Percent = clear % (100 = full clear).</p>
 <div class="rec-table">
 <div class="rec-table__row" v-for="(r,ri) in draftRecords" :key="ri">
 <span class="admin-order__rank">#{{ ri + 1 }}</span>
@@ -243,6 +271,32 @@ export default {
     },
     moveUp(i) { if (i <= 0) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.listOrder = a; },
     moveDown(i) { if (i >= this.listOrder.length - 1) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i+1]; a[i+1] = t; this.listOrder = a; },
+    impMoveUp(i) { if (i <= 0) return; const a = this.impossibleOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.impossibleOrder = a; },
+    impMoveDown(i) { if (i >= this.impossibleOrder.length - 1) return; const a = this.impossibleOrder.slice(); const t = a[i]; a[i] = a[i+1]; a[i+1] = t; this.impossibleOrder = a; },
+    async moveToImpossible(i) {
+      const p = this.listOrder[i];
+      if (!p) return;
+      const order = this.listOrder.slice(); order.splice(i, 1);
+      const imp = this.impossibleOrder.slice();
+      if (!imp.includes(p)) imp.push(p);
+      this.listOrder = order;
+      this.impossibleOrder = imp;
+      await this.saveList();
+      await this.saveImpossible();
+      this.flash(p + ' moved to Impossible.');
+    },
+    async promoteImpossible(i) {
+      const p = this.impossibleOrder[i];
+      if (!p) return;
+      const imp = this.impossibleOrder.slice(); imp.splice(i, 1);
+      const order = this.listOrder.slice();
+      if (!order.includes(p)) order.unshift(p);
+      this.impossibleOrder = imp;
+      this.listOrder = order;
+      await this.saveImpossible();
+      await this.saveList();
+      this.flash(p + ' promoted to Main #1.');
+    },
     selectLevel(p) {
       this.selectedPath = p;
       const found = this.list.find((pair) => pair[0] && pair[0].path === p);
@@ -283,7 +337,7 @@ export default {
       if (!(n.verifier || '').trim()) { this.flash('Verifier required.', true); return; }
       if (!(n.verification || '').trim()) { this.flash('Video required.', true); return; }
       let path = slugify(n.name);
-      if (this.listOrder.includes(path)) path = path + Date.now().toString().slice(-4);
+      if (this.listOrder.includes(path) || this.impossibleOrder.includes(path)) path = path + Date.now().toString().slice(-4);
       const payload = {
         id: Number(n.id) || 0, name: n.name.trim(),
         author: (n.author || n.verifier).trim(),
@@ -295,14 +349,21 @@ export default {
         creationDate: new Date().toLocaleDateString('en-US'), tags: Array.isArray(n.tags) ? n.tags.slice() : [], records: [],
       };
       if (!(await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), 'Admin: add ' + path))) return;
-      const order = this.listOrder.slice(); order.unshift(path);
-      if (!(await this.pushFile('data/_list.json', JSON.stringify(order, null, 4), 'Admin: list add'))) return;
-      this.listOrder = order;
+      if (n.targetList === 'impossible') {
+        const imp = this.impossibleOrder.slice(); imp.unshift(path);
+        if (!(await this.pushFile('data/_impossible.json', JSON.stringify(imp, null, 4), 'Admin: impossible add'))) return;
+        this.impossibleOrder = imp;
+        this.flash('Level added to Impossible.');
+      } else {
+        const order = this.listOrder.slice(); order.unshift(path);
+        if (!(await this.pushFile('data/_list.json', JSON.stringify(order, null, 4), 'Admin: list add'))) return;
+        this.listOrder = order;
+        this.flash('Level added at Main #1.');
+      }
       this.list.unshift([Object.assign({}, payload, { path }), null]);
       this.showAddLevel = false;
-      this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [] };
+      this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [], targetList: 'main' };
       this.selectLevel(path);
-      this.flash('Level added at #1.');
     },
     async saveLevel() {
       if (!this.draft || !this.selectedPath) return;
@@ -311,10 +372,21 @@ export default {
       if (ok) {
         const pair = this.list.find((p) => p[0] && p[0].path === this.selectedPath);
         if (pair) pair[0] = Object.assign({}, payload, { path: this.selectedPath });
+        // Impossible → Main when any record is 100%
+        if (this.isSelectedImpossible) {
+          const hasClear = (this.draftRecords || []).some((r) => Number(r.percent) === 100);
+          if (hasClear) {
+            const idx = this.impossibleOrder.indexOf(this.selectedPath);
+            if (idx !== -1) await this.promoteImpossible(idx);
+          }
+        }
       }
     },
     async saveList() {
       await this.pushFile('data/_list.json', JSON.stringify(this.listOrder, null, 4), 'Admin: order');
+    },
+    async saveImpossible() {
+      await this.pushFile('data/_impossible.json', JSON.stringify(this.impossibleOrder, null, 4), 'Admin: impossible order');
     },
     async saveConfig() {
       const cfg = { mainCutoff: Number(this.mainCutoff) || 1, extendedCutoff: Number(this.extendedCutoff) || 1 };
@@ -434,6 +506,14 @@ export default {
     this.extendedCutoff = cfg.extendedCutoff;
     this.list = (await fetchList()) || [];
     this.listOrder = this.list.map((p) => (p[0] && p[0].path) || p[1]).filter(Boolean);
+    const imp = (await fetchImpossible()) || [];
+    this.impossibleOrder = imp.map((p) => (p[0] && p[0].path) || p[1]).filter(Boolean);
+    // merge impossible levels into this.list so selectLevel works
+    imp.forEach((pair) => {
+      if (pair[0] && pair[0].path && !this.list.some((x) => x[0] && x[0].path === pair[0].path)) {
+        this.list.push(pair);
+      }
+    });
     try { this.infoText = JSON.stringify(await fetchInfo(), null, 4); } catch (e) { this.infoText = '{}'; }
     try { this.rulesText = JSON.stringify(await fetchRules(), null, 4); } catch (e) { this.rulesText = '{}'; }
     try { this.editorsText = JSON.stringify(await fetchEditors(), null, 4); } catch (e) { this.editorsText = '[]'; }
