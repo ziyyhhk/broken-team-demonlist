@@ -16,11 +16,12 @@ export default {
     auth, tab: 'levels', loading: true, list: [], listOrder: [], impossibleOrder: [], users: [],
     editors: null, config: null, infoText: '', rulesText: '', editorsText: '',
     selectedPath: null, draft: null, draftRecords: [], msg: '', err: '',
-    saving: false, showAddLevel: false, mainCutoff: 75, extendedCutoff: 150,
+    saving: false, showAddLevel: false, showAddImpossible: false, mainCutoff: 75, extendedCutoff: 150,
     TAG_GROUPS,
     newLevel: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [], targetList: 'main' },
+    newImp: { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', tags: [] },
     newRec: { user: '', percent: 100, link: '' },
-    levelSearch: '', newUser: '', newPass: '', newRole: 'helper',
+    levelSearch: '', impSearch: '', newUser: '', newPass: '', newRole: 'helper',
     ghToken: '', activityLogs: [], serverHardestText: '[]', serverLevels: [],
   }),
   computed: {
@@ -31,9 +32,13 @@ export default {
     canToken() { return isOwner(); },
     filteredLevels() {
       const q = (this.levelSearch || '').trim().toLowerCase();
-      const all = this.listOrder.concat(this.impossibleOrder.filter((p) => !this.listOrder.includes(p)));
-      if (!q) return all;
-      return all.filter((p) => p.toLowerCase().includes(q));
+      if (!q) return this.listOrder;
+      return this.listOrder.filter((p) => p.toLowerCase().includes(q));
+    },
+    filteredImpossible() {
+      const q = (this.impSearch || '').trim().toLowerCase();
+      if (!q) return this.impossibleOrder;
+      return this.impossibleOrder.filter((p) => p.toLowerCase().includes(q));
     },
     isSelectedImpossible() {
       return this.selectedPath && this.impossibleOrder.includes(this.selectedPath);
@@ -45,6 +50,7 @@ export default {
 <p class="admin-user">{{ auth.user && auth.user.username }} · {{ auth.user && auth.user.role }}</p>
 <button type="button" class="admin-tab" :class="{ active: tab==='tiers' }" @click="tab='tiers'" v-if="canList">Tiers & order</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='levels' }" @click="tab='levels'" v-if="canLevels">Levels & records</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='impossible' }" @click="openImpossible" v-if="canLevels || canList">Impossible List</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='server' }" @click="openServerHardest" v-if="canLevels">Server Hardest</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='info' }" @click="tab='info'" v-if="canLevels">Info</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='rules' }" @click="tab='rules'" v-if="canLevels">Rules</button>
@@ -79,22 +85,81 @@ export default {
 </li>
 </ul>
 <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveList">Save main order</button></div>
-<h3>Impossible list</h3>
-<p class="admin-hint">No victor points. Only progress / WR. A 100% clear auto-moves the level to Main #1 when you save records.</p>
+<p class="admin-hint">Impossible list is managed in the <strong>Impossible List</strong> tab.</p>
+</div>
+
+<div v-if="tab==='impossible' && (canLevels || canList)" class="admin-panel admin-panel--wide">
+<h2>Impossible List</h2>
+<p class="admin-hint">No victor points — progress / WR only. Video is <strong>optional</strong>. A <strong>100%</strong> clear (when saving records) auto-promotes the level to Main #1.</p>
+<div class="admin-actions" style="margin-bottom:0.75rem">
+<button type="button" class="auth-btn" @click="showAddImpossible=!showAddImpossible">{{ showAddImpossible?'Hide':'+ Add Impossible level' }}</button>
+<button type="button" class="auth-btn" :disabled="saving" @click="saveImpossible">Save order</button>
+</div>
+<div class="admin-edit-card" v-if="showAddImpossible">
+<div class="admin-grid">
+<label>Name * <input class="admin-input" v-model="newImp.name" /></label>
+<label>ID <input class="admin-input" v-model="newImp.id" type="number" /></label>
+<label>Author <input class="admin-input" v-model="newImp.author" /></label>
+<label>Creator / credited <input class="admin-input" v-model="newImp.verifier" placeholder="Optional" /></label>
+<label class="admin-grid--full">Video (optional) <input class="admin-input" v-model="newImp.verification" placeholder="Not required for Impossible" /></label>
+<label class="admin-grid--full">Thumbnail (optional) <input class="admin-input" v-model="newImp.thumbnail" placeholder="Image URL" /></label>
+<label>Length <input class="admin-input" v-model="newImp.length" /></label>
+</div>
+<div class="admin-tags">
+<div class="admin-tags__head"><strong>Tags</strong></div>
+<div class="admin-tag-group" v-for="g in TAG_GROUPS" :key="g.name">
+<div class="admin-tag-group__title">{{ g.name }}</div>
+<div class="admin-tag-group__row">
+<button type="button" class="admin-tag-chip" v-for="tg in g.tags" :key="tg" :class="{ on: (newImp.tags || []).includes(tg) }" @click="toggleImpTag(tg)">{{ tg }}</button>
+</div></div></div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="createImpossibleLevel">Create on Impossible</button></div>
+</div>
+<input class="admin-input" type="search" v-model="impSearch" placeholder="Search Impossible…" style="margin-bottom:0.5rem" />
 <ul class="admin-order">
-<li v-for="(p, i) in impossibleOrder" :key="'imp-'+p">
-<span class="admin-order__rank">#{{ i+1 }}</span>
-<span>{{ p }}</span>
+<li v-for="(p, i) in filteredImpossible" :key="'imp-'+p">
+<span class="admin-order__rank">#{{ impossibleOrder.indexOf(p)+1 }}</span>
+<span style="flex:1;cursor:pointer" @click="selectLevel(p)">{{ p }}</span>
 <span class="admin-order__btns">
-<button type="button" @click="impMoveUp(i)" :disabled="i===0">↑</button>
-<button type="button" @click="impMoveDown(i)" :disabled="i===impossibleOrder.length-1">↓</button>
-<button type="button" title="Promote to Main #1" @click="promoteImpossible(i)">→ Main</button>
+<button type="button" @click="impMoveUp(impossibleOrder.indexOf(p))" :disabled="impossibleOrder.indexOf(p)===0">↑</button>
+<button type="button" @click="impMoveDown(impossibleOrder.indexOf(p))" :disabled="impossibleOrder.indexOf(p)===impossibleOrder.length-1">↓</button>
+<button type="button" title="Promote to Main #1" @click="promoteImpossible(impossibleOrder.indexOf(p))">→ Main</button>
 </span>
 </li>
 </ul>
-<p v-if="!impossibleOrder.length" class="admin-hint">Empty — create a level with target “Impossible”, or use → Imp above.</p>
-<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveImpossible">Save Impossible order</button></div>
+<p v-if="!impossibleOrder.length" class="admin-hint">Empty — click + Add Impossible level.</p>
+<div class="admin-edit-card" v-if="draft && isSelectedImpossible">
+<h3>{{ draft.name || selectedPath }} <span class="admin-role-tag">Impossible</span></h3>
+<div class="admin-grid">
+<label>Name <input class="admin-input" v-model="draft.name" /></label>
+<label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
+<label>Author <input class="admin-input" v-model="draft.author" /></label>
+<label>Creator <input class="admin-input" v-model="draft.verifier" /></label>
+<label class="admin-grid--full">Video (optional) <input class="admin-input" v-model="draft.verification" /></label>
+<label class="admin-grid--full">Thumbnail <input class="admin-input" v-model="draft.thumbnail" /></label>
+<label>Length <input class="admin-input" v-model="draft.length" /></label>
 </div>
+<h3>Records / WR</h3>
+<p class="admin-hint">Progress only. Saving a <strong>100%</strong> record promotes to Main #1.</p>
+<div class="rec-table">
+<div class="rec-table__row" v-for="(r,ri) in draftRecords" :key="ri">
+<span class="admin-order__rank">#{{ ri + 1 }}</span>
+<input class="admin-input" v-model="r.user" placeholder="Player" style="min-width:8rem;flex:1" />
+<input class="admin-input" v-model.number="r.percent" type="number" min="1" max="100" style="width:4.5rem" placeholder="%" />
+<input class="admin-input" v-model="r.link" placeholder="Video URL (optional)" style="flex:2;min-width:10rem" />
+<button type="button" class="rec-del" @click="draftRecords.splice(ri,1)">✕</button>
+</div>
+<div class="rec-table__row">
+<span class="admin-order__rank">+</span>
+<input class="admin-input" v-model="newRec.user" placeholder="Player" style="min-width:8rem;flex:1" />
+<input class="admin-input" v-model.number="newRec.percent" type="number" min="1" max="100" style="width:4.5rem" />
+<input class="admin-input" v-model="newRec.link" placeholder="Video URL" style="flex:2;min-width:10rem" />
+<button type="button" class="auth-btn auth-btn--ghost rec-add" @click="addRecord">Add</button>
+</div>
+</div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveLevel">Save level</button></div>
+</div>
+</div>
+
 <div v-if="tab==='levels' && canLevels" class="admin-panel admin-panel--wide">
 <h2>Levels</h2>
 <div class="admin-actions"><button type="button" class="auth-btn" @click="showAddLevel=!showAddLevel">{{ showAddLevel?'Hide':'+ New level' }}</button></div>
@@ -107,12 +172,6 @@ export default {
 <label class="admin-grid--full">Video * <input class="admin-input" v-model="newLevel.verification" /></label>
 <label class="admin-grid--full">Thumbnail (optional URL) <input class="admin-input" v-model="newLevel.thumbnail" placeholder="Image URL — leave empty for YouTube thumb" /></label>
 <label>Length <input class="admin-input" v-model="newLevel.length" /></label>
-<label>Put on
-<select class="admin-input" v-model="newLevel.targetList">
-<option value="main">Main list (#1)</option>
-<option value="impossible">Impossible list</option>
-</select>
-</label>
 </div>
 <div class="admin-tags">
 <div class="admin-tags__head"><strong>Tags / Filters</strong> <span class="admin-muted">click to toggle</span></div>
@@ -121,18 +180,18 @@ export default {
 <div class="admin-tag-group__row">
 <button type="button" class="admin-tag-chip" v-for="tg in g.tags" :key="tg" :class="{ on: (newLevel.tags || []).includes(tg) }" @click="toggleNewLevelTag(tg)">{{ tg }}</button>
 </div></div></div>
-<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="createLevel">Create</button></div>
+<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="createLevel">Create on Main</button></div>
 </div>
 <div class="level-picker">
 <input class="admin-input" type="search" v-model="levelSearch" placeholder="Search…" />
 <div class="level-picker__list">
 <button type="button" class="level-picker__item" v-for="p in filteredLevels" :key="p" :class="{ active: selectedPath===p }" @click="selectLevel(p)">
-<span class="level-picker__rank">{{ impossibleOrder.includes(p) ? 'Imp' : '#' + (listOrder.indexOf(p)+1) }}</span><span>{{ p }}</span>
+<span class="level-picker__rank">#{{ listOrder.indexOf(p)+1 }}</span><span>{{ p }}</span>
 </button>
 </div>
 </div>
-<div class="admin-edit-card" v-if="draft">
-<h3>{{ draft.name || selectedPath }} <span v-if="isSelectedImpossible" class="admin-role-tag">Impossible</span></h3>
+<div class="admin-edit-card" v-if="draft && !isSelectedImpossible">
+<h3>{{ draft.name || selectedPath }}</h3>
 <div class="admin-grid">
 <label>Name <input class="admin-input" v-model="draft.name" /></label>
 <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
@@ -149,9 +208,8 @@ export default {
 <div class="admin-tag-group__row">
 <button type="button" class="admin-tag-chip" v-for="tg in g.tags" :key="tg" :class="{ on: (draft.tags || []).includes(tg) }" @click="toggleDraftTag(tg)">{{ tg }}</button>
 </div></div></div>
-<h3>{{ isSelectedImpossible ? 'Records / WR' : 'Victors' }}</h3>
-<p class="admin-hint" v-if="isSelectedImpossible">Impossible: progress & WR only. Saving a <strong>100%</strong> record promotes this level to Main #1 automatically.</p>
-<p class="admin-hint" v-else>Order = rank on the level. First row = 1st victor. Percent = clear % (100 = full clear).</p>
+<h3>Victors</h3>
+<p class="admin-hint">Order = rank on the level. First row = 1st victor. Percent = clear % (100 = full clear).</p>
 <div class="rec-table">
 <div class="rec-table__row" v-for="(r,ri) in draftRecords" :key="ri">
 <span class="admin-order__rank">#{{ ri + 1 }}</span>
@@ -269,6 +327,7 @@ export default {
         return false;
       } finally { this.saving = false; }
     },
+    openImpossible() { this.tab = 'impossible'; this.showAddImpossible = false; },
     moveUp(i) { if (i <= 0) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.listOrder = a; },
     moveDown(i) { if (i >= this.listOrder.length - 1) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i+1]; a[i+1] = t; this.listOrder = a; },
     impMoveUp(i) { if (i <= 0) return; const a = this.impossibleOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.impossibleOrder = a; },
@@ -319,6 +378,12 @@ export default {
       if (i === -1) this.newLevel.tags.push(tag);
       else this.newLevel.tags.splice(i, 1);
     },
+    toggleImpTag(tag) {
+      if (!Array.isArray(this.newImp.tags)) this.newImp.tags = [];
+      const i = this.newImp.tags.indexOf(tag);
+      if (i === -1) this.newImp.tags.push(tag);
+      else this.newImp.tags.splice(i, 1);
+    },
     moveRecord(i, dir) {
       const j = i + dir;
       if (j < 0 || j >= this.draftRecords.length) return;
@@ -331,11 +396,40 @@ export default {
       this.draftRecords.push({ user: this.newRec.user, percent: Number(this.newRec.percent) || 100, link: this.newRec.link || '' });
       this.newRec = { user: '', percent: 100, link: '' };
     },
+    async createImpossibleLevel() {
+      const n = this.newImp;
+      if (!(n.name || '').trim()) { this.flash('Name required.', true); return; }
+      let path = slugify(n.name);
+      if (this.listOrder.includes(path) || this.impossibleOrder.includes(path)) path = path + Date.now().toString().slice(-4);
+      const author = (n.author || n.verifier || n.name).trim();
+      const tags = Array.isArray(n.tags) ? n.tags.slice() : [];
+      if (!tags.includes('Impossible List')) tags.push('Impossible List');
+      const payload = {
+        id: Number(n.id) || 0, name: n.name.trim(),
+        author,
+        creators: [author],
+        verifier: (n.verifier || '').trim(),
+        verification: (n.verification || '').trim(),
+        thumbnail: (n.thumbnail || '').trim(),
+        percentToQualify: 100,
+        password: 'Free to Copy', length: n.length || '',
+        creationDate: new Date().toLocaleDateString('en-US'), tags, records: [],
+      };
+      if (!(await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), 'Admin: add impossible ' + path))) return;
+      const imp = this.impossibleOrder.slice(); imp.unshift(path);
+      if (!(await this.pushFile('data/_impossible.json', JSON.stringify(imp, null, 4), 'Admin: impossible add'))) return;
+      this.impossibleOrder = imp;
+      this.list.unshift([Object.assign({}, payload, { path }), null]);
+      this.showAddImpossible = false;
+      this.newImp = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', tags: [] };
+      this.selectLevel(path);
+      this.flash('Added to Impossible (video optional).');
+    },
     async createLevel() {
       const n = this.newLevel;
       if (!(n.name || '').trim()) { this.flash('Name required.', true); return; }
       if (!(n.verifier || '').trim()) { this.flash('Verifier required.', true); return; }
-      if (!(n.verification || '').trim()) { this.flash('Video required.', true); return; }
+      if (!(n.verification || '').trim()) { this.flash('Video required for Main list.', true); return; }
       let path = slugify(n.name);
       if (this.listOrder.includes(path) || this.impossibleOrder.includes(path)) path = path + Date.now().toString().slice(-4);
       const payload = {
@@ -349,21 +443,14 @@ export default {
         creationDate: new Date().toLocaleDateString('en-US'), tags: Array.isArray(n.tags) ? n.tags.slice() : [], records: [],
       };
       if (!(await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), 'Admin: add ' + path))) return;
-      if (n.targetList === 'impossible') {
-        const imp = this.impossibleOrder.slice(); imp.unshift(path);
-        if (!(await this.pushFile('data/_impossible.json', JSON.stringify(imp, null, 4), 'Admin: impossible add'))) return;
-        this.impossibleOrder = imp;
-        this.flash('Level added to Impossible.');
-      } else {
-        const order = this.listOrder.slice(); order.unshift(path);
-        if (!(await this.pushFile('data/_list.json', JSON.stringify(order, null, 4), 'Admin: list add'))) return;
-        this.listOrder = order;
-        this.flash('Level added at Main #1.');
-      }
+      const order = this.listOrder.slice(); order.unshift(path);
+      if (!(await this.pushFile('data/_list.json', JSON.stringify(order, null, 4), 'Admin: list add'))) return;
+      this.listOrder = order;
       this.list.unshift([Object.assign({}, payload, { path }), null]);
       this.showAddLevel = false;
       this.newLevel = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', percentToQualify: 100, tags: [], targetList: 'main' };
       this.selectLevel(path);
+      this.flash('Level added at Main #1.');
     },
     async saveLevel() {
       if (!this.draft || !this.selectedPath) return;
@@ -372,7 +459,6 @@ export default {
       if (ok) {
         const pair = this.list.find((p) => p[0] && p[0].path === this.selectedPath);
         if (pair) pair[0] = Object.assign({}, payload, { path: this.selectedPath });
-        // Impossible → Main when any record is 100%
         if (this.isSelectedImpossible) {
           const hasClear = (this.draftRecords || []).some((r) => Number(r.percent) === 100);
           if (hasClear) {
@@ -508,7 +594,6 @@ export default {
     this.listOrder = this.list.map((p) => (p[0] && p[0].path) || p[1]).filter(Boolean);
     const imp = (await fetchImpossible()) || [];
     this.impossibleOrder = imp.map((p) => (p[0] && p[0].path) || p[1]).filter(Boolean);
-    // merge impossible levels into this.list so selectLevel works
     imp.forEach((pair) => {
       if (pair[0] && pair[0].path && !this.list.some((x) => x[0] && x[0].path === pair[0].path)) {
         this.list.push(pair);
