@@ -90,7 +90,7 @@ export default {
 
 <div v-if="tab==='impossible' && (canLevels || canList)" class="admin-panel admin-panel--wide">
 <h2>Impossible List</h2>
-<p class="admin-hint">No victor points — progress / WR only. Video is <strong>optional</strong>. A <strong>100%</strong> clear (when saving records) auto-promotes the level to Main #1.</p>
+<p class="admin-hint">No victor points — progress / WR only. Video is <strong>optional</strong>. Leave <strong>Verifier empty</strong> if the level is not verified yet. A <strong>100%</strong> clear auto-promotes to Main #1.</p>
 <div class="admin-actions" style="margin-bottom:0.75rem">
 <button type="button" class="auth-btn" @click="showAddImpossible=!showAddImpossible">{{ showAddImpossible?'Hide':'+ Add Impossible level' }}</button>
 <button type="button" class="auth-btn" :disabled="saving" @click="saveImpossible">Save order</button>
@@ -99,8 +99,8 @@ export default {
 <div class="admin-grid">
 <label>Name * <input class="admin-input" v-model="newImp.name" /></label>
 <label>ID <input class="admin-input" v-model="newImp.id" type="number" /></label>
-<label>Author <input class="admin-input" v-model="newImp.author" /></label>
-<label>Creator / credited <input class="admin-input" v-model="newImp.verifier" placeholder="Optional" /></label>
+<label>Creator / Author * <input class="admin-input" v-model="newImp.author" placeholder="Who built it" /></label>
+<label>Verifier <input class="admin-input" v-model="newImp.verifier" placeholder="Leave empty if unverified" /></label>
 <label class="admin-grid--full">Video (optional) <input class="admin-input" v-model="newImp.verification" placeholder="Not required for Impossible" /></label>
 <label class="admin-grid--full">Thumbnail (optional) <input class="admin-input" v-model="newImp.thumbnail" placeholder="Image URL" /></label>
 <label>Length <input class="admin-input" v-model="newImp.length" /></label>
@@ -132,8 +132,8 @@ export default {
 <div class="admin-grid">
 <label>Name <input class="admin-input" v-model="draft.name" /></label>
 <label>ID <input class="admin-input" v-model.number="draft.id" type="number" /></label>
-<label>Author <input class="admin-input" v-model="draft.author" /></label>
-<label>Creator <input class="admin-input" v-model="draft.verifier" /></label>
+<label>Creator / Author <input class="admin-input" v-model="draft.author" /></label>
+<label>Verifier <input class="admin-input" v-model="draft.verifier" placeholder="Leave empty if unverified" /></label>
 <label class="admin-grid--full">Video (optional) <input class="admin-input" v-model="draft.verification" /></label>
 <label class="admin-grid--full">Thumbnail <input class="admin-input" v-model="draft.thumbnail" /></label>
 <label>Length <input class="admin-input" v-model="draft.length" /></label>
@@ -233,7 +233,7 @@ export default {
 </div>
 <div v-if="tab==='server' && canLevels" class="admin-panel admin-panel--wide">
 <h2>Server Hardest</h2>
-<p class="admin-hint">Rank = row order. Use ↑↓ to reorder. Each level can have multiple victors (name + video).</p>
+<p class="admin-hint">Rank = row order. Use ↑↓ to reorder.</p>
 <div class="admin-actions" style="margin-bottom:0.75rem">
 <button type="button" class="auth-btn" @click="shAddRow">+ Add level</button>
 <button type="button" class="auth-btn" :disabled="saving" @click="saveServerHardest">Save all</button>
@@ -268,11 +268,9 @@ export default {
 <input class="admin-input" v-model="r.link" placeholder="Victor video URL" style="flex:1;min-width:12rem" />
 <button type="button" class="rec-del" @click="shRemoveVictor(i, ri)">✕</button>
 </div>
-<p v-if="!(lv.records && lv.records.length)" class="admin-hint">No victors — click + Victor.</p>
 </div>
 </li>
 </ul>
-<p v-if="!serverLevels.length" class="admin-hint">No levels yet. Click + Add level.</p>
 </div>
 <div v-if="tab==='info' && canLevels" class="admin-panel">
 <h2>Info</h2>
@@ -306,7 +304,6 @@ export default {
 </div>
 <div v-if="tab==='log'" class="admin-panel">
 <h2>Activity log</h2>
-<p class="admin-hint">Recent saves (client-side).</p>
 </div>
 </template>
 </section>
@@ -399,21 +396,26 @@ export default {
     async createImpossibleLevel() {
       const n = this.newImp;
       if (!(n.name || '').trim()) { this.flash('Name required.', true); return; }
+      const author = (n.author || '').trim() || n.name.trim();
       let path = slugify(n.name);
       if (this.listOrder.includes(path) || this.impossibleOrder.includes(path)) path = path + Date.now().toString().slice(-4);
-      const author = (n.author || n.verifier || n.name).trim();
       const tags = Array.isArray(n.tags) ? n.tags.slice() : [];
       if (!tags.includes('Impossible List')) tags.push('Impossible List');
+      // Verifier only if they typed one — never copy author into verifier
       const payload = {
-        id: Number(n.id) || 0, name: n.name.trim(),
+        id: Number(n.id) || 0,
+        name: n.name.trim(),
         author,
         creators: [author],
         verifier: (n.verifier || '').trim(),
         verification: (n.verification || '').trim(),
         thumbnail: (n.thumbnail || '').trim(),
         percentToQualify: 100,
-        password: 'Free to Copy', length: n.length || '',
-        creationDate: new Date().toLocaleDateString('en-US'), tags, records: [],
+        password: 'Free to Copy',
+        length: n.length || '',
+        creationDate: new Date().toLocaleDateString('en-US'),
+        tags,
+        records: [],
       };
       if (!(await this.pushFile('data/' + path + '.json', JSON.stringify(payload, null, 4), 'Admin: add impossible ' + path))) return;
       const imp = this.impossibleOrder.slice(); imp.unshift(path);
@@ -423,7 +425,7 @@ export default {
       this.showAddImpossible = false;
       this.newImp = { name: '', id: '', author: '', verifier: '', verification: '', thumbnail: '', length: '', tags: [] };
       this.selectLevel(path);
-      this.flash('Added to Impossible (video optional).');
+      this.flash('Added to Impossible.');
     },
     async createLevel() {
       const n = this.newLevel;
@@ -454,6 +456,9 @@ export default {
     },
     async saveLevel() {
       if (!this.draft || !this.selectedPath) return;
+      if (this.isSelectedImpossible && Array.isArray(this.draft.creators) && this.draft.author) {
+        this.draft.creators = [this.draft.author];
+      }
       const payload = Object.assign({}, this.draft, { records: this.draftRecords || [] });
       const ok = await this.pushFile('data/' + this.selectedPath + '.json', JSON.stringify(payload, null, 4), 'Admin: update ' + (payload.name || this.selectedPath));
       if (ok) {
@@ -490,35 +495,19 @@ export default {
             o.records = Array.isArray(o.records) ? o.records.map(function (r) {
               return Object.assign({ user: '', link: '', attempts: null, date: '' }, r || {});
             }) : [];
-            o.victor = o.victor || '';
-            o.verifier = o.verifier || '';
-            o.verifierVideo = o.verifierVideo || '';
-            o.verification = o.verification || '';
-            o.thumbnail = o.thumbnail || '';
-            o.length = o.length || '';
-            o.note = o.note || '';
-            if (!o.records.length && o.victor) {
-              o.records.push({ user: o.victor, link: o.verification || '', attempts: null, date: '' });
-            }
             return o;
           }) : [];
         } else this.serverLevels = [];
       } catch (e) { this.serverLevels = []; }
     },
     shAddRow() {
-      this.serverLevels.push({
-        id: '', name: '', author: '', victor: '', verifier: '', verifierVideo: '',
-        verification: '', thumbnail: '', length: '', note: '', tags: [],
-        records: [{ user: '', link: '', attempts: null, date: '' }],
-      });
+      this.serverLevels.push({ id: '', name: '', author: '', verifier: '', verifierVideo: '', verification: '', thumbnail: '', length: '', records: [] });
     },
     shAddVictor(i) {
       if (!this.serverLevels[i].records) this.serverLevels[i].records = [];
-      this.serverLevels[i].records.push({ user: '', link: '', attempts: null, date: '' });
+      this.serverLevels[i].records.push({ user: '', link: '' });
     },
-    shRemoveVictor(i, ri) {
-      this.serverLevels[i].records.splice(ri, 1);
-    },
+    shRemoveVictor(i, ri) { this.serverLevels[i].records.splice(ri, 1); },
     shMove(i, dir) {
       const j = i + dir;
       if (j < 0 || j >= this.serverLevels.length) return;
@@ -527,35 +516,16 @@ export default {
       this.serverLevels = a;
     },
     async shRemove(i) {
-      const name = (this.serverLevels[i] && this.serverLevels[i].name) || ('#' + (i + 1));
-      if (!confirm('Remove ' + name + ' from Server Hardest?')) return;
+      if (!confirm('Remove this level?')) return;
       this.serverLevels.splice(i, 1);
     },
     async saveServerHardest() {
       const payload = this.serverLevels.map(function (l) {
         const o = Object.assign({}, l);
-        o.records = (o.records || []).filter(function (r) {
-          return r && String(r.user || '').trim();
-        }).map(function (r) {
-          return {
-            user: String(r.user).trim(),
-            link: r.link || '',
-            attempts: r.attempts != null && r.attempts !== '' ? r.attempts : null,
-            date: r.date || '',
-          };
-        });
-        if (!o.victor && o.records.length) o.victor = o.records[0].user;
-        if (!o.verification && o.records.length) {
-          const withLink = o.records.find(function (r) { return r.link; });
-          if (withLink) o.verification = withLink.link;
-        }
+        o.records = (o.records || []).filter(function (r) { return r && String(r.user || '').trim(); });
         return o;
       });
-      await this.pushFile(
-        'data/_server_hardest.json',
-        JSON.stringify(payload, null, 4),
-        'Admin: Server Hardest (' + this.serverLevels.length + ' levels)'
-      );
+      await this.pushFile('data/_server_hardest.json', JSON.stringify(payload, null, 4), 'Admin: Server Hardest');
     },
     async saveInfo() {
       try { const data = JSON.parse(this.infoText); await this.pushFile('data/info.json', JSON.stringify(data, null, 4), 'Admin: info'); }
