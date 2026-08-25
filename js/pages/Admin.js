@@ -2,13 +2,15 @@ import {
   auth, can, isOwner, logout, getUsersAsync, createAccount,
   getGithubToken, setGithubToken, githubPutFile, testGithubToken,
 } from '../auth.js';
-import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchImpossible } from '../content.js';
+import { fetchList, fetchEditors, fetchConfig, fetchInfo, fetchRules, fetchImpossible, fetchLeaderboard } from '../content.js';
 import Spinner from '../components/Spinner.js';
 import { TAG_GROUPS } from '../tags.js';
 
 function slugify(n) {
   return String(n || '').trim().replace(/[^a-zA-Z0-9]+/g, '').replace(/^\d+/, '') || 'NewLevel';
 }
+
+const WEBHOOK_KEY = 'bt_discord_webhook';
 
 export default {
   components: { Spinner },
@@ -23,6 +25,14 @@ export default {
     newRec: { user: '', percent: 100, link: '' },
     levelSearch: '', impSearch: '', newUser: '', newPass: '', newRole: 'helper',
     ghToken: '', activityLogs: [], serverHardestText: '[]', serverLevels: [],
+    // Player ID / Discord
+    leaderboard: [],
+    playerDiscord: {},
+    playerSearch: '',
+    discordWebhook: '',
+    manualPlayerName: '',
+    manualPlayerId: '',
+    testingWebhook: false,
   }),
   computed: {
     canLevels() { return can('editLevels'); },
@@ -43,6 +53,39 @@ export default {
     isSelectedImpossible() {
       return this.selectedPath && this.impossibleOrder.includes(this.selectedPath);
     },
+    playerRows() {
+      const map = this.playerDiscord || {};
+      const q = (this.playerSearch || '').trim().toLowerCase();
+      const fromLb = (this.leaderboard || []).map((p, i) => ({
+        rank: i + 1,
+        name: p.user,
+        total: p.total,
+        onLeaderboard: true,
+        discordId: map[p.user] || this.findDiscordCaseInsensitive(p.user) || '',
+      }));
+      const lbNames = new Set(fromLb.map((r) => r.name.toLowerCase()));
+      const extras = Object.keys(map)
+        .filter((n) => !lbNames.has(n.toLowerCase()))
+        .map((n) => ({
+          rank: null,
+          name: n,
+          total: null,
+          onLeaderboard: false,
+          discordId: map[n] || '',
+        }));
+      let rows = fromLb.concat(extras);
+      if (q) {
+        rows = rows.filter(
+          (r) =>
+            r.name.toLowerCase().includes(q) ||
+            String(r.discordId).includes(q),
+        );
+      }
+      return rows;
+    },
+    linkedCount() {
+      return Object.values(this.playerDiscord || {}).filter((id) => String(id || '').trim()).length;
+    },
   },
   template: `
 <main class="page-admin page-shell">
@@ -51,6 +94,7 @@ export default {
 <button type="button" class="admin-tab" :class="{ active: tab==='tiers' }" @click="tab='tiers'" v-if="canList">Tiers & order</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='levels' }" @click="tab='levels'" v-if="canLevels">Levels & records</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='impossible' }" @click="openImpossible" v-if="canLevels || canList">Impossible List</button>
+<button type="button" class="admin-tab" :class="{ active: tab==='players' }" @click="openPlayers" v-if="canLevels || canList">Player ID</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='server' }" @click="openServerHardest" v-if="canLevels">Server Hardest</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='info' }" @click="tab='info'" v-if="canLevels">Info</button>
 <button type="button" class="admin-tab" :class="{ active: tab==='rules' }" @click="tab='rules'" v-if="canLevels">Rules</button>
@@ -65,6 +109,51 @@ export default {
 <p class="admin-banner admin-banner--err" v-if="err">{{ err }}</p>
 <div v-if="loading" class="admin-panel"><Spinner /></div>
 <template v-else>
+
+<div v-if="tab==='players' && (canLevels || canList)" class="admin-panel admin-panel--wide">
+<h2>Player ID</h2>
+<p class="admin-hint">Link list names to Discord user IDs so webhooks can <strong>@mention</strong> them on verifies / new victors. Discord ID = right‑click user → Copy User ID (Developer Mode on).</p>
+
+<div class="admin-edit-card" style="margin-bottom:1rem">
+<h3 style="margin:0 0 0.5rem">Discord webhook</h3>
+<p class="admin-hint">Channel → Edit channel → Integrations → Webhooks → New Webhook → Copy URL. Stored in this browser only (not public).</p>
+<div class="admin-row" style="flex-wrap:wrap;gap:0.5rem;align-items:center">
+<input class="admin-input" type="password" v-model="discordWebhook" placeholder="https://discord.com/api/webhooks/…" style="flex:1;min-width:16rem" autocomplete="off" />
+<button type="button" class="auth-btn" @click="saveWebhookLocal">Save webhook</button>
+<button type="button" class="auth-btn auth-btn--ghost" :disabled="testingWebhook" @click="testWebhook">{{ testingWebhook ? 'Sending…' : 'Test ping' }}</button>
+</div>
+</div>
+
+<div class="admin-actions" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">
+<button type="button" class="auth-btn" :disabled="saving" @click="savePlayerDiscord">Save Discord IDs</button>
+<button type="button" class="auth-btn auth-btn--ghost" @click="reloadPlayers">Reload leaderboard</button>
+<span class="admin-muted">{{ linkedCount }} linked · {{ leaderboard.length }} on leaderboard</span>
+</div>
+
+<input class="admin-input" type="search" v-model="playerSearch" placeholder="Search player or Discord ID…" style="margin-bottom:0.75rem" />
+
+<div class="admin-edit-card" style="margin-bottom:1rem">
+<strong style="font-size:0.85rem">Add player not on leaderboard yet</strong>
+<div class="admin-row" style="margin-top:0.4rem;flex-wrap:wrap;gap:0.4rem">
+<input class="admin-input" v-model="manualPlayerName" placeholder="Exact list name" style="min-width:10rem;flex:1" />
+<input class="admin-input" v-model="manualPlayerId" placeholder="Discord user ID" style="min-width:12rem;flex:1" />
+<button type="button" class="auth-btn auth-btn--ghost" @click="addManualPlayer">Add</button>
+</div>
+</div>
+
+<ul style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0.35rem">
+<li v-for="row in playerRows" :key="row.name" style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;padding:0.45rem 0.6rem;border:1px solid var(--color-border);border-radius:0.5rem;background:var(--color-surface)">
+<span class="admin-order__rank" style="min-width:2.5rem">{{ row.rank != null ? '#' + row.rank : '—' }}</span>
+<span style="flex:1;min-width:8rem;font-weight:600">{{ row.name }}</span>
+<span class="admin-muted" style="min-width:4rem;font-size:0.8rem" v-if="row.total != null">{{ row.total }} pts</span>
+<span class="admin-role-tag" v-if="!row.onLeaderboard" style="font-size:0.7rem">manual</span>
+<input class="admin-input" :value="row.discordId" @input="setPlayerDiscord(row.name, $event.target.value)" placeholder="Discord user ID" style="width:14rem;min-width:10rem;font-family:monospace;font-size:0.85rem" />
+<button type="button" class="rec-del" title="Clear ID" @click="setPlayerDiscord(row.name, '')" v-if="row.discordId">✕</button>
+</li>
+</ul>
+<p v-if="!playerRows.length" class="admin-hint">No players yet — add records on levels or use “Add player” above.</p>
+</div>
+
 <div v-if="tab==='tiers' && canList" class="admin-panel">
 <h2>Tiers & order</h2>
 <div class="admin-row">
@@ -231,6 +320,7 @@ export default {
 <div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="saveLevel">Save level</button></div>
 </div>
 </div>
+
 <div v-if="tab==='server' && canLevels" class="admin-panel admin-panel--wide">
 <h2>Server Hardest</h2>
 <p class="admin-hint">Rank = row order. Use ↑↓ to reorder.</p>
@@ -272,6 +362,7 @@ export default {
 </li>
 </ul>
 </div>
+
 <div v-if="tab==='info' && canLevels" class="admin-panel">
 <h2>Info</h2>
 <textarea class="admin-ta" v-model="infoText" rows="12"></textarea>
@@ -325,6 +416,103 @@ export default {
       } finally { this.saving = false; }
     },
     openImpossible() { this.tab = 'impossible'; this.showAddImpossible = false; },
+    async openPlayers() {
+      this.tab = 'players';
+      await this.reloadPlayers();
+    },
+    findDiscordCaseInsensitive(name) {
+      const map = this.playerDiscord || {};
+      const key = Object.keys(map).find((k) => k.toLowerCase() === String(name).toLowerCase());
+      return key ? map[key] : '';
+    },
+    setPlayerDiscord(name, id) {
+      const next = Object.assign({}, this.playerDiscord);
+      const clean = String(id || '').replace(/\D/g, '');
+      if (!clean) {
+        // remove this name and any case-variant
+        Object.keys(next).forEach((k) => {
+          if (k.toLowerCase() === String(name).toLowerCase()) delete next[k];
+        });
+      } else {
+        // keep canonical key = leaderboard spelling if present
+        Object.keys(next).forEach((k) => {
+          if (k.toLowerCase() === String(name).toLowerCase() && k !== name) delete next[k];
+        });
+        next[name] = clean;
+      }
+      this.playerDiscord = next;
+    },
+    addManualPlayer() {
+      const name = (this.manualPlayerName || '').trim();
+      if (!name) { this.flash('Player name required.', true); return; }
+      this.setPlayerDiscord(name, this.manualPlayerId);
+      this.manualPlayerName = '';
+      this.manualPlayerId = '';
+      this.flash('Added ' + name + ' — click Save Discord IDs.');
+    },
+    saveWebhookLocal() {
+      try {
+        localStorage.setItem(WEBHOOK_KEY, (this.discordWebhook || '').trim());
+        this.flash('Webhook saved in this browser.');
+      } catch (e) {
+        this.flash('Could not save webhook locally.', true);
+      }
+    },
+    async testWebhook() {
+      const url = (this.discordWebhook || '').trim();
+      if (!url) { this.flash('Paste a webhook URL first.', true); return; }
+      this.testingWebhook = true;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: '✅ Broken Team Demonlist webhook test — Player ID tab is connected.',
+          }),
+        });
+        if (res.ok || res.status === 204) this.flash('Test message sent to Discord.');
+        else this.flash('Webhook failed: HTTP ' + res.status, true);
+      } catch (e) {
+        this.flash('Webhook error: ' + (e.message || e), true);
+      } finally {
+        this.testingWebhook = false;
+      }
+    },
+    async reloadPlayers() {
+      try {
+        const [lb] = await fetchLeaderboard();
+        this.leaderboard = Array.isArray(lb) ? lb : [];
+      } catch (e) {
+        this.leaderboard = [];
+      }
+      try {
+        const res = await fetch('./data/_player_discord.json?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          this.playerDiscord = data && typeof data === 'object' && !Array.isArray(data) ? data : {};
+        } else this.playerDiscord = {};
+      } catch (e) {
+        this.playerDiscord = {};
+      }
+      try {
+        this.discordWebhook = localStorage.getItem(WEBHOOK_KEY) || '';
+      } catch (e) {
+        this.discordWebhook = '';
+      }
+    },
+    async savePlayerDiscord() {
+      const cleaned = {};
+      Object.keys(this.playerDiscord || {}).forEach((name) => {
+        const id = String(this.playerDiscord[name] || '').replace(/\D/g, '');
+        if (name && id) cleaned[name] = id;
+      });
+      this.playerDiscord = cleaned;
+      await this.pushFile(
+        'data/_player_discord.json',
+        JSON.stringify(cleaned, null, 4),
+        'Admin: player Discord IDs (' + Object.keys(cleaned).length + ')',
+      );
+    },
     moveUp(i) { if (i <= 0) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.listOrder = a; },
     moveDown(i) { if (i >= this.listOrder.length - 1) return; const a = this.listOrder.slice(); const t = a[i]; a[i] = a[i+1]; a[i+1] = t; this.listOrder = a; },
     impMoveUp(i) { if (i <= 0) return; const a = this.impossibleOrder.slice(); const t = a[i]; a[i] = a[i-1]; a[i-1] = t; this.impossibleOrder = a; },
@@ -401,7 +589,6 @@ export default {
       if (this.listOrder.includes(path) || this.impossibleOrder.includes(path)) path = path + Date.now().toString().slice(-4);
       const tags = Array.isArray(n.tags) ? n.tags.slice() : [];
       if (!tags.includes('Impossible List')) tags.push('Impossible List');
-      // Verifier only if they typed one — never copy author into verifier
       const payload = {
         id: Number(n.id) || 0,
         name: n.name.trim(),
@@ -557,6 +744,7 @@ export default {
   async mounted() {
     if (!auth.user) { location.hash = '#/login'; return; }
     this.ghToken = getGithubToken() || '';
+    try { this.discordWebhook = localStorage.getItem(WEBHOOK_KEY) || ''; } catch (e) { this.discordWebhook = ''; }
     const cfg = await fetchConfig();
     this.mainCutoff = cfg.mainCutoff;
     this.extendedCutoff = cfg.extendedCutoff;
