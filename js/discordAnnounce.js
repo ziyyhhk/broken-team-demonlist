@@ -3,8 +3,8 @@
 export const WEBHOOK_KEY = 'bt_discord_webhook';
 
 export const DEFAULT_MESSAGES = {
-  victor: '🎉 {mention} is the **{ordinal}** victor of **{level}**!{link_line}',
-  verify: '✅ {mention} verified **{level}**!{link_line}',
+  victor: 'Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}',
+  verify: 'Congrats to {mention} for verifying **{level}**!{link_line}',
   enabledVictor: true,
   enabledVerify: true,
 };
@@ -88,7 +88,6 @@ export function diffLevelAnnouncements(prev, next) {
       .map((r) => String(r.user).trim().toLowerCase()),
   );
 
-  // Victor rank = position among 100% records in the saved order
   let clearIndex = 0;
   nextRecords.forEach((r) => {
     if (!r || !r.user || Number(r.percent) !== 100) return;
