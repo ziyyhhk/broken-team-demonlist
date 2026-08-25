@@ -19,5 +19,26 @@
         "2.2",
         "Main List"
     ],
-    "records": []
+    "records": [
+        {
+            "user": "xopyy",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=_xrCLAESz_4"
+        },
+        {
+            "user": "EtherealSoraa",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=FyaWyU7zW5w"
+        },
+        {
+            "user": "Dev1LW1ns",
+            "percent": 100,
+            "link": "https://youtu.be/1RMVWAwPGHo?si=OIltBA58Cp9GzlZ3"
+        },
+        {
+            "user": "amathperson",
+            "percent": 100,
+            "link": "https://youtu.be/dLQjgCZ_DHk"
+        }
+    ]
 }
