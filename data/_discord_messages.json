@@ -1,0 +1,6 @@
+{
+    "victor": "🎉 {mention} is the **{ordinal}** victor of **{level}**!{link_line}",
+    "verify": "✅ {mention} verified **{level}**!{link_line}",
+    "enabledVictor": true,
+    "enabledVerify": true
+}
