@@ -18,5 +18,56 @@
         "Layout",
         "Main List"
     ],
-    "records": []
+    "records": [
+        {
+            "user": "Fake",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=UI4XyqngHvs"
+        },
+        {
+            "user": "HuyzGD",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=JwXNtKbK8PM"
+        },
+        {
+            "user": "xopyy",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=Ta1KhlUxyw8"
+        },
+        {
+            "user": "DrakoX28",
+            "percent": 100,
+            "link": "https://youtu.be/DJ0cOS3c0pc?si=FoBFHevWXzw_hpj6"
+        },
+        {
+            "user": "Yzs007",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=lJ383_vwT5o"
+        },
+        {
+            "user": "EtherealSoraa",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=Ge8xgK9EhoI"
+        },
+        {
+            "user": "amanpurple",
+            "percent": 100,
+            "link": "https://youtu.be/s2ROog5Ns1c"
+        },
+        {
+            "user": "Dev1LW1ns",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=1RMVWAwPGHo"
+        },
+        {
+            "user": "amathperson",
+            "percent": 100,
+            "link": "https://youtu.be/kAZD3WV6k2Q"
+        },
+        {
+            "user": "pRYMIER",
+            "percent": 100,
+            "link": "https://youtu.be/Z1-kQV2BM44"
+        }
+    ]
 }
