@@ -1,6 +1,6 @@
 {
-    "victor": "Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}",
-    "verify": "Congrats to {mention} for verifying **{level}**!{link_line}",
+    "victor": "## Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor.. myaw",
+    "verify": "# Congrats to {mention} for verifying **{level}**.. you so pro dude... teach me...... myaw",
     "enabledVictor": true,
     "enabledVerify": true
 }
