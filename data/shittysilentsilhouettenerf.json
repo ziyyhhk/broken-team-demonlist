@@ -13,5 +13,21 @@
     "length": "1:03",
     "creationDate": "8/25/2026",
     "tags": [],
-    "records": []
+    "records": [
+        {
+            "user": "EtherealSoraa",
+            "percent": 100,
+            "link": "https://youtu.be/czL9JTJGj4w"
+        },
+        {
+            "user": "xopyy",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=uetcww0x6EQ"
+        },
+        {
+            "user": "kodathapup",
+            "percent": 100,
+            "link": "https://youtu.be/D7k26ouBTa4"
+        }
+    ]
 }
