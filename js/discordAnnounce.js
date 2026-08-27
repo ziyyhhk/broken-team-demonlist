@@ -4,7 +4,7 @@ export const WEBHOOK_KEY = 'bt_discord_webhook';
 
 export const DEFAULT_MESSAGES = {
   victor: 'Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}',
-  verify: 'Congrats to {mention} for verifying **{level}** at top **#{top}**!{link_line}',
+  verify: '# Congrats to {mention} for verifying `{level}` — it\'s at top **#{top}** wow.. you so pro dude... teach me... Anyways GGs myaw',
   move: '**{level}** moved from **#{old_rank}** to **#{rank}** on the list!',
   enabledVictor: true,
   enabledVerify: true,
@@ -49,13 +49,13 @@ export function buildVars({
 }) {
   const mention = discordId ? '<@' + discordId + '>' : player ? '**' + player + '**' : '';
   const linkStr = link ? String(link).trim() : '';
-  const topVal = top != null ? top : list_rank;
+  const topVal = top != null ? top : list_rank != null ? list_rank : rank;
   return {
     player: player || '',
     mention,
     level: level || '',
-    rank: rank != null ? String(rank) : '',
-    ordinal: rank != null ? ordinal(rank) : '',
+    rank: rank != null ? String(rank) : topVal != null ? String(topVal) : '',
+    ordinal: rank != null ? ordinal(rank) : topVal != null ? ordinal(topVal) : '',
     old_rank: old_rank != null ? String(old_rank) : '',
     old_ordinal: old_rank != null ? ordinal(old_rank) : '',
     top: topVal != null ? String(topVal) : '',
