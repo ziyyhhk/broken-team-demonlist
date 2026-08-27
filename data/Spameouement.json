@@ -13,5 +13,11 @@
     "length": "1m",
     "creationDate": "8/25/2026",
     "tags": [],
-    "records": []
+    "records": [
+        {
+            "user": "EtherealSoraa",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=54UnRscTcZg"
+        }
+    ]
 }
