@@ -1,6 +1,6 @@
 {
     "victor": "## Congrats to {mention} for beating `{level}` and being the **{ordinal}** victor.. Anyways GGs myaw",
-    "verify": "# Congrats to {mention} for verifying `{level}` (level place at #{rank}).. you so pro dude... teach me... Anyways GGs myaw",
+    "verify": "# Congrats to {mention} for verifying `{level}` — it's at top **#{top}** wow.. you so pro dude... teach me... Anyways GGs myaw",
     "move": "# `{level}` moved from **#{old_rank}** to **#{rank}** on the list!",
     "enabledVictor": true,
     "enabledVerify": true,
