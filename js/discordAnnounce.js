@@ -1,12 +1,14 @@
-/** Discord webhook helpers for victor / verify announcements */
+/** Discord webhook helpers for victor / verify / list-move announcements */
 
 export const WEBHOOK_KEY = 'bt_discord_webhook';
 
 export const DEFAULT_MESSAGES = {
   victor: 'Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}',
   verify: 'Congrats to {mention} for verifying **{level}**!{link_line}',
+  move: '**{level}** moved from **#{old_rank}** to **#{rank}** on the list!',
   enabledVictor: true,
   enabledVerify: true,
+  enabledMove: true,
 };
 
 export function ordinal(n) {
@@ -33,8 +35,17 @@ export function formatMessage(template, vars) {
   return out.replace(/\n{3,}/g, '\n\n').trim();
 }
 
-export function buildVars({ player, discordId, level, rank, percent, link }) {
-  const mention = discordId ? '<@' + discordId + '>' : '**' + player + '**';
+export function buildVars({
+  player,
+  discordId,
+  level,
+  rank,
+  old_rank,
+  percent,
+  link,
+  direction,
+}) {
+  const mention = discordId ? '<@' + discordId + '>' : player ? '**' + player + '**' : '';
   const linkStr = link ? String(link).trim() : '';
   return {
     player: player || '',
@@ -42,6 +53,9 @@ export function buildVars({ player, discordId, level, rank, percent, link }) {
     level: level || '',
     rank: rank != null ? String(rank) : '',
     ordinal: rank != null ? ordinal(rank) : '',
+    old_rank: old_rank != null ? String(old_rank) : '',
+    old_ordinal: old_rank != null ? ordinal(old_rank) : '',
+    direction: direction || '',
     percent: percent != null ? String(percent) : '',
     link: linkStr,
     link_line: linkStr ? '\n' + linkStr : '',
@@ -105,5 +119,37 @@ export function diffLevelAnnouncements(prev, next) {
     }
   });
 
+  return events;
+}
+
+/** Compare previous list order vs new; return move events for paths whose rank changed */
+export function diffListOrder(prevOrder, nextOrder) {
+  const events = [];
+  if (!Array.isArray(prevOrder) || !Array.isArray(nextOrder)) return events;
+
+  const prevIdx = new Map();
+  prevOrder.forEach((p, i) => {
+    if (p) prevIdx.set(p, i);
+  });
+
+  nextOrder.forEach((path, i) => {
+    if (!path || !prevIdx.has(path)) return;
+    const oldI = prevIdx.get(path);
+    if (oldI === i) return;
+    events.push({
+      type: 'move',
+      path,
+      rank: i + 1,
+      old_rank: oldI + 1,
+      direction: i < oldI ? 'up' : 'down',
+    });
+  });
+
+  // Biggest rank jumps first (more interesting placements)
+  events.sort(
+    (a, b) =>
+      Math.abs(b.old_rank - b.rank) - Math.abs(a.old_rank - a.rank) ||
+      a.rank - b.rank,
+  );
   return events;
 }
