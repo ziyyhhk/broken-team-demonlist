@@ -4,7 +4,7 @@ export const WEBHOOK_KEY = 'bt_discord_webhook';
 
 export const DEFAULT_MESSAGES = {
   victor: 'Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}',
-  verify: 'Congrats to {mention} for verifying **{level}**!{link_line}',
+  verify: 'Congrats to {mention} for verifying **{level}** at top **#{top}**!{link_line}',
   move: '**{level}** moved from **#{old_rank}** to **#{rank}** on the list!',
   enabledVictor: true,
   enabledVerify: true,
@@ -41,12 +41,15 @@ export function buildVars({
   level,
   rank,
   old_rank,
+  top,
+  list_rank,
   percent,
   link,
   direction,
 }) {
   const mention = discordId ? '<@' + discordId + '>' : player ? '**' + player + '**' : '';
   const linkStr = link ? String(link).trim() : '';
+  const topVal = top != null ? top : list_rank;
   return {
     player: player || '',
     mention,
@@ -55,6 +58,8 @@ export function buildVars({
     ordinal: rank != null ? ordinal(rank) : '',
     old_rank: old_rank != null ? String(old_rank) : '',
     old_ordinal: old_rank != null ? ordinal(old_rank) : '',
+    top: topVal != null ? String(topVal) : '',
+    list_rank: topVal != null ? String(topVal) : '',
     direction: direction || '',
     percent: percent != null ? String(percent) : '',
     link: linkStr,
@@ -145,7 +150,6 @@ export function diffListOrder(prevOrder, nextOrder) {
     });
   });
 
-  // Biggest rank jumps first (more interesting placements)
   events.sort(
     (a, b) =>
       Math.abs(b.old_rank - b.rank) - Math.abs(a.old_rank - a.rank) ||
