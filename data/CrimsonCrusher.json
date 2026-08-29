@@ -13,5 +13,36 @@
     "length": "43s",
     "creationDate": "8/25/2026",
     "tags": [],
-    "records": []
+    "records": [
+        {
+            "user": "xopyy",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=3eZ_MRt16Ss"
+        },
+        {
+            "user": "fake_gdm",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=dueXeXTlhSg"
+        },
+        {
+            "user": "kodathapup",
+            "percent": 100,
+            "link": "https://youtu.be/5JsljLiE1Kg"
+        },
+        {
+            "user": "amathperson",
+            "percent": 100,
+            "link": "https://youtu.be/CBceu9zFAQs"
+        },
+        {
+            "user": "Yzs007",
+            "percent": 100,
+            "link": "https://youtu.be/tZnKlTj4VLM"
+        },
+        {
+            "user": "DrakoX28",
+            "percent": 100,
+            "link": "https://youtu.be/ETLSp8SQsjk?si=npf69cL_60WVE5JM"
+        }
+    ]
 }
