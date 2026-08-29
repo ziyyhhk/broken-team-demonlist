@@ -13,5 +13,21 @@
     "length": "~1m",
     "creationDate": "8/25/2026",
     "tags": [],
-    "records": []
+    "records": [
+        {
+            "user": "xopyy",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=jBpElavi-hc"
+        },
+        {
+            "user": "kodathapup",
+            "percent": 100,
+            "link": "https://youtu.be/dZOjUkL2eO4"
+        },
+        {
+            "user": "amanpurple",
+            "percent": 100,
+            "link": "https://youtu.be/cVSaugcKi_o"
+        }
+    ]
 }
