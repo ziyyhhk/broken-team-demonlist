@@ -63,5 +63,18 @@
             "manageUsers": false
         },
         "createdAt": "2026-08-12T13:07:03.529Z"
+    },
+    {
+        "username": "wunewune",
+        "salt": "5b6c10cc-6b4c-4d7c-939c-93755dfb1555",
+        "hash": "c22ad580a624f9789ae741d0fea5fbcdfadff8f61d5833be677795b0059fef66",
+        "role": "admin",
+        "permissions": {
+            "editLevels": true,
+            "editList": true,
+            "editEditors": true,
+            "manageUsers": false
+        },
+        "createdAt": "2026-08-30T06:14:20.894Z"
     }
 ]
