@@ -45,7 +45,8 @@ export default {
     canList() { return can('editList'); },
     canEditors() { return can('editEditors'); },
     canUsers() { return isOwner(); },
-    canToken() { return isOwner(); },
+    // Admins also need Settings so they can paste their own GitHub token (stored per-browser)
+    canToken() { return isOwner() || (auth.user && auth.user.role === 'admin'); },
     filteredLevels() {
       const q = (this.levelSearch || '').trim().toLowerCase();
       if (!q) return this.listOrder;
@@ -310,7 +311,8 @@ export default {
 <ul class="admin-userlist"><li v-for="u in users" :key="u.username"><strong>{{ u.username }}</strong> <span class="admin-role-tag">{{ u.role }}</span></li></ul>
 </div>
 <div v-if="tab==='settings' && canToken" class="admin-panel"><h2>Settings</h2>
-<label>Token <input class="admin-input" type="password" v-model="ghToken" placeholder="ghp_…" autocomplete="off" /></label>
+<p class="admin-hint">Paste a GitHub personal access token with write access to this repo. Stored only in this browser. Each admin needs their own token (and must be a repo collaborator).</p>
+<label>Token <input class="admin-input" type="password" v-model="ghToken" placeholder="ghp_… or github_pat_…" autocomplete="off" /></label>
 <div class="admin-actions"><button type="button" class="auth-btn" @click="saveToken">Save token</button><button type="button" class="auth-btn auth-btn--ghost" @click="testToken">Test</button></div>
 </div>
 </template></section></main>`,
@@ -320,8 +322,10 @@ export default {
     async pushFile(path, text, message) {
       this.saving = true;
       try {
-        const ok = await githubPutFile(path, text, message);
-        if (ok) this.flash('Saved: ' + path); else this.flash('Save failed: ' + path, true);
+        const result = await githubPutFile(path, text, message);
+        const ok = result && result.ok === true;
+        if (ok) this.flash('Saved: ' + path);
+        else this.flash((result && result.error) || ('Save failed: ' + path), true);
         return ok;
       } catch (e) { this.flash(String(e.message || e), true); return false; }
       finally { this.saving = false; }
@@ -630,7 +634,14 @@ export default {
       else this.flash('Create failed', true);
     },
     saveToken() { setGithubToken(this.ghToken); this.flash('Token saved locally'); },
-    async testToken() { const r = await testGithubToken(); this.flash(r ? 'Token OK' : 'Token failed', !r); },
+    async testToken() {
+      const r = await testGithubToken();
+      if (r && typeof r === 'object' && Array.isArray(r.steps)) {
+        this.flash(r.ok ? ('Token OK — ' + r.steps.slice(-1)[0]) : (r.steps.join(' | ') || 'Token failed'), !r.ok);
+      } else {
+        this.flash(r ? 'Token OK' : 'Token failed', !r);
+      }
+    },
   },
   async mounted() {
     if (!auth.user) { location.hash = '#/login'; return; }
