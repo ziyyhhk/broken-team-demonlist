@@ -55,6 +55,8 @@ export default {
     submitting: false,
     mode: 'classic',
     levels: [],
+    devices: DEVICES,
+    modMenus: MOD_MENUS,
     form: {
       player: '',
       levelPath: '',
@@ -313,8 +315,6 @@ export default {
 </main>
 `,
   methods: {
-    devices: () => DEVICES,
-    modMenus: () => MOD_MENUS,
     formatDate(iso) {
       if (!iso) return '—';
       try {
@@ -384,13 +384,11 @@ export default {
           createdAt: new Date().toISOString(),
         };
 
-        // Always keep a local copy for Previous Submissions
         const local = loadLocalSubs();
         local.unshift(entry);
         saveLocalSubs(local);
         this.localSubs = local;
 
-        // Notify staff via Discord if webhook is available
         let discordOk = false;
         const webhook =
           (this.submissionsWebhook || '').trim() ||
@@ -413,7 +411,6 @@ export default {
           discordOk = !!(r && r.ok);
         }
 
-        // If a GitHub token is present (staff testing), also push into repo queue
         let repoOk = false;
         if (getGithubToken()) {
           try {
@@ -431,9 +428,7 @@ export default {
             );
             repoOk = !!(put && put.ok);
             if (repoOk) this.remoteSubs = queue;
-          } catch (e) {
-            /* ignore */
-          }
+          } catch (e) {}
         }
 
         if (repoOk) {
@@ -442,11 +437,10 @@ export default {
           this.flash('Submitted. Staff were notified on Discord. Status: pending.');
         } else {
           this.flash(
-            'Saved on this device. Paste a Discord webhook in Admin → Settings (or Player ID) so staff get notified, or ask staff to log the submission.',
+            'Saved on this device. Set a Discord webhook in Admin so staff get notified, or have staff add it in Submissions.',
           );
         }
 
-        // Reset most fields, keep player
         this.form.levelPath = '';
         this.form.levelName = '';
         this.form.link = '';
