@@ -13,18 +13,50 @@ export default {
         <main class="page-auth page-shell">
             <form class="auth-card" @submit.prevent="onSubmit">
                 <h1>Register</h1>
-                <p class="auth-note">
-                    Public accounts work on this device. For <strong>Admin</strong> access, the owner should create your account in Admin → Users and press Sync — then you can log in here.
-                </p>
-                <input type="text" v-model="username" placeholder="Username" autocomplete="username" required />
-                <input type="password" v-model="password" placeholder="Password" autocomplete="new-password" required />
-                <input type="password" v-model="confirm" placeholder="Confirm Password" autocomplete="new-password" required />
+                <p class="auth-sub">Create an account on this device.</p>
+
+                <div class="auth-field">
+                    <label for="reg-user">Username</label>
+                    <input
+                        id="reg-user"
+                        type="text"
+                        v-model="username"
+                        placeholder="Username"
+                        autocomplete="username"
+                        required
+                    />
+                </div>
+                <div class="auth-field">
+                    <label for="reg-pass">Password</label>
+                    <input
+                        id="reg-pass"
+                        type="password"
+                        v-model="password"
+                        placeholder="Password"
+                        autocomplete="new-password"
+                        required
+                    />
+                </div>
+                <div class="auth-field">
+                    <label for="reg-confirm">Confirm password</label>
+                    <input
+                        id="reg-confirm"
+                        type="password"
+                        v-model="confirm"
+                        placeholder="Confirm password"
+                        autocomplete="new-password"
+                        required
+                    />
+                </div>
+
                 <p class="auth-error" v-if="error">{{ error }}</p>
                 <p class="auth-info" v-if="info">{{ info }}</p>
-                <button type="submit" class="auth-btn" :disabled="loading">
-                    {{ loading ? '…' : 'Register' }}
+
+                <button type="submit" class="auth-btn auth-btn--block" :disabled="loading">
+                    {{ loading ? 'Creating…' : 'Register' }}
                 </button>
-                <p class="auth-switch">
+
+                <p class="auth-links">
                     Already have an account?
                     <router-link to="/login">Login</router-link>
                 </p>
