@@ -70,6 +70,7 @@ export default {
       customId: '',
       length: '',
       attempts: '',
+      rawFootage: '',
       notes: '',
     },
     msg: '',
@@ -225,6 +226,11 @@ export default {
           <div class="submit-field">
             <label>Custom ID</label>
             <input v-model="form.customId" placeholder="ID of the level copy used" />
+          </div>
+
+          <div class="submit-field submit-field--full">
+            <label>Raw footage <span class="opt">(optional — helps acceptance)</span></label>
+            <input v-model="form.rawFootage" type="url" placeholder="Link to raw footage (not required, but raises chance of accept)" />
           </div>
 
           <div class="submit-field submit-field--full">
@@ -400,6 +406,7 @@ export default {
           customId: (this.form.customId || '').trim(),
           length: (this.form.length || '').trim(),
           attempts: (this.form.attempts || '').toString().trim(),
+          rawFootage: (this.form.rawFootage || '').trim(),
           notes: (this.form.notes || '').trim(),
           createdAt: new Date().toISOString(),
         };
@@ -427,6 +434,7 @@ export default {
           if (entry.length) lines.push('**Length:** ' + entry.length);
           if (entry.attempts) lines.push('**Attempts:** ' + entry.attempts);
           if (entry.customId) lines.push('**Custom ID:** ' + entry.customId);
+          if (entry.rawFootage) lines.push('**Raw:** ' + entry.rawFootage);
           if (entry.notes) lines.push('**Notes:** ' + entry.notes);
           lines.push('_Mode: ' + entry.mode + '_');
           const r = await sendDiscordWebhook(webhook, lines.join('\n'));
@@ -471,6 +479,7 @@ export default {
         this.form.customId = '';
         this.form.length = '';
         this.form.attempts = '';
+        this.form.rawFootage = '';
         this.form.notes = '';
         this.form.percent = 100;
       } finally {
@@ -498,7 +507,6 @@ export default {
     } catch (e) {
       this.remoteSubs = [];
     }
-    // Player name stays empty — user fills it (guest or signed-in)
     this.loading = false;
   },
 };
