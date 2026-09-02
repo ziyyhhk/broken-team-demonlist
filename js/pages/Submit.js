@@ -59,6 +59,8 @@ export default {
     modMenus: MOD_MENUS,
     form: {
       player: '',
+      discordUser: '',
+      displayName: '',
       levelPath: '',
       levelName: '',
       percent: 100,
@@ -66,7 +68,8 @@ export default {
       device: '',
       modMenu: '',
       customId: '',
-      rawFootage: '',
+      length: '',
+      attempts: '',
       notes: '',
     },
     msg: '',
@@ -81,14 +84,13 @@ export default {
   }),
   computed: {
     levelOptions() {
-      const opts = (this.levels || [])
+      return (this.levels || [])
         .filter((p) => p && p[0] && p[0].path)
         .map((p, i) => ({
           path: p[0].path,
           name: p[0].name || p[0].path,
           rank: i + 1,
         }));
-      return opts;
     },
     combinedPrev() {
       const map = new Map();
@@ -99,7 +101,7 @@ export default {
         if (s && s.id && !map.has(s.id)) map.set(s.id, s);
       });
       let list = Array.from(map.values());
-      const player = (this.auth.user && this.auth.user.username) || (this.form.player || '').trim();
+      const player = (this.form.player || '').trim();
       if (player) {
         const me = player.toLowerCase();
         list = list.filter((s) => String(s.player || '').toLowerCase() === me);
@@ -155,13 +157,19 @@ export default {
         <p class="submit-flash submit-flash--err" v-if="err">{{ err }}</p>
 
         <div class="submit-grid">
-          <div class="submit-field" v-if="!auth.user">
+          <div class="submit-field">
             <label>Player name <span class="req">*</span></label>
-            <input v-model="form.player" placeholder="Your in-game / list name" maxlength="40" />
+            <input v-model="form.player" placeholder="Name on the list" maxlength="40" autocomplete="off" />
           </div>
-          <div class="submit-field" v-else>
-            <label>Player</label>
-            <input :value="auth.user.username" disabled />
+
+          <div class="submit-field">
+            <label>Discord username <span class="req">*</span></label>
+            <input v-model="form.discordUser" placeholder="e.g. akirraaw" maxlength="40" autocomplete="off" />
+          </div>
+
+          <div class="submit-field">
+            <label>Display name</label>
+            <input v-model="form.displayName" placeholder="Discord display name (optional)" maxlength="40" autocomplete="off" />
           </div>
 
           <div class="submit-field">
@@ -191,7 +199,7 @@ export default {
             </select>
           </div>
 
-          <div class="submit-field submit-field--center">
+          <div class="submit-field">
             <label>Mod Menu <span class="req">*</span></label>
             <select v-model="form.modMenu">
               <option value="">Select a mod menu</option>
@@ -205,13 +213,18 @@ export default {
           </div>
 
           <div class="submit-field">
-            <label>Custom ID</label>
-            <input v-model="form.customId" placeholder="ID of the level copy used" />
+            <label>Level length</label>
+            <input v-model="form.length" placeholder="e.g. 1:12 or 72s" />
           </div>
 
           <div class="submit-field">
-            <label>Raw Footage</label>
-            <input v-model="form.rawFootage" type="url" placeholder="Link to your raw footage" />
+            <label>Total attempts</label>
+            <input v-model="form.attempts" type="number" min="1" placeholder="Attempts on the level" />
+          </div>
+
+          <div class="submit-field">
+            <label>Custom ID</label>
+            <input v-model="form.customId" placeholder="ID of the level copy used" />
           </div>
 
           <div class="submit-field submit-field--full">
@@ -276,35 +289,35 @@ export default {
     <aside class="submit-rules-side">
       <div class="submit-rules-card">
         <h2>Completion rules</h2>
-        <p class="submit-rules-intro">Your video has to prove the run is real. Missing any of this usually means a deny.</p>
+        <p class="submit-rules-intro">Video must prove the run is real. Missing items usually means a deny.</p>
 
         <div class="submit-rules-block">
-          <h3><span class="submit-rules-num">2</span> Record videos</h3>
-          <ol>
-            <li>No hacks. Noclip, speedhacks, and illegal physics mods are out.</li>
-            <li>Only 240 TPS is allowed. Below 240 or above 240 is invalid. TPS bypass must land on exactly 240.</li>
-            <li>Play the exact listed level (correct ID / version).</li>
-            <li>Audio needs click or tap sounds, or clear input audio.</li>
-            <li>Show a previous attempt and the full death before the completion (skip only on a true first attempt).</li>
-            <li>Show your total attempt count on screen so it is readable.</li>
-            <li>Show CPS and a cheat indicator if your mod menu can display them.</li>
-            <li>The run must reach the Level Complete screen.</li>
-            <li>No bug routes or secret routes unless that path is the listed one.</li>
-            <li>No easy modes, start-pos completions, or editor playtests as records.</li>
-            <li>One continuous take is better. Heavy cuts around death to clear will get questioned.</li>
-            <li>Mobile is fine if the video still shows the required info.</li>
-          </ol>
+          <h3><span class="submit-rules-num">1</span> Record videos</h3>
+          <ul class="submit-rules-list">
+            <li>No hacks, noclip, speedhacks, or illegal physics.</li>
+            <li>Only <strong>240 TPS</strong> — under or over is invalid.</li>
+            <li>Exact listed level (correct ID / version).</li>
+            <li>Clicks / taps audible, or clear input audio.</li>
+            <li>Previous attempt + full death before clear (skip only on true first attempt).</li>
+            <li>Attempt count readable on screen.</li>
+            <li>CPS + cheat indicator if your menu can show them.</li>
+            <li>Must reach the Level Complete screen.</li>
+            <li>No bug / secret routes unless that is the listed path.</li>
+            <li>No easy mode, start-pos, or editor playtests.</li>
+            <li>Prefer one continuous take; heavy cuts get questioned.</li>
+            <li>Mobile is fine if required info is visible.</li>
+          </ul>
         </div>
 
         <div class="submit-rules-block">
-          <h3><span class="submit-rules-num">3</span> Allowed tools</h3>
-          <ol>
-            <li>CBF (Click Between Frames) — allowed.</li>
-            <li>Click on Steps — allowed.</li>
-            <li>TPS / FPS bypass — allowed at exactly 240 TPS only. Under or over 240 is not accepted.</li>
-            <li>Mod menus for CPS, attempts, indicators, or recording helpers — allowed.</li>
-            <li>Anything that changes physics beyond CBF / Click on Steps / locked 240 TPS — not allowed.</li>
-          </ol>
+          <h3><span class="submit-rules-num">2</span> Allowed tools</h3>
+          <ul class="submit-rules-list">
+            <li><strong>CBF</strong> — allowed</li>
+            <li><strong>Click on Steps</strong> — allowed</li>
+            <li><strong>TPS / FPS bypass</strong> — only at exactly 240</li>
+            <li>Mod menus for CPS, attempts, indicators, recording — allowed</li>
+            <li>Anything that changes physics beyond CBF / Click on Steps / locked 240 — <strong>not allowed</strong></li>
+          </ul>
         </div>
 
         <router-link class="submit-rules-link" to="/rules">Full rules →</router-link>
@@ -318,8 +331,11 @@ export default {
     formatDate(iso) {
       if (!iso) return '—';
       try {
-        const d = new Date(iso);
-        return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        return new Date(iso).toLocaleDateString(undefined, {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
       } catch (e) {
         return iso;
       }
@@ -343,8 +359,9 @@ export default {
       }, 6000);
     },
     validate() {
-      const player = (this.auth.user && this.auth.user.username) || (this.form.player || '').trim();
+      const player = (this.form.player || '').trim();
       if (!player || player.length < 2) return 'Player name is required.';
+      if (!(this.form.discordUser || '').trim()) return 'Discord username is required.';
       if (!this.form.levelPath) return 'Select a level.';
       if (this.form.levelPath === '__verifying__' && !(this.form.levelName || '').trim()) {
         return 'Enter the level name.';
@@ -366,12 +383,14 @@ export default {
       }
       this.submitting = true;
       try {
-        const player = (this.auth.user && this.auth.user.username) || (this.form.player || '').trim();
+        const player = (this.form.player || '').trim();
         const entry = {
           id: uid(),
           status: 'pending',
           mode: this.mode,
           player,
+          discordUser: (this.form.discordUser || '').trim(),
+          displayName: (this.form.displayName || '').trim(),
           levelPath: this.form.levelPath,
           levelName: this.resolveLevelName(),
           percent: Number(this.form.percent) || 100,
@@ -379,7 +398,8 @@ export default {
           device: this.form.device,
           modMenu: this.form.modMenu,
           customId: (this.form.customId || '').trim(),
-          rawFootage: (this.form.rawFootage || '').trim(),
+          length: (this.form.length || '').trim(),
+          attempts: (this.form.attempts || '').toString().trim(),
           notes: (this.form.notes || '').trim(),
           createdAt: new Date().toISOString(),
         };
@@ -397,14 +417,16 @@ export default {
           const lines = [
             '**New record submission** (`' + entry.id + '`)',
             '**Player:** ' + entry.player,
+            '**Discord:** ' + entry.discordUser + (entry.displayName ? ' (' + entry.displayName + ')' : ''),
             '**Level:** ' + entry.levelName + (entry.levelPath === '__verifying__' ? ' _(verifying)_' : ''),
             '**%:** ' + entry.percent,
             '**Device:** ' + entry.device,
             '**Mod menu:** ' + entry.modMenu,
             '**Video:** ' + entry.link,
           ];
+          if (entry.length) lines.push('**Length:** ' + entry.length);
+          if (entry.attempts) lines.push('**Attempts:** ' + entry.attempts);
           if (entry.customId) lines.push('**Custom ID:** ' + entry.customId);
-          if (entry.rawFootage) lines.push('**Raw:** ' + entry.rawFootage);
           if (entry.notes) lines.push('**Notes:** ' + entry.notes);
           lines.push('_Mode: ' + entry.mode + '_');
           const r = await sendDiscordWebhook(webhook, lines.join('\n'));
@@ -437,7 +459,7 @@ export default {
           this.flash('Submitted. Staff were notified on Discord. Status: pending.');
         } else {
           this.flash(
-            'Saved on this device. Set a Discord webhook in Admin so staff get notified, or have staff add it in Submissions.',
+            'Saved on this device. Set a Discord webhook in Admin so staff get notified.',
           );
         }
 
@@ -447,7 +469,8 @@ export default {
         this.form.device = '';
         this.form.modMenu = '';
         this.form.customId = '';
-        this.form.rawFootage = '';
+        this.form.length = '';
+        this.form.attempts = '';
         this.form.notes = '';
         this.form.percent = 100;
       } finally {
@@ -475,7 +498,7 @@ export default {
     } catch (e) {
       this.remoteSubs = [];
     }
-    if (this.auth.user) this.form.player = this.auth.user.username;
+    // Player name stays empty — user fills it (guest or signed-in)
     this.loading = false;
   },
 };
