@@ -434,6 +434,7 @@ export default {
             'Player: ' + entry.player,
             'Discord: ' + entry.discordUser + (entry.displayName ? ' (' + entry.displayName + ')' : ''),
             'Level: ' + entry.levelName + (entry.levelPath === '__verifying__' ? ' (verifying)' : ''),
+            'Level path: ' + (entry.levelPath || ''),
             'Percent: ' + entry.percent,
             'Device: ' + entry.device,
             'Mod menu: ' + entry.modMenu,
