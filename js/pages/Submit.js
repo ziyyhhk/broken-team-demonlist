@@ -54,6 +54,53 @@ function statusLabel(status) {
   return 'pending';
 }
 
+function norm(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase();
+}
+
+/** Merge remote into local by id; also copy status onto local rows that match player+level. */
+function syncLocalWithRemote(local, remote) {
+  const byId = new Map();
+  (remote || []).forEach((s) => {
+    if (s && s.id) byId.set(s.id, s);
+  });
+
+  const next = (local || []).map((s) => {
+    if (!s) return s;
+    if (s.id && byId.has(s.id)) {
+      const r = byId.get(s.id);
+      return Object.assign({}, s, {
+        status: r.status || s.status,
+        resolvedAt: r.resolvedAt || s.resolvedAt,
+      });
+    }
+    // fuzzy: same player + level name/path → take remote status if resolved
+    const match = (remote || []).find(
+      (r) =>
+        r &&
+        norm(r.player) === norm(s.player) &&
+        (norm(r.levelPath) === norm(s.levelPath) ||
+          norm(r.levelName) === norm(s.levelName) ||
+          norm(r.levelName) === norm(s.levelPath) ||
+          norm(r.levelPath) === norm(s.levelName)) &&
+        statusLabel(r.status) !== 'pending',
+    );
+    if (match) {
+      return Object.assign({}, s, {
+        status: match.status,
+        resolvedAt: match.resolvedAt || s.resolvedAt,
+        id: s.id || match.id,
+      });
+    }
+    return s;
+  });
+
+  saveLocalSubs(next);
+  return next;
+}
+
 export default {
   components: { Spinner },
   data: () => ({
@@ -102,20 +149,26 @@ export default {
     },
     combinedPrev() {
       const map = new Map();
+      // remote first (source of truth for status)
       (this.remoteSubs || []).forEach((s) => {
         if (s && s.id) map.set(s.id, s);
       });
       (this.localSubs || []).forEach((s) => {
-        if (s && s.id && !map.has(s.id)) map.set(s.id, s);
+        if (!s || !s.id) return;
+        if (map.has(s.id)) {
+          // keep remote, but already synced
+          return;
+        }
+        map.set(s.id, s);
       });
       let list = Array.from(map.values());
+
       const player = (this.form.player || '').trim();
       if (player) {
         const me = player.toLowerCase();
         list = list.filter((s) => String(s.player || '').toLowerCase() === me);
-      } else {
-        list = this.localSubs.slice();
       }
+
       if (this.filterLevel !== 'All') {
         list = list.filter(
           (s) =>
@@ -498,7 +551,7 @@ export default {
     },
   },
   async mounted() {
-    this.localSubs = loadLocalSubs();
+    let local = loadLocalSubs();
     try {
       this.levels = (await fetchList()) || [];
     } catch (e) {
@@ -513,10 +566,15 @@ export default {
       if (res.ok) {
         const data = await res.json();
         this.remoteSubs = Array.isArray(data) ? data : [];
+      } else {
+        this.remoteSubs = [];
       }
     } catch (e) {
       this.remoteSubs = [];
     }
+    // pull accepted/rejected from GitHub onto local copies
+    local = syncLocalWithRemote(local, this.remoteSubs);
+    this.localSubs = local;
     this.loading = false;
   },
 };
