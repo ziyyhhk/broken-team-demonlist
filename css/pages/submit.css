@@ -109,6 +109,11 @@
 .submit-field label .req {
     color: #e74c3c;
 }
+.submit-field label .opt {
+    color: var(--color-muted);
+    font-weight: 600;
+    font-size: 0.72rem;
+}
 .submit-field input,
 .submit-field select,
 .submit-field textarea {
