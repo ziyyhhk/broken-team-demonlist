@@ -1,7 +1,8 @@
 /**
- * Admin panel = last good core (CDN) + Submissions tab injected locally.
+ * Admin panel = last good core (CDN) + Submissions tab + Remove level + publish webhook.
  */
 import Spinner from '../components/Spinner.js';
+import { WEBHOOK_KEY } from '../discordAnnounce.js';
 
 const url =
   'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@01bf14bc226d2ebb59211f19cbef12d93a635f04/js/pages/Admin.js';
@@ -9,7 +10,7 @@ const url =
 const mod = await import(/* @vite-ignore */ url);
 const Base = mod.default;
 
-function injectSubmissions(BaseComp) {
+function injectExtras(BaseComp) {
   const baseData = BaseComp.data;
   const baseComputed = BaseComp.computed || {};
   const baseMethods = BaseComp.methods || {};
@@ -24,12 +25,21 @@ function injectSubmissions(BaseComp) {
     template = template.replace(sideNeedle, sideInsert);
   }
 
+  const orderNeedle =
+    '<button type="button" @click="moveToImpossible(i)">→ Imp</button>';
+  const orderInsert =
+    orderNeedle +
+    '\n<button type="button" class="rec-del" title="Remove from list" @click="removeFromList(i)">✕</button>';
+  if (template.includes(orderNeedle) && !template.includes('removeFromList(i)')) {
+    template = template.replace(orderNeedle, orderInsert);
+  }
+
   const panelNeedle =
     '<div v-if="tab===\'settings\' && canToken" class="admin-panel"><h2>Settings</h2>';
   const panel =
     '<div v-if="tab===\'submissions\' && (canLevels || canList)" class="admin-panel admin-panel--wide">' +
     '<h2>Submissions</h2>' +
-    '<p class="admin-hint">Review record submissions. Approve adds the player to the level records. Log from Discord with + Log submission if needed.</p>' +
+    '<p class="admin-hint">Public players notify staff on <strong>Discord</strong> (set + publish webhook in Settings). Entries land in this queue when someone with a GitHub token submits, or when you use <strong>+ Log submission</strong>.</p>' +
     '<div class="admin-actions" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">' +
     '<button type="button" class="auth-btn" @click="showAddSub=!showAddSub">{{ showAddSub ? \'Hide\' : \'+ Log submission\' }}</button>' +
     '<button type="button" class="auth-btn auth-btn--ghost" @click="loadSubmissions">Reload</button>' +
@@ -58,7 +68,7 @@ function injectSubmissions(BaseComp) {
     '</div>' +
     '<div class="admin-actions"><button type="button" class="auth-btn" :disabled="saving" @click="addManualSub">Add to queue</button></div>' +
     '</div>' +
-    '<p class="admin-hint" v-if="!filteredSubs.length">No submissions in this filter.</p>' +
+    '<p class="admin-hint" v-if="!filteredSubs.length">No submissions in this filter. If someone submitted on another account, check Discord, then use <strong>+ Log submission</strong>.</p>' +
     '<ul class="admin-sub-list">' +
     '<li class="admin-sub-card" v-for="s in filteredSubs" :key="s.id">' +
     '<div class="admin-sub-card__head">' +
@@ -87,6 +97,15 @@ function injectSubmissions(BaseComp) {
     '</div>';
   if (template.includes(panelNeedle)) {
     template = template.replace(panelNeedle, panel + panelNeedle);
+  }
+
+  const whNeedle =
+    '<button type="button" class="auth-btn" @click="saveWebhookLocal">Save webhook</button>';
+  const whInsert =
+    whNeedle +
+    '\n<button type="button" class="auth-btn auth-btn--ghost" :disabled="saving" @click="publishWebhookToSite">Publish to site (for public submits)</button>';
+  if (template.includes(whNeedle) && !template.includes('publishWebhookToSite')) {
+    template = template.replace(whNeedle, whInsert);
   }
 
   return {
@@ -297,9 +316,56 @@ function injectSubmissions(BaseComp) {
         await this.saveSubmissionsQueue('Admin: approve submission ' + name);
         this.flash('Approved — record added for ' + name + '.');
       },
+      async removeFromList(i) {
+        const p = (this.listOrder || [])[i];
+        if (!p) return;
+        if (
+          !confirm(
+            'Remove "' +
+              p +
+              '" from the main list?\n(The level JSON file stays in the repo; only the list order is updated.)',
+          )
+        )
+          return;
+        const order = this.listOrder.slice();
+        order.splice(i, 1);
+        this.listOrder = order;
+        this.list = (this.list || []).filter((pair) => !(pair && pair[0] && pair[0].path === p));
+        if (this.selectedPath === p) {
+          this.selectedPath = '';
+          this.draft = null;
+        }
+        await this.saveList();
+        this.flash(p + ' removed from main list.');
+      },
+      async publishWebhookToSite() {
+        const url = (this.discordWebhook || '').trim();
+        if (!url) {
+          this.flash('Paste a Discord webhook URL first.', true);
+          return;
+        }
+        try {
+          localStorage.setItem(WEBHOOK_KEY, url);
+        } catch (e) {}
+        const payload = {
+          mainCutoff: Number(this.mainCutoff) || 75,
+          extendedCutoff: Number(this.extendedCutoff) || 150,
+          submissionsWebhook: url,
+        };
+        const ok = await this.pushFile(
+          'data/_config.json',
+          JSON.stringify(payload, null, 4),
+          'Admin: publish submissions webhook',
+        );
+        if (ok) {
+          this.flash(
+            'Webhook published. Public submissions will notify Discord (after GitHub Pages rebuild).',
+          );
+        }
+      },
     }),
     mounted: BaseComp.mounted,
   };
 }
 
-export default injectSubmissions(Base);
+export default injectExtras(Base);
