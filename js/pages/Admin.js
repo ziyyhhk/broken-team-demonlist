@@ -10,6 +10,13 @@ const url =
 const mod = await import(/* @vite-ignore */ url);
 const Base = mod.default;
 
+function statusLabel(status) {
+  const s = (status || 'pending').toLowerCase();
+  if (s === 'approved' || s === 'accepted') return 'accepted';
+  if (s === 'rejected') return 'rejected';
+  return 'pending';
+}
+
 function injectExtras(BaseComp) {
   const baseData = BaseComp.data;
   const baseComputed = BaseComp.computed || {};
@@ -29,7 +36,7 @@ function injectExtras(BaseComp) {
     '<button type="button" @click="moveToImpossible(i)">→ Imp</button>';
   const orderInsert =
     orderNeedle +
-    '\n<button type="button" class="rec-del" title="Remove from list" @click="removeFromList(i)">✕</button>';
+    '\n<button type="button" class="rec-del" title="Remove from list" @click="removeFromList(i)">X</button>';
   if (template.includes(orderNeedle) && !template.includes('removeFromList(i)')) {
     template = template.replace(orderNeedle, orderInsert);
   }
@@ -39,17 +46,17 @@ function injectExtras(BaseComp) {
   const panel =
     '<div v-if="tab===\'submissions\' && (canLevels || canList)" class="admin-panel admin-panel--wide">' +
     '<h2>Submissions</h2>' +
-    '<p class="admin-hint">Public players notify staff on <strong>Discord</strong> (set + publish webhook in Settings). Entries land in this queue when someone with a GitHub token submits, or when you use <strong>+ Log submission</strong>.</p>' +
+    '<p class="admin-hint">Public players notify staff on <strong>Discord</strong> (set + publish webhook in Settings). Entries land in this queue when someone with a GitHub token submits, when the Discord bot writes them, or when you use <strong>+ Log submission</strong>.</p>' +
     '<div class="admin-actions" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">' +
     '<button type="button" class="auth-btn" @click="showAddSub=!showAddSub">{{ showAddSub ? \'Hide\' : \'+ Log submission\' }}</button>' +
     '<button type="button" class="auth-btn auth-btn--ghost" @click="loadSubmissions">Reload</button>' +
     '<span class="admin-muted">{{ pendingSubs.length }} pending · {{ submissions.length }} total</span>' +
     '</div>' +
     '<div class="admin-row" style="margin-bottom:0.75rem;gap:0.4rem;flex-wrap:wrap">' +
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'pending\'">Pending</button>' +
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'approved\'">Approved</button>' +
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'rejected\'">Rejected</button>' +
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'all\'">All</button>' +
+    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'pending\'">pending</button>' +
+    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'accepted\'">accepted</button>' +
+    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'rejected\'">rejected</button>' +
+    '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'all\'">all</button>' +
     '</div>' +
     '<div class="admin-edit-card" v-if="showAddSub" style="margin-bottom:1rem">' +
     '<h3 style="margin:0 0 0.5rem">Log submission</h3>' +
@@ -73,7 +80,7 @@ function injectExtras(BaseComp) {
     '<li class="admin-sub-card" v-for="s in filteredSubs" :key="s.id">' +
     '<div class="admin-sub-card__head">' +
     '<strong>{{ s.player }}</strong>' +
-    '<span class="admin-role-tag">{{ s.status || \'pending\' }}</span>' +
+    '<span class="admin-role-tag">{{ statusLabel(s.status) }}</span>' +
     '<span class="admin-muted" v-if="s.discordUser">@{{ s.discordUser }}</span>' +
     '<span class="admin-muted">{{ s.createdAt ? new Date(s.createdAt).toLocaleString() : \'\' }}</span>' +
     '</div>' +
@@ -88,8 +95,8 @@ function injectExtras(BaseComp) {
     '<div style="font-size:0.85rem;margin-bottom:0.25rem"><strong>Video:</strong> <a :href="s.link" target="_blank" rel="noopener">{{ s.link }}</a></div>' +
     '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.rawFootage"><strong>Raw:</strong> <a :href="s.rawFootage" target="_blank" rel="noopener">{{ s.rawFootage }}</a></div>' +
     '<div style="font-size:0.85rem;color:var(--color-muted)" v-if="s.notes"><strong>Notes:</strong> {{ s.notes }}</div>' +
-    '<div class="admin-sub-actions" v-if="(s.status||\'pending\')===\'pending\'">' +
-    '<button type="button" class="auth-btn" :disabled="saving" @click="approveSub(s)">Approve → add record</button>' +
+    '<div class="admin-sub-actions" v-if="statusLabel(s.status)===\'pending\'">' +
+    '<button type="button" class="auth-btn" :disabled="saving" @click="approveSub(s)">Accept → add record</button>' +
     '<button type="button" class="auth-btn auth-btn--ghost" :disabled="saving" @click="rejectSub(s)">Reject</button>' +
     '</div>' +
     '</li>' +
@@ -138,18 +145,21 @@ function injectExtras(BaseComp) {
     },
     computed: Object.assign({}, baseComputed, {
       pendingSubs() {
-        return (this.submissions || []).filter((s) => (s.status || 'pending') === 'pending');
+        return (this.submissions || []).filter((s) => statusLabel(s.status) === 'pending');
       },
       filteredSubs() {
         const f = this.subFilter || 'all';
         let list = (this.submissions || []).slice();
-        if (f !== 'all') list = list.filter((s) => (s.status || 'pending') === f);
+        if (f !== 'all') {
+          list = list.filter((s) => statusLabel(s.status) === f);
+        }
         return list.sort((a, b) =>
           String(b.createdAt || '').localeCompare(String(a.createdAt || '')),
         );
       },
     }),
     methods: Object.assign({}, baseMethods, {
+      statusLabel,
       async openSubmissions() {
         this.tab = 'submissions';
         await this.loadSubmissions();
@@ -248,13 +258,14 @@ function injectExtras(BaseComp) {
             : x,
         );
         await this.saveSubmissionsQueue('Admin: reject submission ' + s.player);
+        this.flash('Rejected.');
       },
       async approveSub(s) {
         if (!s || !s.id) return;
         const path = s.levelPath;
         if (!path || path === '__verifying__') {
           this.flash(
-            'This level is not on the list yet. Add the level first, then approve.',
+            'This level is not on the list yet. Add the level first, then accept.',
             true,
           );
           return;
@@ -300,7 +311,7 @@ function injectExtras(BaseComp) {
           !(await this.pushFile(
             'data/' + path + '.json',
             JSON.stringify(payload, null, 4),
-            'Admin: approve ' + name + ' on ' + path,
+            'Admin: accept ' + name + ' on ' + path,
           ))
         )
           return;
@@ -308,13 +319,13 @@ function injectExtras(BaseComp) {
         this.submissions = (this.submissions || []).map((x) =>
           x.id === s.id
             ? Object.assign({}, x, {
-                status: 'approved',
+                status: 'accepted',
                 resolvedAt: new Date().toISOString(),
               })
             : x,
         );
-        await this.saveSubmissionsQueue('Admin: approve submission ' + name);
-        this.flash('Approved — record added for ' + name + '.');
+        await this.saveSubmissionsQueue('Admin: accept submission ' + name);
+        this.flash('Accepted — record added for ' + name + '.');
       },
       async removeFromList(i) {
         const p = (this.listOrder || [])[i];
