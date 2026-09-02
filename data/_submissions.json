@@ -1,1 +1,22 @@
-[]
+[
+    {
+        "id": "sub_mtk9x6af_54ll4a",
+        "status": "pending",
+        "mode": "classic",
+        "player": "test",
+        "discordUser": "test",
+        "displayName": "test",
+        "levelPath": "Kirauement",
+        "levelName": "Kirauement",
+        "percent": 100,
+        "link": "test",
+        "device": "Mobile",
+        "modMenu": "Mega Hack v6",
+        "customId": "test",
+        "length": "3",
+        "attempts": "3434",
+        "rawFootage": "",
+        "notes": "",
+        "createdAt": "2026-09-02T15:51:25.720Z"
+    }
+]
