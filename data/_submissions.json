@@ -1,7 +1,7 @@
 [
     {
         "id": "sub_mtkatltw_97j4qn",
-        "status": "pending",
+        "status": "rejected",
         "mode": "classic",
         "player": "test",
         "discordUser": "test",
@@ -17,7 +17,8 @@
         "attempts": "34",
         "rawFootage": "test",
         "notes": "test",
-        "createdAt": "2026-09-02T16:16:38.852Z"
+        "createdAt": "2026-09-02T16:16:38.852Z",
+        "resolvedAt": "2026-09-02T16:36:15.910Z"
     },
     {
         "id": "sub_mtk9x6af_54ll4a",
