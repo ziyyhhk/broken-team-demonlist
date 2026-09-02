@@ -6,7 +6,8 @@ export default [
     { path: '/info', component: () => import('./pages/Info.js') },
     { path: '/rules', component: () => import('./pages/Rules.js') },
     { path: '/credits', component: () => import('./pages/Credits.js') },
+    { path: '/submit', component: () => import('./pages/Submit.js') },
     { path: '/login', component: () => import('./pages/Login.js') },
     { path: '/register', component: () => import('./pages/Register.js') },
-    { path: '/admin', component: () => import('./pages/Admin.js?v=8') },
+    { path: '/admin', component: () => import('./pages/Admin.js?v=9') },
 ];
