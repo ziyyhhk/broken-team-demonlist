@@ -20,10 +20,11 @@ export async function fetchConfig() {
         return {
             mainCutoff: Number.isFinite(main) && main > 0 ? main : 75,
             extendedCutoff: Number.isFinite(ext) && ext > 0 ? ext : 150,
+            submissionsWebhook: (cfg.submissionsWebhook || '').trim(),
         };
     } catch (e) {
         console.error('Failed to load config.', e);
-        return { mainCutoff: 75, extendedCutoff: 150 };
+        return { mainCutoff: 75, extendedCutoff: 150, submissionsWebhook: '' };
     }
 }
 
