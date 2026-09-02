@@ -65,7 +65,7 @@ const app = Vue.createApp({
             <div class="logo">
                 <div class="logo__text">
                     <h2>The Broken List</h2>
-                    <p>v1.0.3</p>
+                    <p>v1.0.4</p>
                 </div>
             </div>
             <nav class="nav">
@@ -99,12 +99,7 @@ const app = Vue.createApp({
                         <router-link class="nav__text-btn" to="/login">Login</router-link>
                         <router-link class="nav__text-btn" to="/register">Register</router-link>
                     </template>
-                    <a
-                        class="nav__cta type-label-lg"
-                        href="https://forms.gle/2j7Xy5QLZqG3sijj9"
-                        target="_blank"
-                        rel="noopener"
-                    >Submit Record</a>
+                    <router-link class="nav__cta type-label-lg" to="/submit">Submit Record</router-link>
                 </div>
             </nav>
         </header>
