@@ -47,6 +47,13 @@ function uid() {
   return 'sub_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
+function statusLabel(status) {
+  const s = (status || 'pending').toLowerCase();
+  if (s === 'approved' || s === 'accepted') return 'accepted';
+  if (s === 'rejected') return 'rejected';
+  return 'pending';
+}
+
 export default {
   components: { Spinner },
   data: () => ({
@@ -120,7 +127,7 @@ export default {
         list = list.filter((s) => s.device === this.filterDevice);
       }
       if (this.filterStatus !== 'All') {
-        list = list.filter((s) => (s.status || 'pending') === this.filterStatus);
+        list = list.filter((s) => statusLabel(s.status) === this.filterStatus);
       }
       list.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
       return list;
@@ -270,9 +277,9 @@ export default {
           <label>Status
             <select v-model="filterStatus">
               <option>All</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
+              <option value="pending">pending</option>
+              <option value="accepted">accepted</option>
+              <option value="rejected">rejected</option>
             </select>
           </label>
           <div class="submit-prev-nav">
@@ -285,7 +292,7 @@ export default {
           <li v-for="s in pagedPrev" :key="s.id">
             <span>{{ s.levelName || s.levelPath || '—' }}</span>
             <span>{{ s.device || '—' }}</span>
-            <span class="submit-status" :class="'submit-status--'+(s.status||'pending')">{{ s.status || 'pending' }}</span>
+            <span class="submit-status" :class="'submit-status--'+statusLabel(s.status)">{{ statusLabel(s.status) }}</span>
             <span style="font-size:0.75rem;color:var(--color-muted)">{{ formatDate(s.createdAt) }}</span>
           </li>
         </ul>
@@ -334,6 +341,7 @@ export default {
 </main>
 `,
   methods: {
+    statusLabel,
     formatDate(iso) {
       if (!iso) return '—';
       try {
@@ -422,21 +430,22 @@ export default {
           (typeof localStorage !== 'undefined' ? localStorage.getItem(WEBHOOK_KEY) || '' : '');
         if (webhook) {
           const lines = [
-            '**New record submission** (`' + entry.id + '`)',
-            '**Player:** ' + entry.player,
-            '**Discord:** ' + entry.discordUser + (entry.displayName ? ' (' + entry.displayName + ')' : ''),
-            '**Level:** ' + entry.levelName + (entry.levelPath === '__verifying__' ? ' _(verifying)_' : ''),
-            '**%:** ' + entry.percent,
-            '**Device:** ' + entry.device,
-            '**Mod menu:** ' + entry.modMenu,
-            '**Video:** ' + entry.link,
+            'New record submission (' + entry.id + ')',
+            'Player: ' + entry.player,
+            'Discord: ' + entry.discordUser + (entry.displayName ? ' (' + entry.displayName + ')' : ''),
+            'Level: ' + entry.levelName + (entry.levelPath === '__verifying__' ? ' (verifying)' : ''),
+            'Percent: ' + entry.percent,
+            'Device: ' + entry.device,
+            'Mod menu: ' + entry.modMenu,
+            'Video: ' + entry.link,
           ];
-          if (entry.length) lines.push('**Length:** ' + entry.length);
-          if (entry.attempts) lines.push('**Attempts:** ' + entry.attempts);
-          if (entry.customId) lines.push('**Custom ID:** ' + entry.customId);
-          if (entry.rawFootage) lines.push('**Raw:** ' + entry.rawFootage);
-          if (entry.notes) lines.push('**Notes:** ' + entry.notes);
-          lines.push('_Mode: ' + entry.mode + '_');
+          if (entry.length) lines.push('Length: ' + entry.length);
+          if (entry.attempts) lines.push('Attempts: ' + entry.attempts);
+          if (entry.customId) lines.push('Custom ID: ' + entry.customId);
+          if (entry.rawFootage) lines.push('Raw: ' + entry.rawFootage);
+          if (entry.notes) lines.push('Notes: ' + entry.notes);
+          lines.push('Mode: ' + entry.mode);
+          lines.push('Status: pending');
           const r = await sendDiscordWebhook(webhook, lines.join('\n'));
           discordOk = !!(r && r.ok);
         }
