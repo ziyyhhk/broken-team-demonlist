@@ -1,27 +1,7 @@
 [
     {
-        "id": "sub_mtlpst0e_2pm5gz",
-        "status": "pending",
-        "mode": "classic",
-        "player": "31232123",
-        "discordUser": "1321123231",
-        "displayName": "231231123",
-        "levelPath": "zxzx",
-        "levelName": "zxzx",
-        "percent": 100,
-        "link": "rewrewrwewre",
-        "device": "PC",
-        "modMenu": "Eclipse",
-        "customId": "123321213",
-        "length": "rwerewwre",
-        "attempts": "2.1321312e+50",
-        "rawFootage": "wdwdadsdwasdwasdwasdwasdwasdw",
-        "notes": "rewewrwer",
-        "createdAt": "2026-09-03T16:03:41.918Z"
-    },
-    {
         "id": "sub_mtlpr4mb_vljsca",
-        "status": "pending",
+        "status": "rejected",
         "mode": "classic",
         "player": "wqweqweq",
         "discordUser": "weqwqeweq",
@@ -37,7 +17,8 @@
         "attempts": "12321343324",
         "rawFootage": "1233214",
         "notes": "3423424423",
-        "createdAt": "2026-09-03T16:02:23.651Z"
+        "createdAt": "2026-09-03T16:02:23.651Z",
+        "resolvedAt": "2026-09-03T16:04:07.112Z"
     },
     {
         "id": "sub_manual_mtlpodp8",
