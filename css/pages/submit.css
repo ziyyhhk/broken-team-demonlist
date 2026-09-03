@@ -376,19 +376,18 @@ body:not(.dark) .submit-prev {
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 
 .submit-prev-list li {
-    display: grid;
-    grid-template-columns: 1.4fr 0.7fr 0.75fr 0.9fr;
-    gap: 0.45rem;
-    padding: 0.65rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.75rem 0.85rem;
     background: var(--color-background);
     border: 1px solid transparent;
     border-radius: 0.6rem;
     font-size: 0.85rem;
-    align-items: center;
     transition: border-color 0.12s ease;
 }
 
@@ -396,10 +395,35 @@ body:not(.dark) .submit-prev {
     border-color: var(--color-border);
 }
 
+.submit-prev-row {
+    display: grid;
+    grid-template-columns: 1.4fr 0.7fr 0.75fr 0.9fr;
+    gap: 0.45rem;
+    align-items: center;
+}
+
 @media (max-width: 600px) {
-    .submit-prev-list li {
+    .submit-prev-row {
         grid-template-columns: 1fr 1fr;
     }
+}
+
+.submit-prev-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.85rem;
+    font-size: 0.8rem;
+}
+
+.submit-prev-links a {
+    color: #e67e22;
+    font-weight: 700;
+    text-decoration: none;
+    word-break: break-all;
+}
+
+.submit-prev-links a:hover {
+    text-decoration: underline;
 }
 
 .submit-status {
@@ -418,7 +442,8 @@ body:not(.dark) .submit-prev {
     color: #e67e22;
 }
 
-.submit-status--approved {
+.submit-status--approved,
+.submit-status--accepted {
     background: color-mix(in srgb, var(--color-primary) 18%, transparent);
     color: var(--color-primary);
 }
