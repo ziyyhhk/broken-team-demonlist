@@ -40,7 +40,7 @@ function loadLocalSubs() {
 }
 
 function saveLocalSubs(list) {
-  localStorage.setItem(LOCAL_KEY, JSON.stringify(list.slice(0, 80)));
+  localStorage.setItem(LOCAL_KEY, JSON.stringify((list || []).slice(0, 80)));
 }
 
 function uid() {
@@ -55,12 +55,18 @@ function statusLabel(status) {
 }
 
 function norm(s) {
-  return String(s || '')
-    .trim()
-    .toLowerCase();
+  return String(s || '').trim().toLowerCase();
 }
 
-/** Merge remote into local by id; also copy status onto local rows that match player+level. */
+function safeHref(url) {
+  const u = String(url || '').trim();
+  if (!u) return '';
+  if (/^https?:\/\//i.test(u)) return u;
+  if (/^[\w.-]+\.[a-z]{2,}/i.test(u) && !/\s/.test(u)) return 'https://' + u;
+  return '';
+}
+
+/** Update local rows with remote status; never drop local entries. */
 function syncLocalWithRemote(local, remote) {
   const byId = new Map();
   (remote || []).forEach((s) => {
@@ -74,9 +80,10 @@ function syncLocalWithRemote(local, remote) {
       return Object.assign({}, s, {
         status: r.status || s.status,
         resolvedAt: r.resolvedAt || s.resolvedAt,
+        link: s.link || r.link,
+        rawFootage: s.rawFootage || r.rawFootage,
       });
     }
-    // fuzzy: same player + level name/path → take remote status if resolved
     const match = (remote || []).find(
       (r) =>
         r &&
@@ -91,7 +98,6 @@ function syncLocalWithRemote(local, remote) {
       return Object.assign({}, s, {
         status: match.status,
         resolvedAt: match.resolvedAt || s.resolvedAt,
-        id: s.id || match.id,
       });
     }
     return s;
@@ -149,25 +155,27 @@ export default {
     },
     combinedPrev() {
       const map = new Map();
-      // remote first (source of truth for status)
       (this.remoteSubs || []).forEach((s) => {
-        if (s && s.id) map.set(s.id, s);
+        if (s && s.id) map.set(s.id, Object.assign({}, s));
       });
       (this.localSubs || []).forEach((s) => {
         if (!s || !s.id) return;
         if (map.has(s.id)) {
-          // keep remote, but already synced
-          return;
+          const r = map.get(s.id);
+          map.set(
+            s.id,
+            Object.assign({}, s, r, {
+              status: r.status || s.status,
+              resolvedAt: r.resolvedAt || s.resolvedAt,
+              link: r.link || s.link,
+              rawFootage: r.rawFootage || s.rawFootage,
+            }),
+          );
+        } else {
+          map.set(s.id, s);
         }
-        map.set(s.id, s);
       });
       let list = Array.from(map.values());
-
-      const player = (this.form.player || '').trim();
-      if (player) {
-        const me = player.toLowerCase();
-        list = list.filter((s) => String(s.player || '').toLowerCase() === me);
-      }
 
       if (this.filterLevel !== 'All') {
         list = list.filter(
@@ -336,6 +344,7 @@ export default {
             </select>
           </label>
           <div class="submit-prev-nav">
+            <button type="button" @click="reloadSubs">Refresh</button>
             <button type="button" :disabled="page<=0" @click="page--">Previous</button>
             <button type="button" :disabled="page>=maxPage" @click="page++">Next</button>
           </div>
@@ -343,10 +352,18 @@ export default {
         <p class="submit-prev-empty" v-if="!pagedPrev.length">No submissions found.</p>
         <ul class="submit-prev-list" v-else>
           <li v-for="s in pagedPrev" :key="s.id">
-            <span>{{ s.levelName || s.levelPath || '—' }}</span>
-            <span>{{ s.device || '—' }}</span>
-            <span class="submit-status" :class="'submit-status--'+statusLabel(s.status)">{{ statusLabel(s.status) }}</span>
-            <span style="font-size:0.75rem;color:var(--color-muted)">{{ formatDate(s.createdAt) }}</span>
+            <div class="submit-prev-row">
+              <span>{{ s.levelName || s.levelPath || '—' }}</span>
+              <span>{{ s.device || '—' }}</span>
+              <span class="submit-status" :class="'submit-status--'+statusLabel(s.status)">{{ statusLabel(s.status) }}</span>
+              <span style="font-size:0.75rem;color:var(--color-muted)">{{ formatDate(s.createdAt) }}</span>
+            </div>
+            <div class="submit-prev-links" v-if="s.link || s.rawFootage">
+              <a v-if="linkHref(s.link)" :href="linkHref(s.link)" target="_blank" rel="noopener">Watch completion</a>
+              <span v-else-if="s.link">Video: {{ s.link }}</span>
+              <a v-if="linkHref(s.rawFootage)" :href="linkHref(s.rawFootage)" target="_blank" rel="noopener">Watch raw</a>
+              <span v-else-if="s.rawFootage">Raw: {{ s.rawFootage }}</span>
+            </div>
           </li>
         </ul>
       </div>
@@ -395,6 +412,7 @@ export default {
 `,
   methods: {
     statusLabel,
+    linkHref: safeHref,
     formatDate(iso) {
       if (!iso) return '—';
       try {
@@ -424,6 +442,17 @@ export default {
         this.msg = '';
         this.err = '';
       }, 6000);
+    },
+    async reloadSubs() {
+      try {
+        const res = await fetch('./data/_submissions.json?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          this.remoteSubs = Array.isArray(data) ? data : [];
+        }
+      } catch (e) {}
+      this.localSubs = syncLocalWithRemote(loadLocalSubs(), this.remoteSubs);
+      this.flash('Status refreshed.');
     },
     validate() {
       const player = (this.form.player || '').trim();
@@ -529,9 +558,7 @@ export default {
         } else if (discordOk) {
           this.flash('Submitted. Staff were notified on Discord. Status: pending.');
         } else {
-          this.flash(
-            'Saved on this device. Set a Discord webhook in Admin so staff get notified.',
-          );
+          this.flash('Saved on this device. Set a Discord webhook in Admin so staff get notified.');
         }
 
         this.form.levelPath = '';
@@ -572,7 +599,6 @@ export default {
     } catch (e) {
       this.remoteSubs = [];
     }
-    // pull accepted/rejected from GitHub onto local copies
     local = syncLocalWithRemote(local, this.remoteSubs);
     this.localSubs = local;
     this.loading = false;
