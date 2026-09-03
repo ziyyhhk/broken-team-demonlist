@@ -1,7 +1,7 @@
 [
     {
         "id": "sub_mtlnab19_eokd2v",
-        "status": "pending",
+        "status": "rejected",
         "mode": "classic",
         "player": "test",
         "discordUser": "test",
@@ -17,7 +17,8 @@
         "attempts": "3233",
         "rawFootage": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         "notes": "",
-        "createdAt": "2026-09-03T14:53:19.582Z"
+        "createdAt": "2026-09-03T14:53:19.582Z",
+        "resolvedAt": "2026-09-03T14:54:52.851Z"
     },
     {
         "id": "sub_mtkc6wro_vzjgef",
