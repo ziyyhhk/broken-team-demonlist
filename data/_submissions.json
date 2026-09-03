@@ -22,12 +22,12 @@
     },
     {
         "id": "sub_mtkc6wro_vzjgef",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "player": "ZaZqa",
         "discordUser": "zz",
         "displayName": "xzxzx",
-        "levelPath": "__verifying__",
+        "levelPath": "zxzx",
         "levelName": "zxzx",
         "percent": 100,
         "link": "zxzxz",
@@ -38,7 +38,8 @@
         "attempts": "454",
         "rawFootage": "",
         "notes": "",
-        "createdAt": "2026-09-02T16:54:59.172Z"
+        "createdAt": "2026-09-02T16:54:59.172Z",
+        "resolvedAt": "2026-09-03T15:41:05.856Z"
     },
     {
         "id": "sub_mtkatltw_97j4qn",
