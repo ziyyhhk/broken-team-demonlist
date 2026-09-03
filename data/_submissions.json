@@ -1,27 +1,7 @@
 [
     {
-        "id": "sub_mtlpp818_7bzuze",
-        "status": "pending",
-        "mode": "classic",
-        "player": "sad",
-        "discordUser": "sadds",
-        "displayName": "saddsa",
-        "levelPath": "__verifying__",
-        "levelName": "dsa",
-        "percent": 100,
-        "link": "sda",
-        "device": "PC",
-        "modMenu": "Mega Hack v9",
-        "customId": "213",
-        "length": "sda",
-        "attempts": "212",
-        "rawFootage": "213",
-        "notes": "231",
-        "createdAt": "2026-09-03T16:00:54.764Z"
-    },
-    {
         "id": "sub_manual_mtlpodp8",
-        "status": "pending",
+        "status": "rejected",
         "mode": "classic",
         "player": "Saa",
         "discordUser": "ss",
@@ -37,7 +17,8 @@
         "length": "",
         "attempts": "",
         "notes": "gay",
-        "createdAt": "2026-09-03T16:00:15.452Z"
+        "createdAt": "2026-09-03T16:00:15.452Z",
+        "resolvedAt": "2026-09-03T16:01:05.443Z"
     },
     {
         "id": "sub_mtlnab19_eokd2v",
