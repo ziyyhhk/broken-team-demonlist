@@ -5,15 +5,21 @@
     "creators": [
         "EtherealSoraa"
     ],
-    "verifier": "EtherealCoolSora",
+    "verifier": "EtherealSoraa",
     "verification": "https://youtu.be/sPnj9cSHDN8",
     "thumbnail": "",
     "percentToQualify": 100,
     "password": "Free to Copy",
-    "length": "23 seconds",
+    "length": "67676767",
     "creationDate": "8/27/2026",
     "tags": [
         "Impossible List"
     ],
-    "records": []
+    "records": [
+        {
+            "user": "EtherealSoraa",
+            "percent": 6700,
+            "link": "https://youtu.be/sPnj9cSHDN8"
+        }
+    ]
 }
