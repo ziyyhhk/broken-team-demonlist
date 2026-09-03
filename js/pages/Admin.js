@@ -2,7 +2,7 @@
  * Admin panel = last good core (CDN) + Submissions tab + Remove level + publish webhook.
  */
 import Spinner from '../components/Spinner.js';
-import { WEBHOOK_KEY } from '../discordAnnounce.js';
+import { WEBHOOK_KEY, sendDiscordWebhook } from '../discordAnnounce.js';
 
 const url =
   'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@01bf14bc226d2ebb59211f19cbef12d93a635f04/js/pages/Admin.js';
@@ -92,8 +92,8 @@ function injectExtras(BaseComp) {
     '<div><strong>Attempts</strong>{{ s.attempts || \'—\' }}</div>' +
     '<div><strong>Length</strong>{{ s.length || \'—\' }}</div>' +
     '</div>' +
-    '<div style="font-size:0.85rem;margin-bottom:0.25rem"><strong>Video:</strong> <a :href="s.link" target="_blank" rel="noopener">{{ s.link }}</a></div>' +
-    '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.rawFootage"><strong>Raw:</strong> <a :href="s.rawFootage" target="_blank" rel="noopener">{{ s.rawFootage }}</a></div>' +
+    '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.link"><strong>Video:</strong> <a :href="safeLink(s.link)" target="_blank" rel="noopener">{{ s.link }}</a></div>' +
+    '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.rawFootage"><strong>Raw:</strong> <a :href="safeLink(s.rawFootage)" target="_blank" rel="noopener">{{ s.rawFootage }}</a></div>' +
     '<div style="font-size:0.85rem;color:var(--color-muted)" v-if="s.notes"><strong>Notes:</strong> {{ s.notes }}</div>' +
     '<div class="admin-sub-actions" v-if="statusLabel(s.status)===\'pending\'">' +
     '<button type="button" class="auth-btn" :disabled="saving" @click="approveSub(s)">Accept → add record</button>' +
@@ -160,6 +160,30 @@ function injectExtras(BaseComp) {
     }),
     methods: Object.assign({}, baseMethods, {
       statusLabel,
+      safeLink(url) {
+        const u = String(url || '').trim();
+        if (!u) return '#';
+        if (/^https?:\/\//i.test(u)) return u;
+        if (/^[\w.-]+\.[a-z]{2,}/i.test(u) && !/\s/.test(u)) return 'https://' + u;
+        return u;
+      },
+      async notifyDiscordStatus(entry, status) {
+        const webhook =
+          (this.discordWebhook || '').trim() ||
+          (typeof localStorage !== 'undefined' ? localStorage.getItem(WEBHOOK_KEY) || '' : '');
+        if (!webhook || !entry) return;
+        const lines = [
+          'Submission ' + status,
+          'Player: ' + (entry.player || '—'),
+          'Discord: ' + (entry.discordUser || '—'),
+          'Level: ' + (entry.levelName || entry.levelPath || '—'),
+          'Status: ' + status,
+        ];
+        if (entry.link) lines.push('Video: ' + entry.link);
+        try {
+          await sendDiscordWebhook(webhook, lines.join('\n'));
+        } catch (e) {}
+      },
       async openSubmissions() {
         this.tab = 'submissions';
         await this.loadSubmissions();
@@ -258,6 +282,7 @@ function injectExtras(BaseComp) {
             : x,
         );
         await this.saveSubmissionsQueue('Admin: reject submission ' + s.player);
+        await this.notifyDiscordStatus(s, 'rejected');
         this.flash('Rejected.');
       },
       async approveSub(s) {
@@ -325,6 +350,7 @@ function injectExtras(BaseComp) {
             : x,
         );
         await this.saveSubmissionsQueue('Admin: accept submission ' + name);
+        await this.notifyDiscordStatus(s, 'accepted');
         this.flash('Accepted — record added for ' + name + '.');
       },
       async removeFromList(i) {
