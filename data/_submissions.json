@@ -2,13 +2,13 @@
     {
         "id": "sub_mtmbkhvt_xjo0pi",
         "createdAt": "2026-09-04T02:13:05.801Z",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "listTarget": "main",
         "player": "test",
         "discordUser": "test",
         "displayName": "test",
-        "levelPath": "__verifying__",
+        "levelPath": "test",
         "levelName": "test",
         "percent": 100,
         "link": "test",
@@ -21,7 +21,8 @@
         "length": "34s",
         "attempts": "3434",
         "rawFootage": "",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-04T02:17:24.481Z"
     },
     {
         "id": "sub_mtmbjtwu_c2lyeq",
