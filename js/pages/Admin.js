@@ -101,6 +101,53 @@ function injectPlatformer(BaseComp) {
     }),
     methods: Object.assign({}, baseMethods, {
       listLabel,
+      async getWebhookUrl() {
+        let w = (this.discordWebhook || '').trim();
+        if (!w && typeof localStorage !== 'undefined') {
+          try { w = localStorage.getItem(WEBHOOK_KEY) || ''; } catch (e) {}
+        }
+        try {
+          const res = await fetch('./data/_config.json?t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const cfg = await res.json();
+            if (cfg && cfg.submissionsWebhook) {
+              const cfgW = String(cfg.submissionsWebhook).trim();
+              if (cfgW) w = cfgW;
+            }
+          }
+        } catch (e) {}
+        return (w || '').trim();
+      },
+      async notifyDiscordStatus(entry, status) {
+        const webhook = await this.getWebhookUrl();
+        if (!webhook) {
+          this.flash('No Discord webhook configured (Settings / _config).', true);
+          return;
+        }
+        if (!entry) return;
+        try {
+          const result = await sendDiscordEmbed(webhook, buildSubmissionStatusEmbed(entry, status));
+          if (result && result.ok === false) {
+            this.flash('Discord notify failed: ' + (result.error || 'unknown'), true);
+          }
+        } catch (e) {
+          this.flash('Discord notify error: ' + (e && e.message ? e.message : e), true);
+        }
+      },
+      async rejectSub(s) {
+        if (!s || !s.id) return;
+        this.submissions = (this.submissions || []).map((x) =>
+          x.id === s.id
+            ? Object.assign({}, x, {
+                status: 'rejected',
+                resolvedAt: new Date().toISOString(),
+              })
+            : x,
+        );
+        await this.saveSubmissionsQueue('Admin: reject submission ' + (s.player || ''));
+        await this.notifyDiscordStatus(s, 'rejected');
+        this.flash('Rejected ' + (s.player || 'submission') + '.');
+      },
       openPlatformer() {
         this.tab = 'platformer';
         this.showAddPlatformer = false;
