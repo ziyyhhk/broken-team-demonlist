@@ -2,6 +2,7 @@
  * Admin — pin previous working Admin, then patch Discord ID UI + webhooks.
  * Submission channel: pending + reject only on submissionsWebhook.
  * Accept embeds go to acceptWebhook. No verify/victor "congrats" from submission flow.
+ * Verification place never auto-adds a first victor.
  */
 import Spinner from '../components/Spinner.js';
 import {
@@ -88,7 +89,6 @@ function patchComp(Comp) {
         if (draft) return draft;
         return this.linkedDiscordId(s.player);
       },
-      /** Submission queue webhook (pending + reject). */
       async getSubmissionsWebhook() {
         let w = (this.discordWebhook || '').trim();
         if (!w && typeof localStorage !== 'undefined') {
@@ -105,7 +105,6 @@ function patchComp(Comp) {
         } catch (e) {}
         return (w || '').trim();
       },
-      /** Accept-only webhook. */
       async getAcceptWebhook() {
         let w = (this.acceptWebhook || '').trim();
         try {
@@ -122,7 +121,6 @@ function patchComp(Comp) {
       async getWebhookUrl() {
         return this.getSubmissionsWebhook();
       },
-      /** Only accept / reject embeds — never verify/victor congrats. */
       async sendListAnnounce() {
         return;
       },
@@ -153,28 +151,107 @@ function patchComp(Comp) {
         }
       },
       async placeOnMain(sub, f, name, rank) {
-        await baseMethods.placeOnMain.call(this, sub, f, name, rank);
         const path = String((f && f.path) || '').replace(/[^a-zA-Z0-9_-]/g, '');
-        if (!path) return;
-        try {
-          const res = await fetch('./data/' + path + '.json?t=' + Date.now(), { cache: 'no-store' });
-          if (!res.ok) return;
-          const data = await res.json();
-          data.verifier = String((f && f.verifier) || sub.verifier || sub.player || '').trim() || 'Unknown';
-          data.records = [];
-          await this.pushFile(
+        if (!path) {
+          this.flash('File path required.', true);
+          return;
+        }
+        const author = String((f && f.author) || sub.creator || sub.player || '').trim() || 'Unknown';
+        const verifier = String((f && f.verifier) || sub.verifier || '').trim() || 'Unknown';
+        const levelPayload = {
+          id: Number(f && f.id) || 0,
+          name,
+          author,
+          creators: [author],
+          verifier,
+          verification: String((f && f.verification) || sub.link || '').trim(),
+          thumbnail: '',
+          percentToQualify: Number(f && f.percentToQualify) || 100,
+          password: String((f && f.password) || 'Free to Copy').trim(),
+          length: String((f && f.length) || sub.length || '').trim(),
+          creationDate: new Date().toLocaleDateString('en-US'),
+          tags: [],
+          records: [],
+        };
+        if (
+          !(await this.pushFile(
             'data/' + path + '.json',
-            JSON.stringify(data, null, 4),
-            'Admin: verify without auto first victor ' + path,
+            JSON.stringify(levelPayload, null, 4),
+            'Admin: create level ' + path + ' (no auto victor)',
+          ))
+        )
+          return;
+
+        let order = (this.listOrder || []).slice();
+        order = order.filter((p) => p !== path);
+        let r = Number(rank) || 1;
+        if (r < 1) r = 1;
+        if (r > order.length + 1) r = order.length + 1;
+        order.splice(r - 1, 0, path);
+        this.listOrder = order;
+        if (typeof this.saveList === 'function') {
+          await this.saveList();
+        } else {
+          await this.pushFile(
+            'data/_list.json',
+            JSON.stringify(order, null, 4),
+            'Admin: add ' + path + ' to list',
           );
-          if (Array.isArray(this.list)) {
-            this.list = this.list.map((pair) =>
-              pair && pair[0] && pair[0].path === path
-                ? [Object.assign({}, data, { path }), pair[1]]
-                : pair,
-            );
-          }
-        } catch (e) {}
+        }
+        if (Array.isArray(this.list)) {
+          this.list = [[Object.assign({}, levelPayload, { path }), null]].concat(
+            (this.list || []).filter((pair) => !(pair && pair[0] && pair[0].path === path)),
+          );
+        }
+        this.submissions = (this.submissions || []).map((x) =>
+          x.id === sub.id
+            ? Object.assign({}, x, {
+                status: 'accepted',
+                levelPath: path,
+                levelName: name,
+                resolvedAt: new Date().toISOString(),
+              })
+            : x,
+        );
+        await this.saveSubmissionsQueue('Admin: accept verification ' + (sub.player || ''));
+        await this.notifyDiscordStatus(
+          Object.assign({}, sub, { levelName: name, levelPath: path, listTarget: 'main' }),
+          'accepted',
+        );
+        if (this.placeForm) this.placeForm.open = false;
+        this.flash('Placed on Main List at #' + r + ' (no auto victor).');
+      },
+      async confirmPlaceAccept() {
+        const f = this.placeForm;
+        if (!f) return;
+        if (f.listTarget === 'platformer') {
+          return baseMethods.confirmPlaceAccept.call(this);
+        }
+        const sub = (this.submissions || []).find((x) => x.id === f.subId);
+        if (!sub) {
+          this.flash('Submission not found.', true);
+          return;
+        }
+        const name = String(f.name || '').trim();
+        if (!name) {
+          this.flash('Level name required.', true);
+          return;
+        }
+        if (!(f.verification || '').trim()) {
+          this.flash('Video required.', true);
+          return;
+        }
+        let rank = Number(f.rank) || 1;
+        if (rank < 1) rank = 1;
+        if (f.listTarget === 'server_hardest') {
+          await this.placeOnServerHardest(sub, f, name, rank);
+          return;
+        }
+        if (f.listTarget === 'impossible') {
+          await baseMethods.placeOnImpossible.call(this, sub, f, name, rank);
+          return;
+        }
+        await this.placeOnMain(sub, f, name, rank);
       },
       async placeOnServerHardest(sub, f, name, rank) {
         await baseMethods.placeOnServerHardest.call(this, sub, f, name, rank);
