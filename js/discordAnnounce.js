@@ -67,19 +67,73 @@ export function buildVars({
   };
 }
 
+/** Plain text webhook */
 export async function sendDiscordWebhook(url, content) {
   if (!url || !content) return { ok: false, error: 'Missing url or content' };
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: content.slice(0, 1900) }),
+      body: JSON.stringify({ content: String(content).slice(0, 1900) }),
     });
     if (res.ok || res.status === 204) return { ok: true };
     return { ok: false, error: 'HTTP ' + res.status };
   } catch (e) {
     return { ok: false, error: String(e.message || e) };
   }
+}
+
+/** Embed webhook (Accept / Reject notifications) */
+export async function sendDiscordEmbed(url, embed) {
+  if (!url || !embed) return { ok: false, error: 'Missing url or embed' };
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+    if (res.ok || res.status === 204) return { ok: true };
+    return { ok: false, error: 'HTTP ' + res.status };
+  } catch (e) {
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+/** Staff decision embed — short, natural wording */
+export function buildSubmissionStatusEmbed(entry, status) {
+  const accepted = status === 'accepted' || status === 'approved';
+  const title = accepted ? 'Submission accepted' : 'Submission rejected';
+  const color = accepted ? 0x3dbb45 : 0xed4245;
+  const listLabel =
+    entry.listTarget === 'impossible'
+      ? 'Impossible List'
+      : entry.listTarget === 'server_hardest'
+        ? 'Server Hardest'
+        : 'Main List';
+
+  const fields = [
+    { name: 'Player', value: String(entry.player || '—').slice(0, 200), inline: true },
+    { name: 'Discord', value: String(entry.discordUser || '—').slice(0, 200), inline: true },
+    { name: 'List', value: listLabel, inline: true },
+    {
+      name: 'Level',
+      value: String(entry.levelName || entry.levelPath || '—').slice(0, 200),
+      inline: false,
+    },
+  ];
+
+  const video = entry.link || entry.showcase || '';
+  if (video) {
+    fields.push({ name: 'Link', value: String(video).slice(0, 300), inline: false });
+  }
+
+  return {
+    title,
+    color,
+    fields,
+    footer: { text: 'Broken Team · Submissions' },
+    timestamp: new Date().toISOString(),
+  };
 }
 
 /** Compare previous level state vs new; return list of { type, ... } events */
