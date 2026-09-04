@@ -1,7 +1,7 @@
 [
     {
         "id": "sub_mtmaif2t_2fszkk",
-        "status": "pending",
+        "status": "rejected",
         "mode": "classic",
         "listTarget": "main",
         "player": "test",
@@ -21,7 +21,8 @@
         "creator": "test",
         "verifier": "test",
         "showcase": "",
-        "createdAt": "2026-09-04T01:43:29.237Z"
+        "createdAt": "2026-09-04T01:43:29.237Z",
+        "resolvedAt": "2026-09-04T01:44:08.260Z"
     },
     {
         "id": "sub_mtma2qtt_p5mh1w",
