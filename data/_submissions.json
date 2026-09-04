@@ -2,7 +2,7 @@
     {
         "id": "sub_mtmb1s5b_a1crq5",
         "createdAt": "2026-09-04T01:58:32.639Z",
-        "status": "pending",
+        "status": "rejected",
         "mode": "classic",
         "listTarget": "main",
         "player": "test",
@@ -21,7 +21,8 @@
         "length": "122s",
         "attempts": "3233",
         "rawFootage": "https://www.youtube.com/watch?v=oHg5SJYRHA0",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-04T01:59:18.639Z"
     },
     {
         "id": "sub_mtmaif2t_2fszkk",
