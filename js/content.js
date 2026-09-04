@@ -75,6 +75,15 @@ export async function fetchImpossible() {
     }
 }
 
+export async function fetchPlatformer() {
+    try {
+        return await loadLevelPaths('_platformer.json');
+    } catch (e) {
+        console.error('Failed to load platformer list.', e);
+        return [];
+    }
+}
+
 export async function fetchEditors() {
     try {
         return await fetchJson(`${dir}/_editors.json`);

@@ -67,7 +67,6 @@ export function buildVars({
   };
 }
 
-/** Plain text webhook */
 export async function sendDiscordWebhook(url, content) {
   if (!url || !content) return { ok: false, error: 'Missing url or content' };
   try {
@@ -83,7 +82,6 @@ export async function sendDiscordWebhook(url, content) {
   }
 }
 
-/** Embed webhook (Accept / Reject notifications) */
 export async function sendDiscordEmbed(url, embed) {
   if (!url || !embed) return { ok: false, error: 'Missing url or embed' };
   try {
@@ -99,17 +97,19 @@ export async function sendDiscordEmbed(url, embed) {
   }
 }
 
-/** Staff decision embed — short, natural wording */
+export function listTargetLabel(t) {
+  if (t === 'impossible') return 'Impossible List';
+  if (t === 'server_hardest') return 'Server Hardest';
+  if (t === 'platformer') return 'Platformer List';
+  return 'Main List';
+}
+
+/** Staff decision embed — includes which list */
 export function buildSubmissionStatusEmbed(entry, status) {
   const accepted = status === 'accepted' || status === 'approved';
   const title = accepted ? 'Submission accepted' : 'Submission rejected';
   const color = accepted ? 0x3dbb45 : 0xed4245;
-  const listLabel =
-    entry.listTarget === 'impossible'
-      ? 'Impossible List'
-      : entry.listTarget === 'server_hardest'
-        ? 'Server Hardest'
-        : 'Main List';
+  const listLabel = listTargetLabel(entry && entry.listTarget);
 
   const fields = [
     { name: 'Player', value: String(entry.player || '—').slice(0, 200), inline: true },
@@ -129,6 +129,9 @@ export function buildSubmissionStatusEmbed(entry, status) {
 
   return {
     title,
+    description: accepted
+      ? 'Accepted for **' + listLabel + '**.'
+      : 'Rejected for **' + listLabel + '**.',
     color,
     fields,
     footer: { text: 'Broken Team · Submissions' },
@@ -136,7 +139,6 @@ export function buildSubmissionStatusEmbed(entry, status) {
   };
 }
 
-/** Compare previous level state vs new; return list of { type, ... } events */
 export function diffLevelAnnouncements(prev, next) {
   const events = [];
   if (!next) return events;
@@ -181,7 +183,6 @@ export function diffLevelAnnouncements(prev, next) {
   return events;
 }
 
-/** Compare previous list order vs new; return move events for paths whose rank changed */
 export function diffListOrder(prevOrder, nextOrder) {
   const events = [];
   if (!Array.isArray(prevOrder) || !Array.isArray(nextOrder)) return events;
