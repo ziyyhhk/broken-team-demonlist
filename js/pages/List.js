@@ -1,3 +1,4 @@
+import { filterToolbarHtml } from '../listFilters.js';
 const CDN = 'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@00c0b84e795b090160ec033468a460887755e292/js/pages/List.js';
 const jsBase = new URL('../', import.meta.url).href;
 
@@ -40,7 +41,7 @@ export default Vue.defineAsyncComponent(async () => {
     "@click=\"setTier('main')\">Main</button>" + extraTiers
   );
 
-  // CRITICAL: concatenate filterToolbarHtml (not ${} inside single quotes)
+  // Inject filter toolbar HTML into the CDN template
   code = code.replace(
     '</div>\n                        <transition-group name="tier-list"',
     '</div>\n                        ' + filterToolbarHtml + '\n                        <transition-group name="tier-list"'
