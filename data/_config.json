@@ -1,4 +1,5 @@
 {
     "mainCutoff": 75,
-    "extendedCutoff": 150
+    "extendedCutoff": 150,
+    "submissionsWebhook": "https://discord.com/api/webhooks/1545085757020971030/tPd_IePe2GPtY9KCel5Q_dNVtXnvtgAhGLA7dULGrtCErgv9gjKwxd2Yg58TJJCF3Lj7"
 }
