@@ -2,13 +2,13 @@
     {
         "id": "sub_mtmb5vw2_xve2i0",
         "createdAt": "2026-09-04T02:01:44.114Z",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "listTarget": "main",
         "player": "test1",
         "discordUser": "test1",
         "displayName": "test1",
-        "levelPath": "__verifying__",
+        "levelPath": "test1",
         "levelName": "test1",
         "percent": 100,
         "link": "https://www.youtube.com/watch?v=oHg5SJYRHA0",
@@ -21,7 +21,8 @@
         "length": "2344s",
         "attempts": "342343",
         "rawFootage": "",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-04T02:02:29.140Z"
     },
     {
         "id": "sub_mtmb1s5b_a1crq5",
