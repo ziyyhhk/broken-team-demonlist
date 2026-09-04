@@ -6,9 +6,15 @@ export const DEFAULT_MESSAGES = {
   victor: 'Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}',
   verify: '# Congrats to {mention} for verifying `{level}` — it\'s at top **#{top}** wow.. you so pro dude... teach me... Anyways GGs myaw',
   move: '**{level}** moved from **#{old_rank}** to **#{rank}** on the list!',
+  acceptTitle: 'Submission accepted',
+  accept: 'Accepted for **{list}**.',
+  rejectTitle: 'Submission rejected',
+  reject: 'Rejected for **{list}**.',
   enabledVictor: true,
   enabledVerify: true,
   enabledMove: true,
+  enabledAccept: true,
+  enabledReject: true,
 };
 
 export function ordinal(n) {
@@ -104,34 +110,42 @@ export function listTargetLabel(t) {
   return 'Main List';
 }
 
-/** Staff decision embed — includes which list */
-export function buildSubmissionStatusEmbed(entry, status) {
+/** Staff decision embed — includes which list. Optional msgs overrides title/description templates. */
+export function buildSubmissionStatusEmbed(entry, status, msgs) {
   const accepted = status === 'accepted' || status === 'approved';
-  const title = accepted ? 'Submission accepted' : 'Submission rejected';
-  const color = accepted ? 0x3dbb45 : 0xed4245;
+  const m = Object.assign({}, DEFAULT_MESSAGES, msgs || {});
   const listLabel = listTargetLabel(entry && entry.listTarget);
+  const player = String((entry && entry.player) || '');
+  const level = String((entry && (entry.levelName || entry.levelPath)) || '');
+  const link = String((entry && (entry.link || entry.showcase)) || '');
+  const vars = {
+    player,
+    mention: player ? '**' + player + '**' : '',
+    level,
+    list: listLabel,
+    link,
+    link_line: link ? '\n' + link : '',
+    discord: String((entry && entry.discordUser) || ''),
+  };
+  const titleTpl = accepted ? (m.acceptTitle || 'Submission accepted') : (m.rejectTitle || 'Submission rejected');
+  const bodyTpl = accepted ? (m.accept || DEFAULT_MESSAGES.accept) : (m.reject || DEFAULT_MESSAGES.reject);
+  const title = formatMessage(titleTpl, vars) || (accepted ? 'Submission accepted' : 'Submission rejected');
+  const description = formatMessage(bodyTpl, vars);
+  const color = accepted ? 0x3dbb45 : 0xed4245;
 
   const fields = [
-    { name: 'Player', value: String(entry.player || '—').slice(0, 200), inline: true },
-    { name: 'Discord', value: String(entry.discordUser || '—').slice(0, 200), inline: true },
+    { name: 'Player', value: (player || '—').slice(0, 200), inline: true },
+    { name: 'Discord', value: String((entry && entry.discordUser) || '—').slice(0, 200), inline: true },
     { name: 'List', value: listLabel, inline: true },
-    {
-      name: 'Level',
-      value: String(entry.levelName || entry.levelPath || '—').slice(0, 200),
-      inline: false,
-    },
+    { name: 'Level', value: (level || '—').slice(0, 200), inline: false },
   ];
-
-  const video = entry.link || entry.showcase || '';
-  if (video) {
-    fields.push({ name: 'Link', value: String(video).slice(0, 300), inline: false });
+  if (link) {
+    fields.push({ name: 'Link', value: link.slice(0, 300), inline: false });
   }
 
   return {
-    title,
-    description: accepted
-      ? 'Accepted for **' + listLabel + '**.'
-      : 'Rejected for **' + listLabel + '**.',
+    title: title.slice(0, 250),
+    description: (description || '').slice(0, 2000),
     color,
     fields,
     footer: { text: 'Broken Team · Submissions' },
@@ -149,33 +163,28 @@ export function diffLevelAnnouncements(prev, next) {
     events.push({
       type: 'verify',
       player: nextVerifier,
-      level: next.name || '',
+      level: next.name,
       link: next.verification || '',
+      rank: null,
+      top: null,
     });
   }
 
-  const prevRecords = (prev && prev.records) || [];
-  const nextRecords = next.records || [];
-
-  const prevClears = new Set(
-    prevRecords
-      .filter((r) => r && r.user && Number(r.percent) === 100)
-      .map((r) => String(r.user).trim().toLowerCase()),
-  );
-
-  let clearIndex = 0;
-  nextRecords.forEach((r) => {
-    if (!r || !r.user || Number(r.percent) !== 100) return;
-    clearIndex += 1;
-    const key = String(r.user).trim().toLowerCase();
-    if (!prevClears.has(key)) {
+  const prevRecs = (prev && prev.records) || [];
+  const nextRecs = next.records || [];
+  const prevUsers = new Set(prevRecs.map((r) => String(r.user || '').toLowerCase()));
+  nextRecs.forEach((r) => {
+    const u = String(r.user || '').toLowerCase();
+    if (!u || prevUsers.has(u)) return;
+    const pct = Number(r.percent);
+    if (pct >= 100) {
       events.push({
         type: 'victor',
-        player: String(r.user).trim(),
-        level: next.name || '',
-        rank: clearIndex,
-        percent: 100,
+        player: r.user,
+        level: next.name,
         link: r.link || '',
+        rank: nextRecs.filter((x) => Number(x.percent) >= 100).length,
+        percent: 100,
       });
     }
   });
@@ -184,31 +193,23 @@ export function diffLevelAnnouncements(prev, next) {
 }
 
 export function diffListOrder(prevOrder, nextOrder) {
+  if (!Array.isArray(prevOrder) || !Array.isArray(nextOrder)) return [];
   const events = [];
-  if (!Array.isArray(prevOrder) || !Array.isArray(nextOrder)) return events;
-
-  const prevIdx = new Map();
+  const prevIdx = {};
   prevOrder.forEach((p, i) => {
-    if (p) prevIdx.set(p, i);
+    prevIdx[p] = i;
   });
-
-  nextOrder.forEach((path, i) => {
-    if (!path || !prevIdx.has(path)) return;
-    const oldI = prevIdx.get(path);
-    if (oldI === i) return;
-    events.push({
-      type: 'move',
-      path,
-      rank: i + 1,
-      old_rank: oldI + 1,
-      direction: i < oldI ? 'up' : 'down',
-    });
+  nextOrder.forEach((p, i) => {
+    if (prevIdx[p] == null) return;
+    if (prevIdx[p] !== i) {
+      events.push({
+        type: 'move',
+        path: p,
+        old_rank: prevIdx[p] + 1,
+        rank: i + 1,
+        direction: i < prevIdx[p] ? 'up' : 'down',
+      });
+    }
   });
-
-  events.sort(
-    (a, b) =>
-      Math.abs(b.old_rank - b.rank) - Math.abs(a.old_rank - a.rank) ||
-      a.rank - b.rank,
-  );
   return events;
 }
