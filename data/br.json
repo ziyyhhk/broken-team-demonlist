@@ -1,0 +1,23 @@
+{
+    "id": 1234,
+    "name": "br",
+    "author": "br",
+    "creators": [
+        "br"
+    ],
+    "verifier": "br",
+    "verification": "br",
+    "thumbnail": "",
+    "percentToQualify": 100,
+    "password": "Free to Copy",
+    "length": "23s",
+    "creationDate": "9/4/2026",
+    "tags": [],
+    "records": [
+        {
+            "user": "br",
+            "percent": 100,
+            "link": "br"
+        }
+    ]
+}
