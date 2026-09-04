@@ -2,13 +2,13 @@
     {
         "id": "sub_mtmj1c8b_r8st4z",
         "createdAt": "2026-09-04T05:42:08.939Z",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "listTarget": "main",
         "player": "br",
         "discordUser": "br",
         "displayName": "br",
-        "levelPath": "__verifying__",
+        "levelPath": "br",
         "levelName": "br",
         "percent": 100,
         "link": "br",
@@ -21,7 +21,8 @@
         "length": "23s",
         "attempts": "234342",
         "rawFootage": "",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-04T05:44:14.116Z"
     },
     {
         "id": "sub_mtmbkhvt_xjo0pi",
