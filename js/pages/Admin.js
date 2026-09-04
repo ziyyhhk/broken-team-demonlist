@@ -1,7 +1,14 @@
 /**
- * Admin — pin previous working Admin, then patch Discord ID UI + no auto-victor on verify.
+ * Admin — pin previous working Admin, then patch Discord ID UI + webhooks.
+ * Submission channel: pending + reject only on submissionsWebhook.
+ * Accept embeds go to acceptWebhook. No verify/victor "congrats" from submission flow.
  */
 import Spinner from '../components/Spinner.js';
+import {
+  WEBHOOK_KEY,
+  sendDiscordEmbed,
+  buildSubmissionStatusEmbed,
+} from '../discordAnnounce.js';
 
 const CDN =
   'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@112577ff84d9f657d4839b86d77f27c0c4cc363b/js/pages/Admin.js';
@@ -58,7 +65,7 @@ function patchComp(Comp) {
     template,
     data() {
       const d = typeof baseData === 'function' ? baseData.call(this) : Object.assign({}, baseData || {});
-      return Object.assign({}, d, { discordIdDraft: {} });
+      return Object.assign({}, d, { discordIdDraft: {}, acceptWebhook: '' });
     },
     computed: Comp.computed,
     methods: Object.assign({}, baseMethods, {
@@ -80,6 +87,70 @@ function patchComp(Comp) {
         const draft = (this.discordIdDraft || {})[s.id];
         if (draft) return draft;
         return this.linkedDiscordId(s.player);
+      },
+      /** Submission queue webhook (pending + reject). */
+      async getSubmissionsWebhook() {
+        let w = (this.discordWebhook || '').trim();
+        if (!w && typeof localStorage !== 'undefined') {
+          try {
+            w = localStorage.getItem(WEBHOOK_KEY) || '';
+          } catch (e) {}
+        }
+        try {
+          const res = await fetch('./data/_config.json?t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const cfg = await res.json();
+            if (cfg && cfg.submissionsWebhook) w = String(cfg.submissionsWebhook).trim();
+          }
+        } catch (e) {}
+        return (w || '').trim();
+      },
+      /** Accept-only webhook. */
+      async getAcceptWebhook() {
+        let w = (this.acceptWebhook || '').trim();
+        try {
+          const res = await fetch('./data/_config.json?t=' + Date.now(), { cache: 'no-store' });
+          if (res.ok) {
+            const cfg = await res.json();
+            if (cfg && cfg.acceptWebhook) w = String(cfg.acceptWebhook).trim();
+            else if (cfg && cfg.submissionsWebhook) w = String(cfg.submissionsWebhook).trim();
+          }
+        } catch (e) {}
+        if (!w) w = await this.getSubmissionsWebhook();
+        return (w || '').trim();
+      },
+      async getWebhookUrl() {
+        return this.getSubmissionsWebhook();
+      },
+      /** Only accept / reject embeds — never verify/victor congrats. */
+      async sendListAnnounce() {
+        return;
+      },
+      async notifyDiscordStatus(entry, status) {
+        if (!entry) return;
+        const accepted = status === 'accepted' || status === 'approved';
+        const msgs = this.discordMessages || {};
+        if (accepted && msgs.enabledAccept === false) return;
+        if (!accepted && msgs.enabledReject === false) return;
+
+        const webhook = accepted
+          ? await this.getAcceptWebhook()
+          : await this.getSubmissionsWebhook();
+        if (!webhook) {
+          this.flash('No Discord webhook configured for ' + (accepted ? 'accept' : 'reject') + '.', true);
+          return;
+        }
+        try {
+          const result = await sendDiscordEmbed(
+            webhook,
+            buildSubmissionStatusEmbed(entry, status, msgs),
+          );
+          if (result && result.ok === false) {
+            this.flash('Discord notify failed: ' + (result.error || 'unknown'), true);
+          }
+        } catch (e) {
+          this.flash('Discord notify error: ' + (e && e.message ? e.message : e), true);
+        }
       },
       async placeOnMain(sub, f, name, rank) {
         await baseMethods.placeOnMain.call(this, sub, f, name, rank);
@@ -153,6 +224,13 @@ function patchComp(Comp) {
     }),
     async mounted() {
       if (typeof Comp.mounted === 'function') await Comp.mounted.call(this);
+      try {
+        const res = await fetch('./data/_config.json?t=' + Date.now(), { cache: 'no-store' });
+        if (res.ok) {
+          const cfg = await res.json();
+          if (cfg && cfg.acceptWebhook) this.acceptWebhook = String(cfg.acceptWebhook).trim();
+        }
+      } catch (e) {}
     },
   };
 }

@@ -1,5 +1,6 @@
 {
     "mainCutoff": 75,
     "extendedCutoff": 150,
-    "submissionsWebhook": "https://discord.com/api/webhooks/1545085757020971030/tPd_IePe2GPtY9KCel5Q_dNVtXnvtgAhGLA7dULGrtCErgv9gjKwxd2Yg58TJJCF3Lj7"
+    "submissionsWebhook": "https://discord.com/api/webhooks/1545085757020971030/tPd_IePe2GPtY9KCel5Q_dNVtXnvtgAhGLA7dULGrtCErgv9gjKwxd2Yg58TJJCF3Lj7",
+    "acceptWebhook": "https://discord.com/api/webhooks/1545085301050052638/LXLw6fOfmoF7BXM0a3D9o_ZOr0m3Niu56cf5jekCkGq_MxaeQZqDwLQXh2ORCz3VzTBo"
 }
