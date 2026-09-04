@@ -145,10 +145,10 @@ export default Vue.defineAsyncComponent(async () => {
     'if (this.list.length === 0) {\n            this.errors = [];\n            this.selected = -1;\n        } else {'
   );
 
-  // Friendlier empty detail panel
+  // Empty detail panel — no symbol
   code = code.replace(
     '<div v-else class="empty">\n                            <span>(ノಠ益ಠ)ノ彡┻━┻</span>\n                            <p>This level could not be loaded.</p>\n                        </div>',
-    '<div v-else class="empty">\n                            <span>∅</span>\n                            <p v-if="!filtered.length">No levels in this list yet.</p>\n                            <p v-else>This level could not be loaded.</p>\n                        </div>'
+    '<div v-else class="empty">\n                            <p v-if="!filtered.length">No levels in this list yet.</p>\n                            <p v-else>This level could not be loaded.</p>\n                        </div>'
   );
 
   code = code.split(
