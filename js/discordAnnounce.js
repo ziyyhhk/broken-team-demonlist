@@ -110,7 +110,66 @@ export function listTargetLabel(t) {
   return 'Main List';
 }
 
-/** Staff decision embed — includes which list. Optional msgs overrides title/description templates. */
+function field(name, value, inline) {
+  const v = String(value == null || value === '' ? '—' : value).slice(0, 1020);
+  return { name: name, value: v, inline: !!inline };
+}
+
+function linkField(name, url) {
+  const u = String(url || '').trim();
+  if (!u) return null;
+  const safe = u.slice(0, 300);
+  return { name: name, value: '[Open video](' + safe + ')', inline: false };
+}
+
+/** Pending submission notify — compact embed for staff queue */
+export function buildNewSubmissionEmbed(entry) {
+  const e = entry || {};
+  const listLabel = listTargetLabel(e.listTarget);
+  const verifying = e.levelPath === '__verifying__' || e.mode === 'verifying';
+  const levelName = String(e.levelName || e.levelPath || '—');
+  const levelLine = verifying ? levelName + ' · verifying' : levelName;
+  const discord =
+    String(e.discordUser || '') + (e.displayName ? ' (' + e.displayName + ')' : '');
+  const video = e.link || e.showcase || '';
+
+  const fields = [
+    field('Player', e.player, true),
+    field('Discord', discord || '—', true),
+    field('List', listLabel, true),
+    field('Level', levelLine, true),
+  ];
+
+  if (e.creator) fields.push(field('Creator', e.creator, true));
+  if (e.verifier) fields.push(field('Verifier', e.verifier, true));
+
+  const isImp = e.listTarget === 'impossible';
+  if (!isImp && e.percent != null && e.percent !== '') {
+    fields.push(field('Percent', e.percent + '%', true));
+  }
+  if (!isImp && e.device) fields.push(field('Device', e.device, true));
+  if (!isImp && e.modMenu) fields.push(field('Mod menu', e.modMenu, true));
+  if (e.length) fields.push(field('Length', e.length, true));
+  if (e.attempts) fields.push(field('Attempts', e.attempts, true));
+  if (e.customId) fields.push(field('Level ID', e.customId, true));
+
+  const vid = linkField(isImp ? 'Showcase' : 'Video', video);
+  if (vid) fields.push(vid);
+  const raw = linkField('Raw footage', e.rawFootage);
+  if (raw) fields.push(raw);
+  if (e.notes) fields.push(field('Notes', e.notes, false));
+
+  return {
+    title: 'New submission',
+    description: 'Pending review · **' + listLabel + '**',
+    color: 0xf0b232,
+    fields: fields.slice(0, 25),
+    footer: { text: 'ID ' + String(e.id || '').slice(0, 40) + ' · pending' },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/** Staff decision embed — optional msgs for title/body templates */
 export function buildSubmissionStatusEmbed(entry, status, msgs) {
   const accepted = status === 'accepted' || status === 'approved';
   const m = Object.assign({}, DEFAULT_MESSAGES, msgs || {});
@@ -127,28 +186,30 @@ export function buildSubmissionStatusEmbed(entry, status, msgs) {
     link_line: link ? '\n' + link : '',
     discord: String((entry && entry.discordUser) || ''),
   };
-  const titleTpl = accepted ? (m.acceptTitle || 'Submission accepted') : (m.rejectTitle || 'Submission rejected');
-  const bodyTpl = accepted ? (m.accept || DEFAULT_MESSAGES.accept) : (m.reject || DEFAULT_MESSAGES.reject);
+  const titleTpl = accepted
+    ? m.acceptTitle || 'Submission accepted'
+    : m.rejectTitle || 'Submission rejected';
+  const bodyTpl = accepted ? m.accept || DEFAULT_MESSAGES.accept : m.reject || DEFAULT_MESSAGES.reject;
   const title = formatMessage(titleTpl, vars) || (accepted ? 'Submission accepted' : 'Submission rejected');
-  const description = formatMessage(bodyTpl, vars);
-  const color = accepted ? 0x3dbb45 : 0xed4245;
+  let description = formatMessage(bodyTpl, vars);
 
   const fields = [
-    { name: 'Player', value: (player || '—').slice(0, 200), inline: true },
-    { name: 'Discord', value: String((entry && entry.discordUser) || '—').slice(0, 200), inline: true },
-    { name: 'List', value: listLabel, inline: true },
-    { name: 'Level', value: (level || '—').slice(0, 200), inline: false },
+    field('Player', player, true),
+    field('List', listLabel, true),
+    field('Level', level, true),
   ];
-  if (link) {
-    fields.push({ name: 'Link', value: link.slice(0, 300), inline: false });
+  if (entry && entry.discordUser) {
+    fields.splice(1, 0, field('Discord', entry.discordUser, true));
   }
+  const vid = linkField('Video', link);
+  if (vid) fields.push(vid);
 
   return {
-    title: title.slice(0, 250),
-    description: (description || '').slice(0, 2000),
-    color,
-    fields,
-    footer: { text: 'Broken Team · Submissions' },
+    title: String(title).slice(0, 250),
+    description: String(description || '').slice(0, 2000),
+    color: accepted ? 0x3dbb45 : 0xed4245,
+    fields: fields.slice(0, 25),
+    footer: { text: accepted ? 'Accepted' : 'Rejected' },
     timestamp: new Date().toISOString(),
   };
 }
