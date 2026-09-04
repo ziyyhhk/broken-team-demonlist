@@ -82,6 +82,26 @@ function injectPlatformer(BaseComp) {
     template = template.replace(serverNeedle, platPanel + serverNeedle);
   }
 
+  // Editable accept / reject Discord messages (Player ID → Announcement messages)
+  const moveTa =
+    '<textarea class="admin-ta" rows="2" v-model="discordMessages.move" style="width:100%;font-family:monospace;font-size:0.85rem;margin-bottom:0.5rem"></textarea>';
+  const subMsgUi =
+    moveTa +
+    '\n<label style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;margin-top:0.75rem"><input type="checkbox" v-model="discordMessages.enabledAccept" /> Submission accepted message</label>' +
+    '\n<label style="font-size:0.8rem;opacity:0.8">Title</label>' +
+    '\n<input class="admin-input" v-model="discordMessages.acceptTitle" placeholder="Submission accepted" style="width:100%;margin-bottom:0.35rem;font-family:monospace;font-size:0.85rem" />' +
+    '\n<label style="font-size:0.8rem;opacity:0.8">Body</label>' +
+    '\n<textarea class="admin-ta" rows="2" v-model="discordMessages.accept" style="width:100%;font-family:monospace;font-size:0.85rem;margin-bottom:0.5rem"></textarea>' +
+    '\n<label style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem"><input type="checkbox" v-model="discordMessages.enabledReject" /> Submission rejected message</label>' +
+    '\n<label style="font-size:0.8rem;opacity:0.8">Title</label>' +
+    '\n<input class="admin-input" v-model="discordMessages.rejectTitle" placeholder="Submission rejected" style="width:100%;margin-bottom:0.35rem;font-family:monospace;font-size:0.85rem" />' +
+    '\n<label style="font-size:0.8rem;opacity:0.8">Body</label>' +
+    '\n<textarea class="admin-ta" rows="2" v-model="discordMessages.reject" style="width:100%;font-family:monospace;font-size:0.85rem;margin-bottom:0.5rem"></textarea>' +
+    '\n<p class="admin-hint">Accept/reject placeholders: {player} {mention} {level} {list} {link} {link_line} {discord}</p>';
+  if (template.includes(moveTa) && !template.includes('discordMessages.acceptTitle')) {
+    template = template.replace(moveTa, subMsgUi);
+  }
+
   return {
     name: 'Admin',
     components: Object.assign({ Spinner }, BaseComp.components || {}),
@@ -101,6 +121,29 @@ function injectPlatformer(BaseComp) {
     }),
     methods: Object.assign({}, baseMethods, {
       listLabel,
+      async saveDiscordMessages() {
+        const d = this.discordMessages || {};
+        const payload = {
+          victor: d.victor || '',
+          verify: d.verify || '',
+          move: d.move || '',
+          acceptTitle: d.acceptTitle || 'Submission accepted',
+          accept: d.accept || 'Accepted for **{list}**.',
+          rejectTitle: d.rejectTitle || 'Submission rejected',
+          reject: d.reject || 'Rejected for **{list}**.',
+          enabledVictor: !!d.enabledVictor,
+          enabledVerify: !!d.enabledVerify,
+          enabledMove: d.enabledMove !== false,
+          enabledAccept: d.enabledAccept !== false,
+          enabledReject: d.enabledReject !== false,
+        };
+        this.discordMessages = Object.assign({}, d, payload);
+        await this.pushFile(
+          'data/_discord_messages.json',
+          JSON.stringify(payload, null, 4),
+          'Admin: Discord message templates',
+        );
+      },
       async getWebhookUrl() {
         let w = (this.discordWebhook || '').trim();
         if (!w && typeof localStorage !== 'undefined') {
@@ -125,8 +168,15 @@ function injectPlatformer(BaseComp) {
           return;
         }
         if (!entry) return;
+        const accepted = status === 'accepted' || status === 'approved';
+        const msgs = this.discordMessages || {};
+        if (accepted && msgs.enabledAccept === false) return;
+        if (!accepted && msgs.enabledReject === false) return;
         try {
-          const result = await sendDiscordEmbed(webhook, buildSubmissionStatusEmbed(entry, status));
+          const result = await sendDiscordEmbed(
+            webhook,
+            buildSubmissionStatusEmbed(entry, status, msgs),
+          );
           if (result && result.ok === false) {
             this.flash('Discord notify failed: ' + (result.error || 'unknown'), true);
           }
@@ -312,6 +362,17 @@ function injectPlatformer(BaseComp) {
       }
       try {
         await this.loadPlatformerOrder();
+      } catch (e) {}
+      try {
+        const d = this.discordMessages || {};
+        if (d.acceptTitle == null) this.discordMessages = Object.assign({}, d, {
+          acceptTitle: d.acceptTitle || 'Submission accepted',
+          accept: d.accept || 'Accepted for **{list}**.',
+          rejectTitle: d.rejectTitle || 'Submission rejected',
+          reject: d.reject || 'Rejected for **{list}**.',
+          enabledAccept: d.enabledAccept !== false,
+          enabledReject: d.enabledReject !== false,
+        });
       } catch (e) {}
     },
   };
