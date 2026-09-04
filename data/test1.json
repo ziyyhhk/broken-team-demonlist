@@ -1,0 +1,23 @@
+{
+    "id": 233423,
+    "name": "test1",
+    "author": "test1",
+    "creators": [
+        "test1"
+    ],
+    "verifier": "test1",
+    "verification": "https://www.youtube.com/watch?v=oHg5SJYRHA0",
+    "thumbnail": "",
+    "percentToQualify": 100,
+    "password": "Free to Copy",
+    "length": "2344s",
+    "creationDate": "9/4/2026",
+    "tags": [],
+    "records": [
+        {
+            "user": "test1",
+            "percent": 100,
+            "link": "https://www.youtube.com/watch?v=oHg5SJYRHA0"
+        }
+    ]
+}
