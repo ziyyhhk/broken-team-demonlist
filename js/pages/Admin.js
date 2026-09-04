@@ -2,7 +2,16 @@
  * Admin panel — load last known good Admin from pinned commit, then add Platformer List.
  */
 import Spinner from '../components/Spinner.js';
-import { WEBHOOK_KEY, sendDiscordEmbed, buildSubmissionStatusEmbed } from '../discordAnnounce.js';
+import {
+  WEBHOOK_KEY,
+  sendDiscordEmbed,
+  buildSubmissionStatusEmbed,
+  sendDiscordWebhook,
+  formatMessage,
+  buildVars,
+  resolveDiscordId,
+  DEFAULT_MESSAGES,
+} from '../discordAnnounce.js';
 
 const url =
   'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@a21cd1e624b6eda140b1018346af282b7ca1b80e/js/pages/Admin.js';
@@ -102,6 +111,17 @@ function injectPlatformer(BaseComp) {
     template = template.replace(moveTa, subMsgUi);
   }
 
+  // Discord ID on place/accept form for @mentions
+  const verNeedle =
+    '<label>Verifier <input class="admin-input" v-model="placeForm.verifier" /></label>';
+  if (template.includes(verNeedle) && !template.includes('placeForm.discordId')) {
+    template = template.replace(
+      verNeedle,
+      verNeedle +
+        '\n<label>Discord user ID (for @mention) <input class="admin-input" v-model="placeForm.discordId" placeholder="Right-click user → Copy User ID" /></label>',
+    );
+  }
+
   return {
     name: 'Admin',
     components: Object.assign({ Spinner }, BaseComp.components || {}),
@@ -121,6 +141,84 @@ function injectPlatformer(BaseComp) {
     }),
     methods: Object.assign({}, baseMethods, {
       listLabel,
+      async savePlayerDiscordId(playerName, discordId) {
+        const name = String(playerName || '').trim();
+        const id = String(discordId || '').replace(/\D/g, '');
+        if (!name || !id) return;
+        try {
+          await this.ensureDiscordData();
+        } catch (e) {}
+        const next = Object.assign({}, this.playerDiscord || {});
+        next[name] = id;
+        this.playerDiscord = next;
+        try {
+          await this.pushFile(
+            'data/_player_discord.json',
+            JSON.stringify(next, null, 4),
+            'Admin: link Discord ID for ' + name,
+          );
+        } catch (e) {}
+      },
+      async sendListAnnounce(type, opts) {
+        const msgs = this.discordMessages || {};
+        if (type === 'victor' && msgs.enabledVictor === false) return;
+        if (type === 'verify' && msgs.enabledVerify === false) return;
+        const webhook = await this.getWebhookUrl();
+        if (!webhook) return;
+        const tpl =
+          type === 'verify'
+            ? msgs.verify || DEFAULT_MESSAGES.verify
+            : msgs.victor || DEFAULT_MESSAGES.victor;
+        const content = formatMessage(
+          tpl,
+          buildVars({
+            player: opts.player,
+            discordId: opts.discordId || resolveDiscordId(this.playerDiscord, opts.player),
+            level: opts.level,
+            rank: opts.rank,
+            top: opts.top != null ? opts.top : opts.rank,
+            list_rank: opts.top != null ? opts.top : opts.rank,
+            percent: opts.percent != null ? opts.percent : 100,
+            link: opts.link || '',
+          }),
+        );
+        if (!content) return;
+        try {
+          const r = await sendDiscordWebhook(webhook, content);
+          if (r && r.ok) {
+            this.flash(
+              type === 'verify'
+                ? 'Discord: verification announcement sent.'
+                : 'Discord: victor announcement sent.',
+            );
+          }
+        } catch (e) {}
+      },
+      openPlaceForm(s) {
+        const name = (s.levelName || '').trim() || 'New Level';
+        const t = s.listTarget || 'main';
+        let discordId = '';
+        try {
+          discordId = resolveDiscordId(this.playerDiscord, s.player) || '';
+        } catch (e) {}
+        this.placeForm = {
+          open: true,
+          subId: s.id,
+          listTarget: t,
+          name,
+          path: slugifyPath(name),
+          id: s.customId || '',
+          author: s.creator || s.player || '',
+          verifier: s.verifier || s.player || '',
+          verification: s.link || s.showcase || '',
+          length: s.length || '',
+          password: 'Free to Copy',
+          percentToQualify: 100,
+          rank: 1,
+          discordId: discordId,
+          _pathTouched: false,
+        };
+      },
       async saveDiscordMessages() {
         const d = this.discordMessages || {};
         const payload = {
@@ -331,6 +429,16 @@ function injectPlatformer(BaseComp) {
         );
         await this.saveSubmissionsQueue('Admin: accept platformer ' + sub.player);
         await this.notifyDiscordStatus(Object.assign({}, sub, { levelName: name, levelPath: path, listTarget: 'platformer' }), 'accepted');
+        const dId = String((f && f.discordId) || '').replace(/\D/g, '');
+        if (dId) await this.savePlayerDiscordId(sub.player, dId);
+        await this.sendListAnnounce('verify', {
+          player: sub.player,
+          level: name,
+          rank: rank,
+          top: rank,
+          link: f.verification || sub.link || '',
+          discordId: dId,
+        });
         this.placeForm.open = false;
         this.flash('Placed on Platformer List at #' + rank + '.');
       },
@@ -347,7 +455,58 @@ function injectPlatformer(BaseComp) {
           await this.placeOnPlatformer(sub, f, name, rank);
           return;
         }
-        return baseMethods.confirmPlaceAccept.call(this);
+        const sub = (this.submissions || []).find((x) => x.id === f.subId);
+        const name = String((f && f.name) || '').trim();
+        const rank = Number(f && f.rank) || 1;
+        await baseMethods.confirmPlaceAccept.call(this);
+        if (sub && name) {
+          const dId = String((f && f.discordId) || '').replace(/\D/g, '');
+          if (dId) await this.savePlayerDiscordId(sub.player, dId);
+          await this.sendListAnnounce('verify', {
+            player: (f && f.verifier) || sub.player,
+            level: name,
+            rank: rank,
+            top: rank,
+            link: (f && f.verification) || sub.link || '',
+            discordId: dId,
+          });
+        }
+      },
+      async acceptRecordOnLevel(s, path) {
+        let discordId = '';
+        try {
+          discordId = resolveDiscordId(this.playerDiscord, s.player) || '';
+        } catch (e) {}
+        if (!discordId) {
+          const input = window.prompt(
+            'Discord user ID for @mention (optional).\nDeveloper Mode → right-click user → Copy User ID.\nLeave blank to skip mention.',
+            '',
+          );
+          if (input) discordId = String(input).replace(/\D/g, '');
+        }
+        await baseMethods.acceptRecordOnLevel.call(this, s, path);
+        if (discordId) await this.savePlayerDiscordId(s.player, discordId);
+        const levelName =
+          (s && s.levelName) ||
+          path ||
+          '';
+        let rank = null;
+        try {
+          const pair = (this.list || []).find((p) => p && p[0] && p[0].path === path);
+          if (pair && pair[0] && Array.isArray(pair[0].records)) {
+            const victors = pair[0].records.filter((r) => Number(r.percent) >= 100);
+            rank = victors.length;
+          }
+        } catch (e) {}
+        await this.sendListAnnounce('victor', {
+          player: s.player,
+          level: levelName,
+          rank: rank,
+          top: rank,
+          percent: Number(s.percent) || 100,
+          link: s.link || '',
+          discordId: discordId,
+        });
       },
       acceptButtonLabel(s) {
         const t = (s && s.listTarget) || 'main';
