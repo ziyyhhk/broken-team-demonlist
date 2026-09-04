@@ -1,5 +1,5 @@
 /**
- * Admin panel = last good core (CDN) + Submissions tab + verification accept GUI.
+ * Admin panel = last good core (CDN) + Submissions tab + list-aware accept (main / impossible / server hardest).
  */
 import Spinner from '../components/Spinner.js';
 import { WEBHOOK_KEY, sendDiscordEmbed, buildSubmissionStatusEmbed } from '../discordAnnounce.js';
@@ -15,6 +15,12 @@ function statusLabel(status) {
   if (s === 'approved' || s === 'accepted') return 'accepted';
   if (s === 'rejected') return 'rejected';
   return 'pending';
+}
+
+function listLabel(t) {
+  if (t === 'impossible') return 'Impossible List';
+  if (t === 'server_hardest') return 'Server Hardest';
+  return 'Main List';
 }
 
 function slugifyPath(name) {
@@ -54,7 +60,7 @@ function injectExtras(BaseComp) {
   const panel =
     '<div v-if="tab===\'submissions\' && (canLevels || canList)" class="admin-panel admin-panel--wide">' +
     '<h2>Submissions</h2>' +
-    '<p class="admin-hint">Accept verification submissions opens a form to create the level. Accept/Reject posts an embed to Discord.</p>' +
+    '<p class="admin-hint">Accept sends the entry to <strong>Main</strong>, <strong>Impossible</strong>, or <strong>Server Hardest</strong> based on the submission. You choose the rank (top 1, 2, …).</p>' +
     '<div class="admin-actions" style="margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem">' +
     '<button type="button" class="auth-btn" @click="showAddSub=!showAddSub">{{ showAddSub ? \'Hide\' : \'+ Log submission\' }}</button>' +
     '<button type="button" class="auth-btn auth-btn--ghost" @click="loadSubmissions">Reload</button>' +
@@ -66,24 +72,24 @@ function injectExtras(BaseComp) {
     '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'rejected\'">rejected</button>' +
     '<button type="button" class="auth-btn auth-btn--ghost" @click="subFilter=\'all\'">all</button>' +
     '</div>' +
-    '<div class="admin-edit-card" v-if="verifyForm.open" style="margin-bottom:1rem;border:1px solid var(--color-primary)">' +
-    '<h3 style="margin:0 0 0.5rem">Accept verification — create level</h3>' +
-    '<p class="admin-hint">Fill the level details, then create & accept.</p>' +
+    '<div class="admin-edit-card" v-if="placeForm.open" style="margin-bottom:1rem;border:1px solid var(--color-primary)">' +
+    '<h3 style="margin:0 0 0.5rem">Accept → {{ listLabel(placeForm.listTarget) }}</h3>' +
+    '<p class="admin-hint">Set rank 1 = top of that list. Fill the fields, then confirm.</p>' +
     '<div class="admin-grid">' +
-    '<label>Level name * <input class="admin-input" v-model="verifyForm.name" @input="onVerifyNameInput" /></label>' +
-    '<label>File path * <input class="admin-input" v-model="verifyForm.path" placeholder="NoSpacesPath" /></label>' +
-    '<label>GD level ID <input class="admin-input" type="number" v-model.number="verifyForm.id" /></label>' +
-    '<label>Author <input class="admin-input" v-model="verifyForm.author" /></label>' +
-    '<label>Verifier <input class="admin-input" v-model="verifyForm.verifier" /></label>' +
-    '<label>Length <input class="admin-input" v-model="verifyForm.length" placeholder="e.g. 1:12 or 40s" /></label>' +
-    '<label class="admin-grid--full">Verification video * <input class="admin-input" v-model="verifyForm.verification" /></label>' +
-    '<label>Password <input class="admin-input" v-model="verifyForm.password" /></label>' +
-    '<label>% to qualify <input class="admin-input" type="number" min="1" max="100" v-model.number="verifyForm.percentToQualify" /></label>' +
-    '<label>List position <input class="admin-input" type="number" min="1" v-model.number="verifyForm.rank" placeholder="1 = top" /></label>' +
+    '<label>Level name * <input class="admin-input" v-model="placeForm.name" @input="onPlaceNameInput" /></label>' +
+    '<label v-if="placeForm.listTarget!==\'server_hardest\'">File path * <input class="admin-input" v-model="placeForm.path" placeholder="NoSpacesPath" /></label>' +
+    '<label>List rank * <input class="admin-input" type="number" min="1" v-model.number="placeForm.rank" placeholder="1 = top" /></label>' +
+    '<label>GD level ID <input class="admin-input" v-model="placeForm.id" /></label>' +
+    '<label>Creator / author <input class="admin-input" v-model="placeForm.author" /></label>' +
+    '<label>Verifier <input class="admin-input" v-model="placeForm.verifier" /></label>' +
+    '<label>Length <input class="admin-input" v-model="placeForm.length" placeholder="e.g. 1:12" /></label>' +
+    '<label class="admin-grid--full">Video / showcase * <input class="admin-input" v-model="placeForm.verification" /></label>' +
+    '<label v-if="placeForm.listTarget===\'main\'">Password <input class="admin-input" v-model="placeForm.password" /></label>' +
+    '<label v-if="placeForm.listTarget===\'main\'">% to qualify <input class="admin-input" type="number" min="1" max="100" v-model.number="placeForm.percentToQualify" /></label>' +
     '</div>' +
     '<div class="admin-actions" style="margin-top:0.75rem">' +
-    '<button type="button" class="auth-btn" :disabled="saving" @click="confirmVerifyAccept">Create level & Accept</button>' +
-    '<button type="button" class="auth-btn auth-btn--ghost" @click="verifyForm.open=false">Cancel</button>' +
+    '<button type="button" class="auth-btn" :disabled="saving" @click="confirmPlaceAccept">Place on list & Accept</button>' +
+    '<button type="button" class="auth-btn auth-btn--ghost" @click="placeForm.open=false">Cancel</button>' +
     '</div>' +
     '</div>' +
     '<div class="admin-edit-card" v-if="showAddSub" style="margin-bottom:1rem">' +
@@ -91,6 +97,7 @@ function injectExtras(BaseComp) {
     '<div class="admin-grid">' +
     '<label>Player * <input class="admin-input" v-model="newSub.player" /></label>' +
     '<label>Discord <input class="admin-input" v-model="newSub.discordUser" /></label>' +
+    '<label>List <select class="admin-input" v-model="newSub.listTarget"><option value="main">Main List</option><option value="server_hardest">Server Hardest</option><option value="impossible">Impossible List</option></select></label>' +
     '<label>Level path <select class="admin-input" v-model="newSub.levelPath"><option value="">—</option><option value="__verifying__">Verifying</option><option v-for="p in listOrder" :key="\'sp-\'+p" :value="p">{{ p }}</option></select></label>' +
     '<label>Level name <input class="admin-input" v-model="newSub.levelName" /></label>' +
     '<label>Percent <input class="admin-input" type="number" min="1" max="100" v-model.number="newSub.percent" /></label>' +
@@ -109,22 +116,23 @@ function injectExtras(BaseComp) {
     '<div class="admin-sub-card__head">' +
     '<strong>{{ s.player }}</strong>' +
     '<span class="admin-role-tag">{{ statusLabel(s.status) }}</span>' +
+    '<span class="admin-role-tag">{{ listLabel(s.listTarget) }}</span>' +
     '<span class="admin-muted" v-if="s.discordUser">@{{ s.discordUser }}</span>' +
     '<span class="admin-muted">{{ s.createdAt ? new Date(s.createdAt).toLocaleString() : \'\' }}</span>' +
     '</div>' +
     '<div class="admin-sub-card__meta">' +
     '<div><strong>Level</strong>{{ s.levelName || s.levelPath || \'—\' }}</div>' +
+    '<div><strong>Creator</strong>{{ s.creator || \'—\' }}</div>' +
+    '<div><strong>Verifier</strong>{{ s.verifier || \'—\' }}</div>' +
     '<div><strong>%</strong>{{ s.percent != null ? s.percent : 100 }}</div>' +
     '<div><strong>Device</strong>{{ s.device || \'—\' }}</div>' +
-    '<div><strong>Mod</strong>{{ s.modMenu || \'—\' }}</div>' +
-    '<div><strong>Attempts</strong>{{ s.attempts || \'—\' }}</div>' +
     '<div><strong>Length</strong>{{ s.length || \'—\' }}</div>' +
     '</div>' +
-    '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.link"><strong>Video:</strong> <a :href="safeLink(s.link)" target="_blank" rel="noopener">{{ s.link }}</a></div>' +
+    '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.link || s.showcase"><strong>Link:</strong> <a :href="safeLink(s.link || s.showcase)" target="_blank" rel="noopener">{{ s.link || s.showcase }}</a></div>' +
     '<div style="font-size:0.85rem;margin-bottom:0.25rem" v-if="s.rawFootage"><strong>Raw:</strong> <a :href="safeLink(s.rawFootage)" target="_blank" rel="noopener">{{ s.rawFootage }}</a></div>' +
     '<div style="font-size:0.85rem;color:var(--color-muted)" v-if="s.notes"><strong>Notes:</strong> {{ s.notes }}</div>' +
     '<div class="admin-sub-actions" v-if="statusLabel(s.status)===\'pending\'">' +
-    '<button type="button" class="auth-btn" :disabled="saving" @click="approveSub(s)">{{ isVerifying(s) ? \'Accept verification…\' : \'Accept → add record\' }}</button>' +
+    '<button type="button" class="auth-btn" :disabled="saving" @click="approveSub(s)">{{ acceptButtonLabel(s) }}</button>' +
     '<button type="button" class="auth-btn auth-btn--ghost" :disabled="saving" @click="rejectSub(s)">Reject</button>' +
     '</div>' +
     '</li>' +
@@ -153,12 +161,13 @@ function injectExtras(BaseComp) {
         submissions: [],
         subFilter: 'pending',
         showAddSub: false,
-        verifyForm: {
+        placeForm: {
           open: false,
           subId: '',
+          listTarget: 'main',
           name: '',
           path: '',
-          id: 0,
+          id: '',
           author: '',
           verifier: '',
           verification: '',
@@ -166,9 +175,11 @@ function injectExtras(BaseComp) {
           password: 'Free to Copy',
           percentToQualify: 100,
           rank: 1,
+          _pathTouched: false,
         },
         newSub: {
           player: '',
+          listTarget: 'main',
           levelPath: '',
           levelName: '',
           percent: 100,
@@ -202,8 +213,16 @@ function injectExtras(BaseComp) {
     }),
     methods: Object.assign({}, baseMethods, {
       statusLabel,
+      listLabel,
       isVerifying(s) {
         return !s || !s.levelPath || s.levelPath === '__verifying__';
+      },
+      acceptButtonLabel(s) {
+        const t = (s && s.listTarget) || 'main';
+        if (t === 'impossible') return 'Accept → Impossible…';
+        if (t === 'server_hardest') return 'Accept → Server Hardest…';
+        if (this.isVerifying(s)) return 'Accept verification…';
+        return 'Accept → add record';
       },
       safeLink(url) {
         const u = String(url || '').trim();
@@ -235,9 +254,9 @@ function injectExtras(BaseComp) {
           await sendDiscordEmbed(webhook, buildSubmissionStatusEmbed(entry, status));
         } catch (e) {}
       },
-      onVerifyNameInput() {
-        if (!this.verifyForm._pathTouched) {
-          this.verifyForm.path = slugifyPath(this.verifyForm.name);
+      onPlaceNameInput() {
+        if (!this.placeForm._pathTouched && this.placeForm.listTarget !== 'server_hardest') {
+          this.placeForm.path = slugifyPath(this.placeForm.name);
         }
       },
       async openSubmissions() {
@@ -286,6 +305,7 @@ function injectExtras(BaseComp) {
           id: 'sub_manual_' + Date.now().toString(36),
           status: 'pending',
           mode: 'classic',
+          listTarget: n.listTarget || 'main',
           player: n.player.trim(),
           discordUser: (n.discordUser || '').trim(),
           displayName: (n.displayName || '').trim(),
@@ -323,57 +343,221 @@ function injectExtras(BaseComp) {
         await this.notifyDiscordStatus(s, 'rejected');
         this.flash('Rejected — Discord notified.');
       },
+      openPlaceForm(s) {
+        const name = (s.levelName || '').trim() || 'New Level';
+        const t = s.listTarget || 'main';
+        this.placeForm = {
+          open: true,
+          subId: s.id,
+          listTarget: t,
+          name,
+          path: slugifyPath(name),
+          id: s.customId || '',
+          author: s.creator || s.player || '',
+          verifier: s.verifier || s.player || '',
+          verification: s.link || s.showcase || '',
+          length: s.length || '',
+          password: 'Free to Copy',
+          percentToQualify: 100,
+          rank: 1,
+          _pathTouched: false,
+        };
+      },
       async approveSub(s) {
         if (!s || !s.id) return;
+        const t = s.listTarget || 'main';
+        if (t === 'impossible' || t === 'server_hardest') {
+          this.openPlaceForm(s);
+          return;
+        }
         if (this.isVerifying(s)) {
-          const name = (s.levelName || '').trim() || 'New Level';
-          this.verifyForm = {
-            open: true,
-            subId: s.id,
-            name,
-            path: slugifyPath(name),
-            id: Number(s.customId) || 0,
-            author: s.creator || s.player || '',
-            verifier: s.verifier || s.player || '',
-            verification: s.link || s.showcase || '',
-            length: s.length || '',
-            password: 'Free to Copy',
-            percentToQualify: 100,
-            rank: 1,
-            _pathTouched: false,
-          };
+          this.openPlaceForm(s);
           return;
         }
         await this.acceptRecordOnLevel(s, s.levelPath);
       },
-      async confirmVerifyAccept() {
-        const f = this.verifyForm;
-        const path = String(f.path || '').replace(/[^a-zA-Z0-9_-]/g, '');
+      async confirmPlaceAccept() {
+        const f = this.placeForm;
+        const sub = (this.submissions || []).find((x) => x.id === f.subId);
+        if (!sub) {
+          this.flash('Submission not found.', true);
+          return;
+        }
         const name = String(f.name || '').trim();
         if (!name) {
           this.flash('Level name required.', true);
           return;
         }
-        if (!path) {
-          this.flash('File path required (letters/numbers only).', true);
-          return;
-        }
         if (!(f.verification || '').trim()) {
-          this.flash('Verification video required.', true);
+          this.flash('Video / showcase required.', true);
           return;
         }
-        const sub = (this.submissions || []).find((x) => x.id === f.subId);
-        if (!sub) {
-          this.flash('Submission not found.', true);
+        let rank = Number(f.rank) || 1;
+        if (rank < 1) rank = 1;
+
+        if (f.listTarget === 'server_hardest') {
+          await this.placeOnServerHardest(sub, f, name, rank);
+          return;
+        }
+        if (f.listTarget === 'impossible') {
+          await this.placeOnImpossible(sub, f, name, rank);
+          return;
+        }
+        await this.placeOnMain(sub, f, name, rank);
+      },
+      async placeOnServerHardest(sub, f, name, rank) {
+        let list = [];
+        try {
+          const res = await fetch('./data/_server_hardest.json?t=' + Date.now(), {
+            cache: 'no-store',
+          });
+          if (res.ok) {
+            const data = await res.json();
+            list = Array.isArray(data) ? data : [];
+          }
+        } catch (e) {}
+
+        const entry = {
+          id: String(f.id || sub.customId || ''),
+          name,
+          author: (f.author || sub.creator || sub.player || '').trim() || 'Unknown',
+          victor: String(sub.player || '').trim(),
+          verifier: (f.verifier || sub.verifier || sub.player || '').trim() || 'Unknown',
+          verifierVideo: String(f.verification || '').trim(),
+          verification: String(f.verification || '').trim(),
+          thumbnail: '',
+          length: (f.length || sub.length || '').trim(),
+          note: '',
+          tags: [],
+          records: [
+            {
+              user: String(sub.player || '').trim(),
+              link: sub.link || f.verification || '',
+              attempts: sub.attempts || null,
+              date: '',
+            },
+          ],
+        };
+
+        if (rank > list.length + 1) rank = list.length + 1;
+        list.splice(rank - 1, 0, entry);
+
+        if (
+          !(await this.pushFile(
+            'data/_server_hardest.json',
+            JSON.stringify(list, null, 4),
+            'Admin: place ' + name + ' on Server Hardest #' + rank,
+          ))
+        )
+          return;
+
+        this.submissions = (this.submissions || []).map((x) =>
+          x.id === sub.id
+            ? Object.assign({}, x, {
+                status: 'accepted',
+                levelName: name,
+                resolvedAt: new Date().toISOString(),
+              })
+            : x,
+        );
+        await this.saveSubmissionsQueue('Admin: accept SH ' + sub.player);
+        await this.notifyDiscordStatus(
+          Object.assign({}, sub, { levelName: name, listTarget: 'server_hardest' }),
+          'accepted',
+        );
+        this.placeForm.open = false;
+        this.flash('Placed on Server Hardest at #' + rank + '.');
+      },
+      async placeOnImpossible(sub, f, name, rank) {
+        const path = String(f.path || '').replace(/[^a-zA-Z0-9_-]/g, '');
+        if (!path) {
+          this.flash('File path required.', true);
           return;
         }
 
         const levelPayload = {
           id: Number(f.id) || 0,
           name,
-          author: (f.author || sub.player || '').trim() || 'Unknown',
-          creators: [(f.author || sub.player || '').trim() || 'Unknown'],
-          verifier: (f.verifier || sub.player || '').trim() || 'Unknown',
+          author: (f.author || sub.creator || sub.player || '').trim() || 'Unknown',
+          creators: [(f.author || sub.creator || sub.player || '').trim() || 'Unknown'],
+          verifier: (f.verifier || sub.verifier || sub.player || '').trim() || 'Unknown',
+          verification: String(f.verification || '').trim(),
+          thumbnail: '',
+          percentToQualify: 100,
+          password: 'Free to Copy',
+          length: (f.length || sub.length || '').trim(),
+          creationDate: new Date().toLocaleDateString('en-US'),
+          tags: ['Impossible'],
+          records: [],
+        };
+
+        if (
+          !(await this.pushFile(
+            'data/' + path + '.json',
+            JSON.stringify(levelPayload, null, 4),
+            'Admin: create impossible level ' + path,
+          ))
+        )
+          return;
+
+        let order = [];
+        try {
+          const res = await fetch('./data/_impossible.json?t=' + Date.now(), {
+            cache: 'no-store',
+          });
+          if (res.ok) {
+            const data = await res.json();
+            order = Array.isArray(data) ? data.slice() : [];
+          }
+        } catch (e) {}
+        order = order.filter((p) => p !== path);
+        if (rank > order.length + 1) rank = order.length + 1;
+        order.splice(rank - 1, 0, path);
+
+        if (
+          !(await this.pushFile(
+            'data/_impossible.json',
+            JSON.stringify(order, null, 4),
+            'Admin: place ' + path + ' on Impossible #' + rank,
+          ))
+        )
+          return;
+
+        this.submissions = (this.submissions || []).map((x) =>
+          x.id === sub.id
+            ? Object.assign({}, x, {
+                status: 'accepted',
+                levelPath: path,
+                levelName: name,
+                resolvedAt: new Date().toISOString(),
+              })
+            : x,
+        );
+        await this.saveSubmissionsQueue('Admin: accept impossible ' + sub.player);
+        await this.notifyDiscordStatus(
+          Object.assign({}, sub, {
+            levelName: name,
+            levelPath: path,
+            listTarget: 'impossible',
+          }),
+          'accepted',
+        );
+        this.placeForm.open = false;
+        this.flash('Placed on Impossible List at #' + rank + '.');
+      },
+      async placeOnMain(sub, f, name, rank) {
+        const path = String(f.path || '').replace(/[^a-zA-Z0-9_-]/g, '');
+        if (!path) {
+          this.flash('File path required.', true);
+          return;
+        }
+
+        const levelPayload = {
+          id: Number(f.id) || 0,
+          name,
+          author: (f.author || sub.creator || sub.player || '').trim() || 'Unknown',
+          creators: [(f.author || sub.creator || sub.player || '').trim() || 'Unknown'],
+          verifier: (f.verifier || sub.verifier || sub.player || '').trim() || 'Unknown',
           verification: String(f.verification || '').trim(),
           thumbnail: '',
           percentToQualify: Number(f.percentToQualify) || 100,
@@ -401,8 +585,6 @@ function injectExtras(BaseComp) {
 
         let order = (this.listOrder || []).slice();
         order = order.filter((p) => p !== path);
-        let rank = Number(f.rank) || 1;
-        if (rank < 1) rank = 1;
         if (rank > order.length + 1) rank = order.length + 1;
         order.splice(rank - 1, 0, path);
         this.listOrder = order;
@@ -434,11 +616,11 @@ function injectExtras(BaseComp) {
         );
         await this.saveSubmissionsQueue('Admin: accept verification ' + sub.player);
         await this.notifyDiscordStatus(
-          Object.assign({}, sub, { levelName: name, levelPath: path }),
+          Object.assign({}, sub, { levelName: name, levelPath: path, listTarget: 'main' }),
           'accepted',
         );
-        this.verifyForm.open = false;
-        this.flash('Level created and verification accepted for ' + sub.player + '.');
+        this.placeForm.open = false;
+        this.flash('Placed on Main List at #' + rank + '.');
       },
       async acceptRecordOnLevel(s, path) {
         let pair = (this.list || []).find((p) => p[0] && p[0].path === path);
