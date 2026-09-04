@@ -41,7 +41,6 @@ export default Vue.defineAsyncComponent(async () => {
     "@click=\"setTier('main')\">Main</button>" + extraTiers
   );
 
-  // Inject filter toolbar HTML into the CDN template
   code = code.replace(
     '</div>\n                        <transition-group name="tier-list"',
     '</div>\n                        ' + filterToolbarHtml + '\n                        <transition-group name="tier-list"'
@@ -138,6 +137,18 @@ export default Vue.defineAsyncComponent(async () => {
   code = code.replace(
     'this.list = (await fetchList()) ?? [];\n        this.editors = await fetchEditors();',
     'this.list = (await fetchList()) ?? [];\n        this.impossibleList = (await fetchImpossible()) ?? [];\n        this.platformerList = (await fetchPlatformer()) ?? [];\n        this.editors = await fetchEditors();'
+  );
+
+  // Empty list is intentional after reset — not an error
+  code = code.replace(
+    'if (this.list.length === 0) {\n            this.errors = ["Failed to load list. Retry in a few minutes or notify list staff."];\n        } else {',
+    'if (this.list.length === 0) {\n            this.errors = [];\n            this.selected = -1;\n        } else {'
+  );
+
+  // Friendlier empty detail panel
+  code = code.replace(
+    '<div v-else class="empty">\n                            <span>(ノಠ益ಠ)ノ彡┻━┻</span>\n                            <p>This level could not be loaded.</p>\n                        </div>',
+    '<div v-else class="empty">\n                            <span>∅</span>\n                            <p v-if="!filtered.length">No levels in this list yet.</p>\n                            <p v-else>This level could not be loaded.</p>\n                        </div>'
   );
 
   code = code.split(
