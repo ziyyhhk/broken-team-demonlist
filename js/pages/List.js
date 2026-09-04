@@ -11,7 +11,6 @@ export default Vue.defineAsyncComponent(async () => {
     return a + new URL('./', import.meta.url).href + p + c;
   });
 
-  // Import filters + fetchImpossible + fetchPlatformer
   code = code.replace(
     "import { fetchEditors, fetchList, fetchConfig } from",
     "import { fetchEditors, fetchList, fetchConfig, fetchImpossible, fetchPlatformer } from"
@@ -21,11 +20,31 @@ export default Vue.defineAsyncComponent(async () => {
     "import { filterDataExtras, filterMethods, applyFiltersAndSort, filterToolbarHtml } from '" + jsBase + "listFilters.js';\nimport LevelAuthors from"
   );
 
-  // Impossible + Platformer tier buttons
+  // Keep Extended/Legacy in the source but hide those buttons; add Impossible + Platformer
+  // First strip Extended + Legacy buttons from the toolbar
+  code = code.replace(
+    /\s*<button type=\"button\" class=\"list-tier\" :class=\"\{ active: tier === 'extended' \}\" @click=\"setTier\('extended'\)\"[^>]*>Extended<\/button>/g,
+    ''
+  );
+  code = code.replace(
+    /\s*<button type=\"button\" class=\"list-tier\" :class=\"\{ active: tier === 'legacy' \}\" @click=\"setTier\('legacy'\)\"[^>]*>Legacy<\/button>/g,
+    ''
+  );
+  // Also catch simpler patterns without extra attrs
+  code = code.replace(
+    /\s*<button[^>]*setTier\('extended'\)[^>]*>Extended<\/button>/g,
+    ''
+  );
+  code = code.replace(
+    /\s*<button[^>]*setTier\('legacy'\)[^>]*>Legacy<\/button>/g,
+    ''
+  );
+
+  // Append Impossible + Platformer after Main
   code = code.split(
-    "@click=\"setTier('legacy')\">Legacy</button>"
+    "@click=\"setTier('main')\">Main</button>"
   ).join(
-    "@click=\"setTier('legacy')\">Legacy</button>\n                                <button type=\"button\" class=\"list-tier\" :class=\"{ active: tier === 'impossible' }\" @click=\"setTier('impossible')\">Impossible</button>\n                                <button type=\"button\" class=\"list-tier\" :class=\"{ active: tier === 'platformer' }\" @click=\"setTier('platformer')\">Platformer</button>"
+    "@click=\"setTier('main')\">Main</button>\n                                <button type=\"button\" class=\"list-tier\" :class=\"{ active: tier === 'impossible' }\" @click=\"setTier('impossible')\">Impossible</button>\n                                <button type=\"button\" class=\"list-tier\" :class=\"{ active: tier === 'platformer' }\" @click=\"setTier('platformer')\">Platformer</button>"
   );
 
   code = code.replace(
@@ -43,10 +62,11 @@ export default Vue.defineAsyncComponent(async () => {
     'query: "",\n        ...filterDataExtras(),\n        impossibleList: [],\n        platformerList: [],\n        tier: "main",'
   );
 
-  // Filtered: Impossible + Platformer + main/extended/legacy
+  // Main tab shows the full list (extended/legacy ranks still exist in data, just no separate buttons)
   code = code.replace(
     "filtered() {\n            const query = this.query.trim().toLowerCase();\n            const MAIN = this.MAIN_CUTOFF;\n            const EXT = this.EXTENDED_CUTOFF;\n            return this.list\n                .map(([level, err], index) => ({ level, err, index }))\n                .filter(({ level, err, index }) => {\n                    const rank = index + 1;\n                    let inTier = true;\n                    if (this.tier === \"main\") inTier = rank <= MAIN;\n                    else if (this.tier === \"extended\") inTier = rank > MAIN && rank <= EXT;\n                    else if (this.tier === \"legacy\") inTier = rank > EXT;\n                    if (!inTier) return false;\n                    if (query === \"\") return true;\n                    return (level?.name ?? err ?? \"\").toLowerCase().includes(query);\n                });\n        },",
-    "filtered() {\n            if (this.tier === 'impossible') {\n                const rows = (this.impossibleList || []).map(([level, err], index) => ({ level, err, index, impossible: true }));\n                return applyFiltersAndSort(rows, this.query, this.filterTags, this.sortKey);\n            }\n            if (this.tier === 'platformer') {\n                const rows = (this.platformerList || []).map(([level, err], index) => ({ level, err, index, platformer: true }));\n                return applyFiltersAndSort(rows, this.query, this.filterTags, this.sortKey);\n            }\n            const MAIN = this.MAIN_CUTOFF, EXT = this.EXTENDED_CUTOFF;\n            const rows = this.list.map(([level, err], index) => ({ level, err, index, impossible: false })).filter(({ index }) => {\n                const rank = index + 1;\n                if (this.tier === 'main') return rank <= MAIN;\n                if (this.tier === 'extended') return rank > MAIN && rank <= EXT;\n                return rank > EXT;\n            });\n            return applyFiltersAndSort(rows, this.query, this.filterTags, this.sortKey);\n        },"
+    "filtered() {\n            if (this.tier === 'impossible') {\n                const rows = (this.impossibleList || []).map(([level, err], index) => ({ level, err, index, impossible: true }));\n                return applyFiltersAndSort(rows, this.query, this.filterTags, this.sortKey);\n            }\n            if (this.tier === 'platformer') {\n                const rows = (this.platformerList || []).map(([level, err], index) => ({ level, err, index, platformer: true }));\n                return applyFiltersAndSort(rows, this.query, this.filterTags, this.sortKey);\n            }\n            // Main (and any leftover extended/legacy tier value): show full ordered list
+            const rows = this.list.map(([level, err], index) => ({ level, err, index, impossible: false }));\n            return applyFiltersAndSort(rows, this.query, this.filterTags, this.sortKey);\n        },"
   );
 
   code = code.replace(
@@ -55,7 +75,7 @@ export default Vue.defineAsyncComponent(async () => {
   );
   code = code.replace(
     "rankLabel() {\n            const r = this.selected + 1;\n            if (r <= this.MAIN_CUTOFF) return \"Main · Rank #\" + r;\n            if (r <= this.EXTENDED_CUTOFF) return \"Extended · Rank #\" + r;\n            return \"Legacy\";\n        },",
-    "rankLabel() {\n            if (this.tier === 'impossible') return 'Impossible · #' + (this.selected + 1);\n            if (this.tier === 'platformer') return 'Platformer · #' + (this.selected + 1);\n            const r = this.selected + 1;\n            if (r <= this.MAIN_CUTOFF) return 'Main · Rank #' + r;\n            if (r <= this.EXTENDED_CUTOFF) return 'Extended · Rank #' + r;\n            return 'Legacy';\n        },"
+    "rankLabel() {\n            if (this.tier === 'impossible') return 'Impossible · #' + (this.selected + 1);\n            if (this.tier === 'platformer') return 'Platformer · #' + (this.selected + 1);\n            const r = this.selected + 1;\n            if (r <= this.MAIN_CUTOFF) return 'Main · Rank #' + r;\n            if (r <= this.EXTENDED_CUTOFF) return 'Extended · Rank #' + r;\n            return 'Legacy · Rank #' + r;\n        },"
   );
 
   code = code.replace(
@@ -113,7 +133,7 @@ export default Vue.defineAsyncComponent(async () => {
   code = code.split(
     'These are people who <strong>beat</strong> the level after verification (victors).'
   ).join(
-    '<template v-if="tier === \'impossible\'">Progress and world records only — no victors on Impossible. A <strong>100%</strong> clear moves the level to the Main list.</template><template v-else-if="tier === \'platformer\'">Platformer list records.</template><template v-else>These are people who <strong>beat</strong> the level after verification (victors).</template>'
+    '<template v-if="tier === \'impossible\'">Progress and world records only — no victors on Impossible.</template><template v-else-if="tier === \'platformer\'">Platformer list records.</template><template v-else>These are people who <strong>beat</strong> the level after verification (victors).</template>'
   );
 
   code = code.split(
@@ -141,7 +161,7 @@ export default Vue.defineAsyncComponent(async () => {
   code = code.split(
     '<p v-if="index + 1 <= EXTENDED_CUTOFF" class="type-label-lg">#{{ index + 1 }}</p>\n                                    <p v-else class="type-label-lg legacy-tag">LEGACY</p>'
   ).join(
-    '<p v-if="tier === \'impossible\' || tier === \'platformer\'" class="type-label-lg">#{{ index + 1 }}</p>\n                                    <p v-else-if="index + 1 <= EXTENDED_CUTOFF" class="type-label-lg">#{{ index + 1 }}</p>\n                                    <p v-else class="type-label-lg legacy-tag">LEGACY</p>'
+    '<p v-if="tier === \'impossible\' || tier === \'platformer\'" class="type-label-lg">#{{ index + 1 }}</p>\n                                    <p v-else class="type-label-lg">#{{ index + 1 }}</p>'
   );
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));

@@ -18,3 +18,27 @@
     width: 100%;
     table-layout: fixed;
 }
+
+/* Tier tabs: wrap fully, never clip Platformer */
+.list-tiers,
+.tier-tabs,
+.list-toolbar .list-tiers,
+.list-container .list-tiers {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+    align-items: center;
+    overflow: visible !important;
+    max-width: 100%;
+}
+.list-tier {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+}
+.list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: visible !important;
+}
