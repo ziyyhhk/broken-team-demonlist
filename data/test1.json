@@ -13,16 +13,5 @@
     "length": "2344s",
     "creationDate": "9/4/2026",
     "tags": [],
-    "records": [
-        {
-            "user": "test1",
-            "percent": 100,
-            "link": "https://www.youtube.com/watch?v=oHg5SJYRHA0"
-        },
-        {
-            "user": "test",
-            "percent": 100,
-            "link": "test"
-        }
-    ]
+    "records": []
 }

@@ -13,11 +13,5 @@
     "length": "34s",
     "creationDate": "9/4/2026",
     "tags": [],
-    "records": [
-        {
-            "user": "test",
-            "percent": 100,
-            "link": "test"
-        }
-    ]
+    "records": []
 }
