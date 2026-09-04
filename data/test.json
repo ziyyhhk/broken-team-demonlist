@@ -1,0 +1,23 @@
+{
+    "id": 0,
+    "name": "test",
+    "author": "test",
+    "creators": [
+        "test"
+    ],
+    "verifier": "testt",
+    "verification": "test",
+    "thumbnail": "",
+    "percentToQualify": 100,
+    "password": "Free to Copy",
+    "length": "34s",
+    "creationDate": "9/4/2026",
+    "tags": [],
+    "records": [
+        {
+            "user": "test",
+            "percent": 100,
+            "link": "test"
+        }
+    ]
+}
