@@ -169,47 +169,166 @@ export function buildNewSubmissionEmbed(entry) {
   };
 }
 
-/** Staff decision embed — optional msgs for title/body templates */
+/** Staff decision embed — richer accept info (list, top, move, kind). */
 export function buildSubmissionStatusEmbed(entry, status, msgs) {
   const accepted = status === 'accepted' || status === 'approved';
   const m = Object.assign({}, DEFAULT_MESSAGES, msgs || {});
-  const listLabel = listTargetLabel(entry && entry.listTarget);
-  const player = String((entry && entry.player) || '');
-  const level = String((entry && (entry.levelName || entry.levelPath)) || '');
-  const link = String((entry && (entry.link || entry.showcase)) || '');
+  const e = entry || {};
+  const listLabel = listTargetLabel(e.listTarget);
+  const player = String(e.player || '');
+  const level = String(e.levelName || e.levelPath || '');
+  const link = String(e.link || e.showcase || '');
+  const rank = e._rank != null ? Number(e._rank) : e.rank != null ? Number(e.rank) : null;
+  const oldRank = e._oldRank != null ? Number(e._oldRank) : null;
+  const kind = e._kind || e.kind || '';
+  const removed = e._removed || e.removed || '';
+  const discordId = String(e._discordId || '').replace(/\D/g, '');
+  const mention = discordId ? '<@' + discordId + '>' : player ? '**' + player + '**' : '';
+
   const vars = {
     player,
-    mention: player ? '**' + player + '**' : '',
+    mention,
     level,
     list: listLabel,
     link,
     link_line: link ? '\n' + link : '',
-    discord: String((entry && entry.discordUser) || ''),
+    discord: String(e.discordUser || ''),
+    rank: rank != null && !isNaN(rank) ? String(rank) : '',
+    top: rank != null && !isNaN(rank) ? String(rank) : '',
+    ordinal: rank != null && !isNaN(rank) ? ordinal(rank) : '',
+    old_rank: oldRank != null && !isNaN(oldRank) ? String(oldRank) : '',
   };
-  const titleTpl = accepted
-    ? m.acceptTitle || 'Submission accepted'
-    : m.rejectTitle || 'Submission rejected';
-  const bodyTpl = accepted ? m.accept || DEFAULT_MESSAGES.accept : m.reject || DEFAULT_MESSAGES.reject;
-  const title = formatMessage(titleTpl, vars) || (accepted ? 'Submission accepted' : 'Submission rejected');
-  let description = formatMessage(bodyTpl, vars);
+
+  let title;
+  let description;
+  let color;
+  let footer;
+
+  if (!accepted) {
+    title = formatMessage(m.rejectTitle || 'Submission rejected', vars) || 'Submission rejected';
+    description = formatMessage(m.reject || DEFAULT_MESSAGES.reject, vars);
+    color = 0xed4245;
+    footer = 'Rejected';
+  } else if (kind === 'verify') {
+    title = 'Level verified';
+    description =
+      (mention ? mention + ' verified **' + level + '**' : '**' + level + '** was verified') +
+      ' — placed on **' +
+      listLabel +
+      '**' +
+      (rank != null && !isNaN(rank) ? ' at **#' + rank + '**' : '') +
+      '.';
+    color = 0x5865f2;
+    footer = listLabel + (rank != null ? ' · #' + rank : '');
+  } else if (kind === 'victor') {
+    title = 'New victor';
+    description =
+      (mention ? 'Congrats ' + mention : 'Congrats **' + player + '**') +
+      ' for beating **' +
+      level +
+      '** on **' +
+      listLabel +
+      '**' +
+      (rank != null && !isNaN(rank) ? ' — **' + ordinal(rank) + '** victor' : '') +
+      '!';
+    color = 0x3dbb45;
+    footer = listLabel + (rank != null ? ' · victor #' + rank : '');
+  } else if (kind === 'move') {
+    title = 'List move';
+    description =
+      '**' +
+      level +
+      '** moved on **' +
+      listLabel +
+      '** from **#' +
+      (oldRank != null ? oldRank : '?') +
+      '** → **#' +
+      (rank != null ? rank : '?') +
+      '**.';
+    color = 0xfaa61a;
+    footer = listLabel;
+  } else if (kind === 'remove') {
+    title = 'Removed from list';
+    description =
+      '**' +
+      (removed || level) +
+      '** was removed from **' +
+      listLabel +
+      '**.';
+    color = 0xed4245;
+    footer = listLabel;
+  } else {
+    title = formatMessage(m.acceptTitle || 'Submission accepted', vars) || 'Submission accepted';
+    description =
+      formatMessage(m.accept || DEFAULT_MESSAGES.accept, vars) ||
+      ('Accepted on **' + listLabel + '**' + (rank != null ? ' at **#' + rank + '**' : ''));
+    color = 0x3dbb45;
+    footer = 'Accepted · ' + listLabel;
+  }
 
   const fields = [
-    field('Player', player, true),
+    field('Player', player || '—', true),
     field('List', listLabel, true),
-    field('Level', level, true),
+    field('Level', level || '—', true),
   ];
-  if (entry && entry.discordUser) {
-    fields.splice(1, 0, field('Discord', entry.discordUser, true));
+  if (e.discordUser) fields.splice(1, 0, field('Discord', e.discordUser, true));
+  if (rank != null && !isNaN(rank)) fields.push(field('Placement', '#' + rank, true));
+  if (oldRank != null && !isNaN(oldRank) && rank != null) {
+    fields.push(field('Moved', '#' + oldRank + ' → #' + rank, true));
   }
+  if (kind === 'verify' && e.verifier) fields.push(field('Verifier', e.verifier, true));
+  if (kind === 'verify' && (e.creator || e.author)) {
+    fields.push(field('Creator', e.creator || e.author, true));
+  }
+  if (removed) fields.push(field('Removed', removed, false));
   const vid = linkField('Video', link);
   if (vid) fields.push(vid);
 
   return {
     title: String(title).slice(0, 250),
     description: String(description || '').slice(0, 2000),
-    color: accepted ? 0x3dbb45 : 0xed4245,
+    color,
     fields: fields.slice(0, 25),
-    footer: { text: accepted ? 'Accepted' : 'Rejected' },
+    footer: { text: String(footer).slice(0, 200) },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/** Congrats embed after accept — uses victor/verify message templates as body. */
+export function buildCongratsEmbed(entry, kind, msgs) {
+  const e = entry || {};
+  const m = Object.assign({}, DEFAULT_MESSAGES, msgs || {});
+  const listLabel = listTargetLabel(e.listTarget);
+  const player = String(e.player || '');
+  const level = String(e.levelName || e.levelPath || '');
+  const rank = e._rank != null ? Number(e._rank) : null;
+  const discordId = String(e._discordId || '').replace(/\D/g, '');
+  const vars = {
+    player,
+    mention: discordId ? '<@' + discordId + '>' : player ? '**' + player + '**' : '',
+    level,
+    list: listLabel,
+    link: String(e.link || e.showcase || ''),
+    link_line: e.link || e.showcase ? '\n' + (e.link || e.showcase) : '',
+    rank: rank != null ? String(rank) : '',
+    top: rank != null ? String(rank) : '',
+    ordinal: rank != null ? ordinal(rank) : '',
+    old_rank: '',
+  };
+  const isVerify = kind === 'verify';
+  const tpl = isVerify ? m.verify || DEFAULT_MESSAGES.verify : m.victor || DEFAULT_MESSAGES.victor;
+  const body = formatMessage(tpl, vars);
+  const color = isVerify ? 0x5865f2 : 0x57f287;
+  return {
+    title: isVerify ? 'Verified · ' + listLabel : 'Victor · ' + listLabel,
+    description: (body || '').slice(0, 2000),
+    color,
+    fields: [
+      field('Level', level || '—', true),
+      field('List', listLabel, true),
+      rank != null ? field('Top', '#' + rank, true) : field('Top', '—', true),
+    ].filter(Boolean),
+    footer: { text: 'Broken Team' },
     timestamp: new Date().toISOString(),
   };
 }
