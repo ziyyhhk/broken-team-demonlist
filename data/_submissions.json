@@ -2,13 +2,13 @@
     {
         "id": "sub_mto1q93z_0fatpo",
         "createdAt": "2026-09-05T07:13:10.559Z",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "listTarget": "main",
         "player": "akiraanevr",
         "discordUser": "AKIRA",
         "displayName": "akira",
-        "levelPath": "__verifying__",
+        "levelPath": "poopoo",
         "levelName": "poopoo",
         "percent": 100,
         "link": "https://youtube.com",
@@ -21,6 +21,7 @@
         "length": "34s",
         "attempts": "345",
         "rawFootage": "https://youtube.com",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-05T07:15:21.667Z"
     }
 ]
