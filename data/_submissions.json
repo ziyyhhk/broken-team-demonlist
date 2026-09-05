@@ -1,1 +1,26 @@
-[]
+[
+    {
+        "id": "sub_mto1q93z_0fatpo",
+        "createdAt": "2026-09-05T07:13:10.559Z",
+        "status": "pending",
+        "mode": "classic",
+        "listTarget": "main",
+        "player": "akiraanevr",
+        "discordUser": "AKIRA",
+        "displayName": "akira",
+        "levelPath": "__verifying__",
+        "levelName": "poopoo",
+        "percent": 100,
+        "link": "https://youtube.com",
+        "device": "Laptop",
+        "modMenu": "Mega Hack v9",
+        "customId": "132434",
+        "creator": "akiraanevr",
+        "verifier": "akiraanevr",
+        "showcase": "",
+        "length": "34s",
+        "attempts": "345",
+        "rawFootage": "https://youtube.com",
+        "notes": ""
+    }
+]
