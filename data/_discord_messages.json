@@ -1,7 +1,7 @@
 {
-    "victor": "## Congrats to {mention} for beating `{level}` and being the **{ordinal}** victor.. Anyways GGs myaw",
-    "verify": "# Congrats to {mention} for verifying `{level}` — it's at top **#{top}** wow.. you so pro dude... teach me... Anyways GGs myaw",
-    "move": "# `{level}` moved from **#{old_rank}** to **#{rank}** on the list!",
+    "victor": "ggs {mention} for beating **{level}** ({ordinal} victor){link_line}",
+    "verify": "ggs {mention} for verifying **{level}** (#{top})",
+    "move": "**{level}** moved #{old_rank} -> #{rank}",
     "acceptTitle": "Submission accepted",
     "accept": "Accepted for **{list}**.",
     "rejectTitle": "Submission rejected",
