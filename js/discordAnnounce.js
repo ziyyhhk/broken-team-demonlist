@@ -3,9 +3,9 @@
 export const WEBHOOK_KEY = 'bt_discord_webhook';
 
 export const DEFAULT_MESSAGES = {
-  victor: 'Congrats to {mention} for beating **{level}** and being the **{ordinal}** victor!{link_line}',
-  verify: '# Congrats to {mention} for verifying `{level}` — it\'s at top **#{top}** wow.. you so pro dude... teach me... Anyways GGs myaw',
-  move: '**{level}** moved from **#{old_rank}** to **#{rank}** on the list!',
+  victor: 'ggs {mention} for beating **{level}** ({ordinal} victor){link_line}',
+  verify: 'ggs {mention} for verifying **{level}** (#{top})',
+  move: '**{level}** moved #{old_rank} -> #{rank}',
   acceptTitle: 'Submission accepted',
   accept: 'Accepted for **{list}**.',
   rejectTitle: 'Submission rejected',
@@ -111,7 +111,7 @@ export function listTargetLabel(t) {
 }
 
 function field(name, value, inline) {
-  const v = String(value == null || value === '' ? '—' : value).slice(0, 1020);
+  const v = String(value == null || value === '' ? 'n/a' : value).slice(0, 1020);
   return { name: name, value: v, inline: !!inline };
 }
 
@@ -122,20 +122,20 @@ function linkField(name, url) {
   return { name: name, value: '[Open video](' + safe + ')', inline: false };
 }
 
-/** Pending submission notify — compact embed for staff queue */
+/** Pending submission notify */
 export function buildNewSubmissionEmbed(entry) {
   const e = entry || {};
   const listLabel = listTargetLabel(e.listTarget);
   const verifying = e.levelPath === '__verifying__' || e.mode === 'verifying';
-  const levelName = String(e.levelName || e.levelPath || '—');
-  const levelLine = verifying ? levelName + ' · verifying' : levelName;
+  const levelName = String(e.levelName || e.levelPath || 'unknown');
+  const levelLine = verifying ? levelName + ' (verifying)' : levelName;
   const discord =
     String(e.discordUser || '') + (e.displayName ? ' (' + e.displayName + ')' : '');
   const video = e.link || e.showcase || '';
 
   const fields = [
     field('Player', e.player, true),
-    field('Discord', discord || '—', true),
+    field('Discord', discord || 'n/a', true),
     field('List', listLabel, true),
     field('Level', levelLine, true),
   ];
@@ -161,7 +161,7 @@ export function buildNewSubmissionEmbed(entry) {
 
   return {
     title: 'New submission',
-    description: 'Pending review · **' + listLabel + '**',
+    description: 'Pending review on **' + listLabel + '**',
     color: 0xf0b232,
     fields: fields.slice(0, 25),
     footer: { text: 'ID ' + String(e.id || '').slice(0, 40) + ' · pending' },
@@ -169,7 +169,7 @@ export function buildNewSubmissionEmbed(entry) {
   };
 }
 
-/** Staff decision embed — richer accept info (list, top, move, kind). */
+/** Staff decision embed */
 export function buildSubmissionStatusEmbed(entry, status, msgs) {
   const accepted = status === 'accepted' || status === 'approved';
   const m = Object.assign({}, DEFAULT_MESSAGES, msgs || {});
@@ -213,7 +213,7 @@ export function buildSubmissionStatusEmbed(entry, status, msgs) {
     title = 'Level verified';
     description =
       (mention ? mention + ' verified **' + level + '**' : '**' + level + '** was verified') +
-      ' — placed on **' +
+      ' on **' +
       listLabel +
       '**' +
       (rank != null && !isNaN(rank) ? ' at **#' + rank + '**' : '') +
@@ -223,13 +223,13 @@ export function buildSubmissionStatusEmbed(entry, status, msgs) {
   } else if (kind === 'victor') {
     title = 'New victor';
     description =
-      (mention ? 'Congrats ' + mention : 'Congrats **' + player + '**') +
+      (mention ? 'ggs ' + mention : 'ggs **' + player + '**') +
       ' for beating **' +
       level +
       '** on **' +
       listLabel +
       '**' +
-      (rank != null && !isNaN(rank) ? ' — **' + ordinal(rank) + '** victor' : '') +
+      (rank != null && !isNaN(rank) ? ' (' + ordinal(rank) + ' victor)' : '') +
       '!';
     color = 0x3dbb45;
     footer = listLabel + (rank != null ? ' · victor #' + rank : '');
@@ -242,7 +242,7 @@ export function buildSubmissionStatusEmbed(entry, status, msgs) {
       listLabel +
       '** from **#' +
       (oldRank != null ? oldRank : '?') +
-      '** → **#' +
+      '** to **#' +
       (rank != null ? rank : '?') +
       '**.';
     color = 0xfaa61a;
@@ -267,14 +267,14 @@ export function buildSubmissionStatusEmbed(entry, status, msgs) {
   }
 
   const fields = [
-    field('Player', player || '—', true),
+    field('Player', player || 'n/a', true),
     field('List', listLabel, true),
-    field('Level', level || '—', true),
+    field('Level', level || 'n/a', true),
   ];
   if (e.discordUser) fields.splice(1, 0, field('Discord', e.discordUser, true));
   if (rank != null && !isNaN(rank)) fields.push(field('Placement', '#' + rank, true));
   if (oldRank != null && !isNaN(oldRank) && rank != null) {
-    fields.push(field('Moved', '#' + oldRank + ' → #' + rank, true));
+    fields.push(field('Moved', '#' + oldRank + ' to #' + rank, true));
   }
   if (kind === 'verify' && e.verifier) fields.push(field('Verifier', e.verifier, true));
   if (kind === 'verify' && (e.creator || e.author)) {
@@ -294,7 +294,7 @@ export function buildSubmissionStatusEmbed(entry, status, msgs) {
   };
 }
 
-/** Congrats embed after accept — uses victor/verify message templates as body. */
+/** Congrats embed after accept */
 export function buildCongratsEmbed(entry, kind, msgs) {
   const e = entry || {};
   const m = Object.assign({}, DEFAULT_MESSAGES, msgs || {});
@@ -320,13 +320,13 @@ export function buildCongratsEmbed(entry, kind, msgs) {
   const body = formatMessage(tpl, vars);
   const color = isVerify ? 0x5865f2 : 0x57f287;
   return {
-    title: isVerify ? 'Verified · ' + listLabel : 'Victor · ' + listLabel,
+    title: isVerify ? 'Verified on ' + listLabel : 'Victor on ' + listLabel,
     description: (body || '').slice(0, 2000),
     color,
     fields: [
-      field('Level', level || '—', true),
+      field('Level', level || 'n/a', true),
       field('List', listLabel, true),
-      rank != null ? field('Top', '#' + rank, true) : field('Top', '—', true),
+      rank != null ? field('Top', '#' + rank, true) : field('Top', 'n/a', true),
     ].filter(Boolean),
     footer: { text: 'Broken Team' },
     timestamp: new Date().toISOString(),
