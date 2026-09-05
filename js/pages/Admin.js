@@ -1,14 +1,12 @@
 /**
- * Admin — pin previous working Admin, then patch Discord ID UI + webhooks.
- * Submission channel: pending + reject only on submissionsWebhook.
- * Accept embeds go to acceptWebhook. No verify/victor "congrats" from submission flow.
- * Verification place never auto-adds a first victor.
+ * Admin — rich accept embeds (list, top, verify/victor congrats).
  */
 import Spinner from '../components/Spinner.js';
 import {
   WEBHOOK_KEY,
   sendDiscordEmbed,
   buildSubmissionStatusEmbed,
+  buildCongratsEmbed,
 } from '../discordAnnounce.js';
 
 const CDN =
@@ -138,13 +136,23 @@ function patchComp(Comp) {
           this.flash('No Discord webhook configured for ' + (accepted ? 'accept' : 'reject') + '.', true);
           return;
         }
+        const enriched = Object.assign({}, entry);
+        if (!enriched._discordId) {
+          try {
+            enriched._discordId = this.discordIdForSub(entry) || this.linkedDiscordId(entry.player) || '';
+          } catch (e) {}
+        }
         try {
           const result = await sendDiscordEmbed(
             webhook,
-            buildSubmissionStatusEmbed(entry, status, msgs),
+            buildSubmissionStatusEmbed(enriched, status, msgs),
           );
           if (result && result.ok === false) {
             this.flash('Discord notify failed: ' + (result.error || 'unknown'), true);
+          }
+          if (accepted && enriched._kind && (enriched._kind === 'verify' || enriched._kind === 'victor')) {
+            const congrats = buildCongratsEmbed(enriched, enriched._kind, msgs);
+            await sendDiscordEmbed(webhook, congrats);
           }
         } catch (e) {
           this.flash('Discord notify error: ' + (e && e.message ? e.message : e), true);
@@ -215,7 +223,17 @@ function patchComp(Comp) {
         );
         await this.saveSubmissionsQueue('Admin: accept verification ' + (sub.player || ''));
         await this.notifyDiscordStatus(
-          Object.assign({}, sub, { levelName: name, levelPath: path, listTarget: 'main' }),
+          Object.assign({}, sub, {
+            levelName: name,
+            levelPath: path,
+            listTarget: 'main',
+            verifier: verifier,
+            creator: author,
+            author: author,
+            _rank: r,
+            _kind: 'verify',
+            link: levelPayload.verification || sub.link || '',
+          }),
           'accepted',
         );
         if (this.placeForm) this.placeForm.open = false;
@@ -248,13 +266,51 @@ function patchComp(Comp) {
           return;
         }
         if (f.listTarget === 'impossible') {
-          await baseMethods.placeOnImpossible.call(this, sub, f, name, rank);
+          const origNotify = this.notifyDiscordStatus;
+          const self = this;
+          this.notifyDiscordStatus = async function (entry, status) {
+            return origNotify.call(
+              self,
+              Object.assign({}, entry, {
+                _kind: 'verify',
+                _rank: rank,
+                listTarget: 'impossible',
+                levelName: name,
+                link: (f && f.verification) || sub.link || '',
+              }),
+              status,
+            );
+          };
+          try {
+            await baseMethods.placeOnImpossible.call(this, sub, f, name, rank);
+          } finally {
+            this.notifyDiscordStatus = origNotify;
+          }
           return;
         }
         await this.placeOnMain(sub, f, name, rank);
       },
       async placeOnServerHardest(sub, f, name, rank) {
-        await baseMethods.placeOnServerHardest.call(this, sub, f, name, rank);
+        const origNotify = this.notifyDiscordStatus;
+        const self = this;
+        this.notifyDiscordStatus = async function (entry, status) {
+          return origNotify.call(
+            self,
+            Object.assign({}, entry, {
+              _kind: 'verify',
+              _rank: rank,
+              listTarget: 'server_hardest',
+              levelName: name,
+              link: (f && f.verification) || sub.link || '',
+            }),
+            status,
+          );
+        };
+        try {
+          await baseMethods.placeOnServerHardest.call(this, sub, f, name, rank);
+        } finally {
+          this.notifyDiscordStatus = origNotify;
+        }
         try {
           const res = await fetch('./data/_server_hardest.json?t=' + Date.now(), { cache: 'no-store' });
           if (!res.ok) return;
@@ -288,7 +344,30 @@ function patchComp(Comp) {
           if (input) discordId = String(input).replace(/\D/g, '');
         }
         if (discordId && s && s.id) this.setDiscordIdDraft(s.id, discordId);
-        await baseMethods.acceptRecordOnLevel.call(this, s, path);
+        const origNotify = this.notifyDiscordStatus;
+        const self = this;
+        this.notifyDiscordStatus = async function (entry, status) {
+          let rank = null;
+          try {
+            const pair = (self.list || []).find((p) => p && p[0] && p[0].path === path);
+            if (pair && pair[0] && Array.isArray(pair[0].records)) {
+              rank = pair[0].records.filter((r) => Number(r.percent) >= 100).length;
+            }
+          } catch (e) {}
+          const enriched = Object.assign({}, entry, {
+            _kind: 'victor',
+            _rank: rank,
+            _discordId: discordId || '',
+            listTarget: entry.listTarget || s.listTarget || 'main',
+            levelName: entry.levelName || s.levelName || path,
+          });
+          return origNotify.call(self, enriched, status);
+        };
+        try {
+          await baseMethods.acceptRecordOnLevel.call(this, s, path);
+        } finally {
+          this.notifyDiscordStatus = origNotify;
+        }
         if (discordId && typeof this.savePlayerDiscordId === 'function') {
           await this.savePlayerDiscordId(s.player, discordId);
         }
