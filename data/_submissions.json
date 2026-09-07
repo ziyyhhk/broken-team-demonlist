@@ -2,13 +2,13 @@
     {
         "id": "sub_mto2ol9p_a37spv",
         "createdAt": "2026-09-05T07:39:52.621Z",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "listTarget": "main",
         "player": "EtherealSoraa and xopyy",
         "discordUser": "EtherealSerendipity_",
         "displayName": "Sora",
-        "levelPath": "__verifying__",
+        "levelPath": "Kickback",
         "levelName": "Kickback",
         "percent": 100,
         "link": "https://www.youtube.com/watch?v=dgho78FjZkU",
@@ -21,7 +21,8 @@
         "length": "1:26",
         "attempts": "5504",
         "rawFootage": "",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-07T12:40:02.375Z"
     },
     {
         "id": "sub_mto1q93z_0fatpo",
