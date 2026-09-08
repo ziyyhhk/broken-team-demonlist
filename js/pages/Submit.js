@@ -1,4 +1,4 @@
-import { WEBHOOK_KEY, sendDiscordEmbed, buildNewSubmissionEmbed } from '../discordAnnounce.js';
+import { WEBHOOK_KEY, sendDiscordEmbed, buildNewSubmissionEmbed, revealSecret } from '../discordAnnounce.js';
 
 const CDN =
   'https://cdn.jsdelivr.net/gh/ziyyhhk/broken-team-demonlist@2feb53d823af6a743a925dc39a4d15a7455216bd/js/pages/Submit.js';
@@ -69,6 +69,11 @@ export default Vue.defineAsyncComponent(async () => {
   code = code.replace(
     "try {\n      this.levels = (await fetchList()) || [];\n    } catch (e) {\n      this.levels = [];\n    }",
     "try {\n      this.levels = (await fetchList()) || [];\n    } catch (e) {\n      this.levels = [];\n    }\n    try {\n      const shRes = await fetch('./data/_server_hardest.json?t=' + Date.now(), { cache: 'no-store' });\n      if (shRes.ok) {\n        const shData = await shRes.json();\n        this.serverHardest = Array.isArray(shData) ? shData : [];\n      } else {\n        this.serverHardest = [];\n      }\n    } catch (e) {\n      this.serverHardest = [];\n    }",
+  );
+
+  code = code.replace(
+    "if (cfg && cfg.submissionsWebhook) this.submissionsWebhook = cfg.submissionsWebhook;",
+    "if (cfg) { const w = revealSecret(cfg.sw || cfg.submissionsWebhook || ''); if (w) this.submissionsWebhook = w; }",
   );
 
   const mod = await import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
