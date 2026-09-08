@@ -2,13 +2,13 @@
     {
         "id": "sub_mtr98y7o_yca87o",
         "createdAt": "2026-09-07T13:06:58.740Z",
-        "status": "pending",
+        "status": "accepted",
         "mode": "classic",
         "listTarget": "main",
         "player": "EtherealSoraa",
         "discordUser": "etherealserendipity_",
         "displayName": "Sora",
-        "levelPath": "__verifying__",
+        "levelPath": "LoversBrock",
         "levelName": "Lovers Brock",
         "percent": 100,
         "link": "https://youtu.be/s5sbhdfMjXc",
@@ -21,7 +21,8 @@
         "length": "1:21",
         "attempts": "3476",
         "rawFootage": "",
-        "notes": ""
+        "notes": "",
+        "resolvedAt": "2026-09-08T16:15:18.759Z"
     },
     {
         "id": "sub_mto2ol9p_a37spv",
